@@ -12,8 +12,15 @@
 #include <stdint.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdlib.h>
 
 #include <arpa/inet.h> // for ntohs and friends
+
+struct tr31_opt_header_t {
+	uint16_t id;
+	char length[2];
+	char data[];
+} __attribute__((packed));
 
 struct tr31_header_t {
 	uint8_t version_id;
@@ -27,9 +34,13 @@ struct tr31_header_t {
 	char reserved[2];
 } __attribute__((packed));
 
-#define TR31_MIN_LENGTH (sizeof(struct tr31_header_t) + 8 + 8) // TR-31 header + 3DES block length + authenticator
+// TODO: use openssl definition instead
+#define DES_KEY_SZ (8)
 
-static int decimal_to_int(const char* str, size_t length)
+#define TR31_MIN_PAYLOAD_LENGTH (DES_KEY_SZ * 2) // Minimum TR-31 payload length ASCII digits
+#define TR31_MIN_KEY_BLOCK_LENGTH (sizeof(struct tr31_header_t) + TR31_MIN_PAYLOAD_LENGTH + 8) // Minimum TR-31 key block length: header + minimum payload + authenticator
+
+static int dec_to_int(const char* str, size_t length)
 {
 	int value;
 
@@ -40,33 +51,87 @@ static int decimal_to_int(const char* str, size_t length)
 		}
 
 		value *= 10; // shift decimal value
-		value += str[i] - 0x30; // convert ASCII to numeric value
+		value += str[i] - 0x30; // convert ASCII decimal to numeric value
 	}
 
 	return value;
 }
 
-int tr31_decode(const char* encoded, struct tr31_info_t* info)
+static int hex_to_int(const char* str, size_t length)
 {
-	size_t encoded_len;
-	struct tr31_header_t* header;
+	int value;
 
-	if (!encoded || !info) {
+	value = 0;
+	for (size_t i = 0; i < length; ++i) {
+		if (!isxdigit(str[i])) {
+			return -1;
+		}
+
+		value <<= 4; // shift hex value
+		// convert ASCII hex to numeric value
+		if (str[i] >= '0' && str[i] <= '9') {
+			value += str[i] - 0x30;
+		}
+		if (str[i] >= 'A' && str[i] <= 'F') {
+			value += str[i] - ('A' - 10);
+		}
+		if (str[i] >= 'a' && str[i] <= 'f') {
+			value += str[i] - ('a' - 10);
+		}
+	}
+
+	return value;
+}
+
+static int hex_to_bin(const char* hex, void* bin, size_t bin_len)
+{
+	size_t hex_len = bin_len * 2;
+
+	for (size_t i = 0; i < hex_len; ++i) {
+		if (!isxdigit(hex[i])) {
+			return -1;
+		}
+	}
+
+	while (*hex && bin_len--) {
+		uint8_t* ptr = bin;
+
+		char str[3];
+		strncpy(str, hex, 2);
+		str[2] = 0;
+
+		*ptr = strtoul(str, NULL, 16);
+
+		hex += 2;
+		++bin;
+	}
+
+	return 0;
+}
+
+int tr31_decode(const char* encoded, struct tr31_ctx_t* ctx)
+{
+	int r;
+	size_t encoded_len;
+	const struct tr31_header_t* header;
+	const void* ptr;
+
+	if (!encoded || !ctx) {
 		return -1;
 	}
-	memset(info, 0, sizeof(*info));
+	memset(ctx, 0, sizeof(*ctx));
 
 	encoded_len = strlen(encoded);
-	header = (struct tr31_header_t*)encoded;
+	header = (const struct tr31_header_t*)encoded;
 
 	// validate minimum length
-	if (encoded_len < TR31_MIN_LENGTH) {
+	if (encoded_len < TR31_MIN_KEY_BLOCK_LENGTH) {
 		return TR31_ERROR_INVALID_LENGTH;
 	}
 
 	// decode key block format
-	info->version = header->version_id;
-	switch (info->version) {
+	ctx->version = header->version_id;
+	switch (ctx->version) {
 		case TR31_VERSION_A:
 		case TR31_VERSION_B:
 		case TR31_VERSION_C:
@@ -78,14 +143,14 @@ int tr31_decode(const char* encoded, struct tr31_info_t* info)
 	}
 
 	// decode key block length field
-	info->length = decimal_to_int(header->length, sizeof(header->length));
-	if (info->length != encoded_len) {
+	ctx->length = dec_to_int(header->length, sizeof(header->length));
+	if (ctx->length != encoded_len) {
 		return TR31_ERROR_INVALID_LENGTH_FIELD;
 	}
 
 	// decode key usage field
-	info->key_usage = ntohs(header->key_usage);
-	switch (info->key_usage) {
+	ctx->key_usage = ntohs(header->key_usage);
+	switch (ctx->key_usage) {
 		case TR31_KEY_USAGE_BDK:
 		case TR31_KEY_USAGE_DUKPT_IPEK:
 		case TR31_KEY_USAGE_CVK:
@@ -118,8 +183,8 @@ int tr31_decode(const char* encoded, struct tr31_info_t* info)
 	}
 
 	// decode algorithm field
-	info->algorithm = header->algorithm;
-	switch (info->algorithm) {
+	ctx->algorithm = header->algorithm;
+	switch (ctx->algorithm) {
 		case TR31_ALGORITHM_AES:
 		case TR31_ALGORITHM_DES:
 		case TR31_ALGORITHM_EC:
@@ -135,8 +200,8 @@ int tr31_decode(const char* encoded, struct tr31_info_t* info)
 	}
 	
 	// decode mode of use field
-	info->mode_of_use = header->mode_of_use;
-	switch (info->mode_of_use) {
+	ctx->mode_of_use = header->mode_of_use;
+	switch (ctx->mode_of_use) {
 		case TR31_MODE_OF_USE_ENC_DEC:
 		case TR31_MODE_OF_USE_MAC:
 		case TR31_MODE_OF_USE_DEC:
@@ -156,23 +221,23 @@ int tr31_decode(const char* encoded, struct tr31_info_t* info)
 
 	// decode key version number field
 	if (header->key_version[0] == '0' && header->key_version[1] == '0') {
-		info->key_version = TR31_KEY_VERSION_IS_UNUSED;
+		ctx->key_version = TR31_KEY_VERSION_IS_UNUSED;
 	} else if (header->key_version[0] == 'c') {
-		info->key_version = TR31_KEY_VERSION_IS_COMPONENT;
-		info->key_component_number = decimal_to_int(&header->key_version[1], sizeof(header->key_version[1]));
+		ctx->key_version = TR31_KEY_VERSION_IS_COMPONENT;
+		ctx->key_component_number = dec_to_int(&header->key_version[1], sizeof(header->key_version[1]));
 	} else {
-		int key_version_value = decimal_to_int(header->key_version, sizeof(header->key_version));
+		int key_version_value = dec_to_int(header->key_version, sizeof(header->key_version));
 		if (key_version_value < 0) {
 			return TR31_ERROR_INVALID_KEY_VERSION_FIELD;
 		}
 
-		info->key_version = TR31_KEY_VERSION_IS_VALID;
-		info->key_version_value = key_version_value;
+		ctx->key_version = TR31_KEY_VERSION_IS_VALID;
+		ctx->key_version_value = key_version_value;
 	}
 
 	// decode exportability field
-	info->exportability = header->exportability;
-	switch (info->exportability) {
+	ctx->exportability = header->exportability;
+	switch (ctx->exportability) {
 		case TR31_KEY_EXPORT_TRUSTED:
 		case TR31_KEY_EXPORT_NONE:
 		case TR31_KEY_EXPORT_SENSITIVE:
@@ -183,12 +248,143 @@ int tr31_decode(const char* encoded, struct tr31_info_t* info)
 			return TR31_ERROR_UNSUPPORTED_EXPORTABILITY;
 	}
 
-	// decode number of optional blocks field
-	int opt_blocks_count = decimal_to_int(header->opt_blocks_count, sizeof(header->opt_blocks_count));
+	// decode number of optional header blocks field
+	int opt_blocks_count = dec_to_int(header->opt_blocks_count, sizeof(header->opt_blocks_count));
 	if (opt_blocks_count < 0) {
 		return TR31_ERROR_INVALID_NUMBER_OF_OPTIONAL_BLOCKS_FIELD;
 	}
-	info->opt_blocks_count = opt_blocks_count;
+	ctx->opt_blocks_count = opt_blocks_count;
+
+	// decode optional header blocks
+	ctx->opt_blocks = calloc(ctx->opt_blocks_count, sizeof(ctx->opt_blocks[0]));
+	ptr = header + 1; // optional header blocks, if any, are after the header
+	for (int i = 0; i < opt_blocks_count; ++i) {
+		// ensure that current pointer is valid for minimal optional header block
+		if (ptr + sizeof(struct tr31_opt_header_t) - (void*)header > encoded_len) {
+			r = TR31_ERROR_INVALID_LENGTH;
+			goto error;
+		}
+		const struct tr31_opt_header_t* opt_header = ptr;
+
+		// ensure that optional header block length is valid
+		int opt_hdr_len = hex_to_int(opt_header->length, sizeof(opt_header->length));
+		if (opt_hdr_len < sizeof(struct tr31_opt_header_t)) {
+			r = TR31_ERROR_INVALID_LENGTH;
+			goto error;
+		}
+		if (ptr + opt_hdr_len - (void*)header > encoded_len) {
+			r = TR31_ERROR_INVALID_LENGTH;
+			goto error;
+		}
+
+		// copy optional header block fields
+		ctx->opt_blocks[i].id = ntohs(opt_header->id);
+		ctx->opt_blocks[i].data_length = (opt_hdr_len - 4) / 2;
+		ctx->opt_blocks[i].data = calloc(1, ctx->opt_blocks[i].data_length);
+		r = hex_to_bin(opt_header->data, ctx->opt_blocks[i].data, ctx->opt_blocks[i].data_length);
+		if (r) {
+			r = TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+			goto error;
+		}
+
+		// advance current pointer
+		ptr += opt_hdr_len;
+	}
+
+	// determine authenticator length based on format version
+	switch (ctx->version) {
+		case TR31_VERSION_A:
+		case TR31_VERSION_C:
+			ctx->authenticator_length = 4;
+			break;
+
+		case TR31_VERSION_B:
+			ctx->authenticator_length = 8;
+			break;
+
+		case TR31_VERSION_D:
+			// TODO: implement TR-31:2018
+			return -1;
+
+		default:
+			// invalid format version
+			return -1;
+	}
+
+	// ensure that current pointer is valid for minimal payload and authenticator
+	if (ptr - (void*)header + TR31_MIN_PAYLOAD_LENGTH + (ctx->authenticator_length * 2) > encoded_len) {
+		return TR31_ERROR_INVALID_LENGTH;
+	}
+
+	// determine payload length in bytes
+	size_t payload_length = encoded_len - (ptr - (void*)header) - (ctx->authenticator_length * 2);
+	switch (ctx->algorithm) {
+		case TR31_ALGORITHM_DES:
+		case TR31_ALGORITHM_TDES:
+			ctx->payload_length = payload_length / 2;
+
+			// ensure that payload length is a multiple of the DES block size
+			if ((ctx->payload_length & (DES_KEY_SZ-1)) != 0) {
+				return TR31_ERROR_INVALID_PAYLOAD_DATA;
+			}
+			break;
+
+		default:
+			return TR31_ERROR_UNSUPPORTED_ALGORITHM;
+	}
+
+	// add payload data to context object
+	ctx->payload = calloc(1, ctx->payload_length);
+	r = hex_to_bin(ptr, ctx->payload, ctx->payload_length);
+	if (r) {
+		r = TR31_ERROR_INVALID_PAYLOAD_DATA;
+		goto error;
+	}
+	ptr += payload_length;
+
+	// ensure that current point is valid for remaining authenticator
+	if (ptr - (void*)header + (ctx->authenticator_length * 2) != encoded_len) {
+		r = TR31_ERROR_INVALID_LENGTH;
+		goto error;
+	}
+
+	// add authenticator to context object
+	ctx->authenticator = calloc(1, ctx->authenticator_length);
+	r = hex_to_bin(ptr, ctx->authenticator, ctx->authenticator_length);
+	if (r) {
+		r = TR31_ERROR_INVALID_AUTHENTICATOR_DATA;
+		goto error;
+	}
 
 	return 0;
+
+error:
+	tr31_release(ctx);
+	return r;
+}
+
+void tr31_release(struct tr31_ctx_t* ctx)
+{
+	if (!ctx) {
+		return;
+	}
+
+	if (ctx->opt_blocks) {
+		for (size_t i = 0; i < ctx->opt_blocks_count; ++i) {
+			free(ctx->opt_blocks[i].data);
+			ctx->opt_blocks[i].data = NULL;
+		}
+
+		free(ctx->opt_blocks);
+		ctx->opt_blocks = NULL;
+	}
+
+	if (ctx->payload) {
+		free(ctx->payload);
+		ctx->payload = NULL;
+	}
+	if (ctx->authenticator) {
+		free(ctx->authenticator);
+		ctx->authenticator = NULL;
+	}
 }

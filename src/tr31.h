@@ -77,14 +77,28 @@ enum tr31_key_version_t {
 #define TR31_KEY_EXPORT_NONE            ('N') ///< Exportability N: Not exportable
 #define TR31_KEY_EXPORT_SENSITIVE       ('S') ///< Exportability S: Sensitive; exportable in forms not in accordance with ANSI X9.24; eg ANSI X9.17
 
-/// Decoded TR-31 information
-struct tr31_info_t {
+#define TR31_OPT_HDR_BLOCK_KS           (0x4B53) ///< Optional Header Block KS: Key Set Identifier
+#define TR31_OPT_HDR_BLOCK_KV           (0x4B56) ///< Optional Header Block KV: Key Block Values
+#define TR31_OPT_HDR_BLOCK_PB           (0x5042) ///< Optional Header Block PB: Padding Block
+
+/// TR-31 optional header block context object
+struct tr31_opt_ctx_t {
+	unsigned int id; ///< TR-31 optional header block identifier
+	size_t data_length; ///< TR-31 optional header block data length in bytes
+	void* data; ///< TR-31 optional header block data
+};
+
+/**
+ * TR-31 context object
+ * @note Resources should be released using #tr31_release
+ */
+struct tr31_ctx_t {
 	enum tr31_version_t version; ///< TR-31 key block format version
 	size_t length; ///< TR-31 key block length in bytes
 	unsigned int key_usage; ///< TR-31 key block usage
 	unsigned int algorithm; ///< TR-31 key algorithm
 	unsigned int mode_of_use; ///< TR-31 key mode of use
-	
+
 	// key version field information
 	enum tr31_key_version_t key_version; ///< TR-31 key version field interpretation
 	union {
@@ -93,7 +107,15 @@ struct tr31_info_t {
 	};
 
 	unsigned int exportability; ///< TR-31 key exportability
-	size_t opt_blocks_count; ///< TR-31 number of optional blocks
+
+	size_t opt_blocks_count; ///< TR-31 number of optional header blocks
+	struct tr31_opt_ctx_t* opt_blocks; ///< TR-31 optional header block context objects
+
+	size_t payload_length; ///< TR-31 payload data length in bytes
+	void* payload; ///< TR-31 payload data
+
+	size_t authenticator_length; ///< TR-31 authenticator data length in bytes
+	void* authenticator; ///< TR-31 authenticator data
 };
 
 enum tr31_error_t {
@@ -106,15 +128,24 @@ enum tr31_error_t {
 	TR31_ERROR_INVALID_KEY_VERSION_FIELD, ///< Invalid key version field
 	TR31_ERROR_UNSUPPORTED_EXPORTABILITY, ///< Unsupported key exportability
 	TR31_ERROR_INVALID_NUMBER_OF_OPTIONAL_BLOCKS_FIELD, ///< Invalid number of optional blocks field
+	TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA, ///< Invalid optional block data
+	TR31_ERROR_INVALID_PAYLOAD_DATA, ///< Invalid payload data
+	TR31_ERROR_INVALID_AUTHENTICATOR_DATA, ///< Invalid authenticator data
 };
 
 /**
  * Decode TR-31 key block
  * @param encoded ASCII encoded, null terminated, TR-31 key block
- * @param info Decoded TR-31 information
+ * @param ctx TR-31 context object output
  * @return Zero for success. Less than zero for internal error. Greater than zero for parsing error. see #tr31_error_t
  */
-int tr31_decode(const char* encoded, struct tr31_info_t* info);
+int tr31_decode(const char* encoded, struct tr31_ctx_t* ctx);
+
+/**
+ * Release TR-31 context object resources
+ * @param ctx TR-31 context object
+ */
+void tr31_release(struct tr31_ctx_t* ctx);
 
 __END_DECLS
 
