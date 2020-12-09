@@ -21,19 +21,19 @@ int main(void)
 	int r;
 	struct tr31_ctx_t test_tr31;
 
-	r = tr31_decode(test_tr31_ascii, &test_tr31);
+	r = tr31_import(test_tr31_ascii, &test_tr31);
 	if (r) {
-		fprintf(stderr, "tr31_decode() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
 		goto exit;
 	}
 	if (test_tr31.version != TR31_VERSION_B ||
 		test_tr31.length != 104 ||
-		test_tr31.key_usage != TR31_KEY_USAGE_DUKPT_IPEK ||
-		test_tr31.algorithm != TR31_ALGORITHM_TDES ||
-		test_tr31.mode_of_use != TR31_MODE_OF_USE_DERIVE ||
-		test_tr31.key_version != TR31_KEY_VERSION_IS_UNUSED ||
-		test_tr31.key_version_value != 0 ||
-		test_tr31.exportability != TR31_KEY_EXPORT_SENSITIVE ||
+		test_tr31.key.usage != TR31_KEY_USAGE_DUKPT_IPEK ||
+		test_tr31.key.algorithm != TR31_KEY_ALGORITHM_TDES ||
+		test_tr31.key.mode_of_use != TR31_KEY_MODE_OF_USE_DERIVE ||
+		test_tr31.key.key_version != TR31_KEY_VERSION_IS_UNUSED ||
+		test_tr31.key.key_version_value != 0 ||
+		test_tr31.key.exportability != TR31_KEY_EXPORT_SENSITIVE ||
 		test_tr31.opt_blocks_count != 1 ||
 		test_tr31.opt_blocks == NULL ||
 		test_tr31.opt_blocks[0].id != TR31_OPT_HDR_BLOCK_KS ||

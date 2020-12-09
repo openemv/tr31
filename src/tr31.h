@@ -48,24 +48,24 @@ enum tr31_version_t {
 #define TR31_KEY_USAGE_PV_IBM3624       (0x5631) ///< Key Usage V1: PIN Verification Key (IBM 3624)
 #define TR31_KEY_USAGE_PV_VISA          (0x5632) ///< Key Usage V2: PIN Verification Key (VISA PVV)
 
-#define TR31_ALGORITHM_AES              (0x41) ///< Algorithm A: AES
-#define TR31_ALGORITHM_DES              (0x44) ///< Algorithm D: DES
-#define TR31_ALGORITHM_EC               (0x45) ///< Algorithm E: Elliptic Curve
-#define TR31_ALGORITHM_HMAC             (0x48) ///< Algorithm H: HMAC-SHA1
-#define TR31_ALGORITHM_RSA              (0x52) ///< Algorithm R: RSA
-#define TR31_ALGORITHM_DSA              (0x53) ///< Algorithm S: DSA
-#define TR31_ALGORITHM_TDES             (0x54) ///< Algorithm T: Triple DES
+#define TR31_KEY_ALGORITHM_AES          (0x41) ///< Key Algorithm A: AES
+#define TR31_KEY_ALGORITHM_DES          (0x44) ///< Key Algorithm D: DES
+#define TR31_KEY_ALGORITHM_EC           (0x45) ///< Key Algorithm E: Elliptic Curve
+#define TR31_KEY_ALGORITHM_HMAC         (0x48) ///< Key Algorithm H: HMAC-SHA1
+#define TR31_KEY_ALGORITHM_RSA          (0x52) ///< Key Algorithm R: RSA
+#define TR31_KEY_ALGORITHM_DSA          (0x53) ///< Key Algorithm S: DSA
+#define TR31_KEY_ALGORITHM_TDES         (0x54) ///< Key Algorithm T: Triple DES
 
-#define TR31_MODE_OF_USE_ENC_DEC        ('B') ///< Mode of use B: Encrypt and Decrypt (Wrap and Unwrap)
-#define TR31_MODE_OF_USE_MAC            ('C') ///< Mode of use C: MAC Calculate (Generate and Verify)
-#define TR31_MODE_OF_USE_DEC            ('D') ///< Mode of use D: Decrypt / Unwrap Only
-#define TR31_MODE_OF_USE_ENC            ('E') ///< Mode of use E: Encrypt / Wrap Only
-#define TR31_MODE_OF_USE_MAC_GEN        ('G') ///< Mode of use G: MAC Generate Only
-#define TR31_MODE_OF_USE_ANY            ('N') ///< Mode of use N: No special restrictions or not applicable (other than restrictions implied by the Key Usage)
-#define TR31_MODE_OF_USE_SIG            ('S') ///< Mode of use S: Signature Only
-#define TR31_MODE_OF_USE_MAC_VERIFY     ('V') ///< Mode of use V: MAC Verify Only
-#define TR31_MODE_OF_USE_DERIVE         ('X') ///< Mode of use X: Key Derivation
-#define TR31_MODE_OF_USE_VARIANT        ('Y') ///< Mode of use Y: Create Key Variants
+#define TR31_KEY_MODE_OF_USE_ENC_DEC    ('B') ///< Key Mode of Use B: Encrypt and Decrypt (Wrap and Unwrap)
+#define TR31_KEY_MODE_OF_USE_MAC        ('C') ///< Key Mode of Use C: MAC Calculate (Generate and Verify)
+#define TR31_KEY_MODE_OF_USE_DEC        ('D') ///< Key Mode of Use D: Decrypt / Unwrap Only
+#define TR31_KEY_MODE_OF_USE_ENC        ('E') ///< Key Mode of Use E: Encrypt / Wrap Only
+#define TR31_KEY_MODE_OF_USE_MAC_GEN    ('G') ///< Key Mode of Use G: MAC Generate Only
+#define TR31_KEY_MODE_OF_USE_ANY        ('N') ///< Key Mode of Use N: No special restrictions or not applicable (other than restrictions implied by the Key Usage)
+#define TR31_KEY_MODE_OF_USE_SIG        ('S') ///< Key Mode of Use S: Signature Only
+#define TR31_KEY_MODE_OF_USE_MAC_VERIFY ('V') ///< Key Mode of Use V: MAC Verify Only
+#define TR31_KEY_MODE_OF_USE_DERIVE     ('X') ///< Key Mode of Use X: Key Derivation
+#define TR31_KEY_MODE_OF_USE_VARIANT    ('Y') ///< Key Mode of Use Y: Create Key Variants
 
 enum tr31_key_version_t {
 	TR31_KEY_VERSION_IS_UNUSED = 0, ///< Key version field unused
@@ -81,6 +81,22 @@ enum tr31_key_version_t {
 #define TR31_OPT_HDR_BLOCK_KV           (0x4B56) ///< Optional Header Block KV: Key Block Values
 #define TR31_OPT_HDR_BLOCK_PB           (0x5042) ///< Optional Header Block PB: Padding Block
 
+/// TR-31 key object
+struct tr31_key_t {
+	unsigned int usage; ///< TR-31 key usage
+	unsigned int algorithm; ///< TR-31 key algorithm
+	unsigned int mode_of_use; ///< TR-31 key mode of use
+
+	// key version field information
+	enum tr31_key_version_t key_version; ///< TR-31 key version field interpretation
+	union {
+		unsigned int key_version_value; ///< TR-31 key version number
+		unsigned int key_component_number; ///< TR-31 key component number
+	};
+
+	unsigned int exportability; ///< TR-31 key exportability
+};
+
 /// TR-31 optional header block context object
 struct tr31_opt_ctx_t {
 	unsigned int id; ///< TR-31 optional header block identifier
@@ -95,18 +111,8 @@ struct tr31_opt_ctx_t {
 struct tr31_ctx_t {
 	enum tr31_version_t version; ///< TR-31 key block format version
 	size_t length; ///< TR-31 key block length in bytes
-	unsigned int key_usage; ///< TR-31 key block usage
-	unsigned int algorithm; ///< TR-31 key algorithm
-	unsigned int mode_of_use; ///< TR-31 key mode of use
 
-	// key version field information
-	enum tr31_key_version_t key_version; ///< TR-31 key version field interpretation
-	union {
-		unsigned int key_version_value; ///< TR-31 key version number
-		unsigned int key_component_number; ///< TR-31 key component number
-	};
-
-	unsigned int exportability; ///< TR-31 key exportability
+	struct tr31_key_t key; ///< TR-31 key object
 
 	size_t opt_blocks_count; ///< TR-31 number of optional header blocks
 	struct tr31_opt_ctx_t* opt_blocks; ///< TR-31 optional header block context objects
@@ -134,12 +140,15 @@ enum tr31_error_t {
 };
 
 /**
- * Decode TR-31 key block
- * @param encoded ASCII encoded, null terminated, TR-31 key block
+ * Import TR-31 key block. This function will also decrypt the key data if possible.
+ * @param key_block TR-31 key block. Null terminated. At least the header must be ASCII encoded.
  * @param ctx TR-31 context object output
- * @return Zero for success. Less than zero for internal error. Greater than zero for parsing error. see #tr31_error_t
+ * @return Zero for success. Less than zero for internal error. Greater than zero for parsing error. @see #tr31_error_t
  */
-int tr31_decode(const char* encoded, struct tr31_ctx_t* ctx);
+int tr31_import(
+	const char* key_block,
+	struct tr31_ctx_t* ctx
+);
 
 /**
  * Release TR-31 context object resources

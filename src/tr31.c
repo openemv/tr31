@@ -109,23 +109,26 @@ static int hex_to_bin(const char* hex, void* bin, size_t bin_len)
 	return 0;
 }
 
-int tr31_decode(const char* encoded, struct tr31_ctx_t* ctx)
+int tr31_import(
+	const char* key_block,
+	struct tr31_ctx_t* ctx
+)
 {
 	int r;
-	size_t encoded_len;
+	size_t key_block_len;
 	const struct tr31_header_t* header;
 	const void* ptr;
 
-	if (!encoded || !ctx) {
+	if (!key_block || !ctx) {
 		return -1;
 	}
 	memset(ctx, 0, sizeof(*ctx));
 
-	encoded_len = strlen(encoded);
-	header = (const struct tr31_header_t*)encoded;
+	key_block_len = strlen(key_block);
+	header = (const struct tr31_header_t*)key_block;
 
 	// validate minimum length
-	if (encoded_len < TR31_MIN_KEY_BLOCK_LENGTH) {
+	if (key_block_len < TR31_MIN_KEY_BLOCK_LENGTH) {
 		return TR31_ERROR_INVALID_LENGTH;
 	}
 
@@ -144,13 +147,13 @@ int tr31_decode(const char* encoded, struct tr31_ctx_t* ctx)
 
 	// decode key block length field
 	ctx->length = dec_to_int(header->length, sizeof(header->length));
-	if (ctx->length != encoded_len) {
+	if (ctx->length != key_block_len) {
 		return TR31_ERROR_INVALID_LENGTH_FIELD;
 	}
 
 	// decode key usage field
-	ctx->key_usage = ntohs(header->key_usage);
-	switch (ctx->key_usage) {
+	ctx->key.usage = ntohs(header->key_usage);
+	switch (ctx->key.usage) {
 		case TR31_KEY_USAGE_BDK:
 		case TR31_KEY_USAGE_DUKPT_IPEK:
 		case TR31_KEY_USAGE_CVK:
@@ -183,15 +186,15 @@ int tr31_decode(const char* encoded, struct tr31_ctx_t* ctx)
 	}
 
 	// decode algorithm field
-	ctx->algorithm = header->algorithm;
-	switch (ctx->algorithm) {
-		case TR31_ALGORITHM_AES:
-		case TR31_ALGORITHM_DES:
-		case TR31_ALGORITHM_EC:
-		case TR31_ALGORITHM_HMAC:
-		case TR31_ALGORITHM_RSA:
-		case TR31_ALGORITHM_DSA:
-		case TR31_ALGORITHM_TDES:
+	ctx->key.algorithm = header->algorithm;
+	switch (ctx->key.algorithm) {
+		case TR31_KEY_ALGORITHM_AES:
+		case TR31_KEY_ALGORITHM_DES:
+		case TR31_KEY_ALGORITHM_EC:
+		case TR31_KEY_ALGORITHM_HMAC:
+		case TR31_KEY_ALGORITHM_RSA:
+		case TR31_KEY_ALGORITHM_DSA:
+		case TR31_KEY_ALGORITHM_TDES:
 			// supported
 			break;
 
@@ -200,18 +203,18 @@ int tr31_decode(const char* encoded, struct tr31_ctx_t* ctx)
 	}
 	
 	// decode mode of use field
-	ctx->mode_of_use = header->mode_of_use;
-	switch (ctx->mode_of_use) {
-		case TR31_MODE_OF_USE_ENC_DEC:
-		case TR31_MODE_OF_USE_MAC:
-		case TR31_MODE_OF_USE_DEC:
-		case TR31_MODE_OF_USE_ENC:
-		case TR31_MODE_OF_USE_MAC_GEN:
-		case TR31_MODE_OF_USE_ANY:
-		case TR31_MODE_OF_USE_SIG:
-		case TR31_MODE_OF_USE_MAC_VERIFY:
-		case TR31_MODE_OF_USE_DERIVE:
-		case TR31_MODE_OF_USE_VARIANT:
+	ctx->key.mode_of_use = header->mode_of_use;
+	switch (ctx->key.mode_of_use) {
+		case TR31_KEY_MODE_OF_USE_ENC_DEC:
+		case TR31_KEY_MODE_OF_USE_MAC:
+		case TR31_KEY_MODE_OF_USE_DEC:
+		case TR31_KEY_MODE_OF_USE_ENC:
+		case TR31_KEY_MODE_OF_USE_MAC_GEN:
+		case TR31_KEY_MODE_OF_USE_ANY:
+		case TR31_KEY_MODE_OF_USE_SIG:
+		case TR31_KEY_MODE_OF_USE_MAC_VERIFY:
+		case TR31_KEY_MODE_OF_USE_DERIVE:
+		case TR31_KEY_MODE_OF_USE_VARIANT:
 			// supported
 			break;
 
@@ -221,23 +224,23 @@ int tr31_decode(const char* encoded, struct tr31_ctx_t* ctx)
 
 	// decode key version number field
 	if (header->key_version[0] == '0' && header->key_version[1] == '0') {
-		ctx->key_version = TR31_KEY_VERSION_IS_UNUSED;
+		ctx->key.key_version = TR31_KEY_VERSION_IS_UNUSED;
 	} else if (header->key_version[0] == 'c') {
-		ctx->key_version = TR31_KEY_VERSION_IS_COMPONENT;
-		ctx->key_component_number = dec_to_int(&header->key_version[1], sizeof(header->key_version[1]));
+		ctx->key.key_version = TR31_KEY_VERSION_IS_COMPONENT;
+		ctx->key.key_component_number = dec_to_int(&header->key_version[1], sizeof(header->key_version[1]));
 	} else {
 		int key_version_value = dec_to_int(header->key_version, sizeof(header->key_version));
 		if (key_version_value < 0) {
 			return TR31_ERROR_INVALID_KEY_VERSION_FIELD;
 		}
 
-		ctx->key_version = TR31_KEY_VERSION_IS_VALID;
-		ctx->key_version_value = key_version_value;
+		ctx->key.key_version = TR31_KEY_VERSION_IS_VALID;
+		ctx->key.key_version_value = key_version_value;
 	}
 
 	// decode exportability field
-	ctx->exportability = header->exportability;
-	switch (ctx->exportability) {
+	ctx->key.exportability = header->exportability;
+	switch (ctx->key.exportability) {
 		case TR31_KEY_EXPORT_TRUSTED:
 		case TR31_KEY_EXPORT_NONE:
 		case TR31_KEY_EXPORT_SENSITIVE:
@@ -260,7 +263,7 @@ int tr31_decode(const char* encoded, struct tr31_ctx_t* ctx)
 	ptr = header + 1; // optional header blocks, if any, are after the header
 	for (int i = 0; i < opt_blocks_count; ++i) {
 		// ensure that current pointer is valid for minimal optional header block
-		if (ptr + sizeof(struct tr31_opt_header_t) - (void*)header > encoded_len) {
+		if (ptr + sizeof(struct tr31_opt_header_t) - (void*)header > key_block_len) {
 			r = TR31_ERROR_INVALID_LENGTH;
 			goto error;
 		}
@@ -272,7 +275,7 @@ int tr31_decode(const char* encoded, struct tr31_ctx_t* ctx)
 			r = TR31_ERROR_INVALID_LENGTH;
 			goto error;
 		}
-		if (ptr + opt_hdr_len - (void*)header > encoded_len) {
+		if (ptr + opt_hdr_len - (void*)header > key_block_len) {
 			r = TR31_ERROR_INVALID_LENGTH;
 			goto error;
 		}
@@ -312,15 +315,15 @@ int tr31_decode(const char* encoded, struct tr31_ctx_t* ctx)
 	}
 
 	// ensure that current pointer is valid for minimal payload and authenticator
-	if (ptr - (void*)header + TR31_MIN_PAYLOAD_LENGTH + (ctx->authenticator_length * 2) > encoded_len) {
+	if (ptr - (void*)header + TR31_MIN_PAYLOAD_LENGTH + (ctx->authenticator_length * 2) > key_block_len) {
 		return TR31_ERROR_INVALID_LENGTH;
 	}
 
 	// determine payload length in bytes
-	size_t payload_length = encoded_len - (ptr - (void*)header) - (ctx->authenticator_length * 2);
-	switch (ctx->algorithm) {
-		case TR31_ALGORITHM_DES:
-		case TR31_ALGORITHM_TDES:
+	size_t payload_length = key_block_len - (ptr - (void*)header) - (ctx->authenticator_length * 2);
+	switch (ctx->key.algorithm) {
+		case TR31_KEY_ALGORITHM_DES:
+		case TR31_KEY_ALGORITHM_TDES:
 			ctx->payload_length = payload_length / 2;
 
 			// ensure that payload length is a multiple of the DES block size
@@ -343,7 +346,7 @@ int tr31_decode(const char* encoded, struct tr31_ctx_t* ctx)
 	ptr += payload_length;
 
 	// ensure that current point is valid for remaining authenticator
-	if (ptr - (void*)header + (ctx->authenticator_length * 2) != encoded_len) {
+	if (ptr - (void*)header + (ctx->authenticator_length * 2) != key_block_len) {
 		r = TR31_ERROR_INVALID_LENGTH;
 		goto error;
 	}
