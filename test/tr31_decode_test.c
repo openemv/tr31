@@ -21,7 +21,7 @@ int main(void)
 	int r;
 	struct tr31_ctx_t test_tr31;
 
-	r = tr31_import(test_tr31_ascii, &test_tr31);
+	r = tr31_import(test_tr31_ascii, NULL, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
 		goto exit;

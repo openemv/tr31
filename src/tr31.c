@@ -8,6 +8,7 @@
  */
 
 #include "tr31.h"
+#include "tr31_crypto.h"
 
 #include <stdint.h>
 #include <string.h>
@@ -34,10 +35,7 @@ struct tr31_header_t {
 	char reserved[2];
 } __attribute__((packed));
 
-// TODO: use openssl definition instead
-#define DES_KEY_SZ (8)
-
-#define TR31_MIN_PAYLOAD_LENGTH (DES_KEY_SZ * 2) // Minimum TR-31 payload length ASCII digits
+#define TR31_MIN_PAYLOAD_LENGTH (DES_BLOCK_SIZE)
 #define TR31_MIN_KEY_BLOCK_LENGTH (sizeof(struct tr31_header_t) + TR31_MIN_PAYLOAD_LENGTH + 8) // Minimum TR-31 key block length: header + minimum payload + authenticator
 
 static int dec_to_int(const char* str, size_t length)
@@ -111,6 +109,7 @@ static int hex_to_bin(const char* hex, void* bin, size_t bin_len)
 
 int tr31_import(
 	const char* key_block,
+	const struct tr31_key_t* kbpk,
 	struct tr31_ctx_t* ctx
 )
 {
@@ -298,11 +297,11 @@ int tr31_import(
 	switch (ctx->version) {
 		case TR31_VERSION_A:
 		case TR31_VERSION_C:
-			ctx->authenticator_length = 4;
+			ctx->authenticator_length = 4; // 4 bytes; 8 ASCII hex digits
 			break;
 
 		case TR31_VERSION_B:
-			ctx->authenticator_length = 8;
+			ctx->authenticator_length = 8; // 8 bytes; 16 ASCII hex digits
 			break;
 
 		case TR31_VERSION_D:
@@ -359,10 +358,39 @@ int tr31_import(
 		goto error;
 	}
 
-	return 0;
+	// if no key block protection key was provided, we are done
+	if (!kbpk) {
+		r = 0;
+		goto exit;
+	}
+
+	switch (ctx->version) {
+		case TR31_VERSION_A:
+		case TR31_VERSION_C:
+			// TODO: verify payload length
+			// TODO: derive keys
+			// TODO: verify MAC
+			// TODO: decrypt
+			break;
+
+		case TR31_VERSION_B:
+			// TODO: verify payload length
+			// TODO: derive keys
+			// TODO: decrypt
+			// TODO: verify MAC
+			break;
+
+		default:
+			// invalid format version
+			return -1;
+	}
+
+	r = 0;
+	goto exit;
 
 error:
 	tr31_release(ctx);
+exit:
 	return r;
 }
 

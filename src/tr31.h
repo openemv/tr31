@@ -142,11 +142,13 @@ enum tr31_error_t {
 /**
  * Import TR-31 key block. This function will also decrypt the key data if possible.
  * @param key_block TR-31 key block. Null terminated. At least the header must be ASCII encoded.
+ * @param kbpk TR-31 key block protection key. NULL if not available or decryption is not required.
  * @param ctx TR-31 context object output
  * @return Zero for success. Less than zero for internal error. Greater than zero for parsing error. @see #tr31_error_t
  */
 int tr31_import(
 	const char* key_block,
+	const struct tr31_key_t* kbpk,
 	struct tr31_ctx_t* ctx
 );
 
