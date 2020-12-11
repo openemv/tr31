@@ -258,8 +258,10 @@ int tr31_import(
 	ctx->opt_blocks_count = opt_blocks_count;
 
 	// decode optional header blocks
-	ctx->opt_blocks = calloc(ctx->opt_blocks_count, sizeof(ctx->opt_blocks[0]));
 	ptr = header + 1; // optional header blocks, if any, are after the header
+	if (ctx->opt_blocks_count) {
+		ctx->opt_blocks = calloc(ctx->opt_blocks_count, sizeof(ctx->opt_blocks[0]));
+	}
 	for (int i = 0; i < opt_blocks_count; ++i) {
 		// ensure that current pointer is valid for minimal optional header block
 		if (ptr + sizeof(struct tr31_opt_header_t) - (void*)header > key_block_len) {
@@ -315,7 +317,8 @@ int tr31_import(
 
 	// ensure that current pointer is valid for minimal payload and authenticator
 	if (ptr - (void*)header + TR31_MIN_PAYLOAD_LENGTH + (ctx->authenticator_length * 2) > key_block_len) {
-		return TR31_ERROR_INVALID_LENGTH;
+		r = TR31_ERROR_INVALID_LENGTH;
+		goto error;
 	}
 
 	// determine payload length in bytes
