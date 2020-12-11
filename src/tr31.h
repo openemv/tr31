@@ -95,6 +95,9 @@ struct tr31_key_t {
 	};
 
 	unsigned int exportability; ///< TR-31 key exportability
+
+	size_t length; ///< Key data length in bytes
+	void* data; ///< Key data
 };
 
 /// TR-31 optional header block context object
@@ -137,6 +140,9 @@ enum tr31_error_t {
 	TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA, ///< Invalid optional block data
 	TR31_ERROR_INVALID_PAYLOAD_DATA, ///< Invalid payload data
 	TR31_ERROR_INVALID_AUTHENTICATOR_DATA, ///< Invalid authenticator data
+	TR31_ERROR_UNSUPPORTED_KBPK_ALGORITHM, ///< Unsupported key block protection key algorithm
+	TR31_ERROR_UNSUPPORTED_KBPK_LENGTH, ///< Unsupported key block protection key length
+	TR31_ERROR_INVALID_KEY_LENGTH, ///< Invalid key length
 };
 
 /**
@@ -144,7 +150,7 @@ enum tr31_error_t {
  * @param key_block TR-31 key block. Null terminated. At least the header must be ASCII encoded.
  * @param kbpk TR-31 key block protection key. NULL if not available or decryption is not required.
  * @param ctx TR-31 context object output
- * @return Zero for success. Less than zero for internal error. Greater than zero for parsing error. @see #tr31_error_t
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. @see #tr31_error_t
  */
 int tr31_import(
 	const char* key_block,

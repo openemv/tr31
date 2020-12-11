@@ -17,5 +17,7 @@ if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
 	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -ggdb")
 endif()
 
+find_package(OpenSSL 1.1 REQUIRED)
+
 add_subdirectory(src)
 add_subdirectory(test)

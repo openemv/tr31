@@ -35,6 +35,11 @@ struct tr31_header_t {
 	char reserved[2];
 } __attribute__((packed));
 
+struct tr31_payload_t {
+	uint16_t length;
+	uint8_t data[];
+} __attribute__((packed));
+
 #define TR31_MIN_PAYLOAD_LENGTH (DES_BLOCK_SIZE)
 #define TR31_MIN_KEY_BLOCK_LENGTH (sizeof(struct tr31_header_t) + TR31_MIN_PAYLOAD_LENGTH + 8) // Minimum TR-31 key block length: header + minimum payload + authenticator
 
@@ -137,9 +142,9 @@ int tr31_import(
 		case TR31_VERSION_A:
 		case TR31_VERSION_B:
 		case TR31_VERSION_C:
-		case TR31_VERSION_D:
 			break;
 
+		case TR31_VERSION_D:
 		default:
 			return TR31_ERROR_UNSUPPORTED_VERSION;
 	}
@@ -321,22 +326,9 @@ int tr31_import(
 		goto error;
 	}
 
-	// determine payload length in bytes
-	size_t payload_length = key_block_len - (ptr - (void*)header) - (ctx->authenticator_length * 2);
-	switch (ctx->key.algorithm) {
-		case TR31_KEY_ALGORITHM_DES:
-		case TR31_KEY_ALGORITHM_TDES:
-			ctx->payload_length = payload_length / 2;
-
-			// ensure that payload length is a multiple of the DES block size
-			if ((ctx->payload_length & (DES_KEY_SZ-1)) != 0) {
-				return TR31_ERROR_INVALID_PAYLOAD_DATA;
-			}
-			break;
-
-		default:
-			return TR31_ERROR_UNSUPPORTED_ALGORITHM;
-	}
+	// determine payload length
+	size_t key_block_payload_length = key_block_len - (ptr - (void*)header) - (ctx->authenticator_length * 2);
+	ctx->payload_length = key_block_payload_length / 2;
 
 	// add payload data to context object
 	ctx->payload = calloc(1, ctx->payload_length);
@@ -345,7 +337,7 @@ int tr31_import(
 		r = TR31_ERROR_INVALID_PAYLOAD_DATA;
 		goto error;
 	}
-	ptr += payload_length;
+	ptr += key_block_payload_length;
 
 	// ensure that current point is valid for remaining authenticator
 	if (ptr - (void*)header + (ctx->authenticator_length * 2) != key_block_len) {
@@ -376,12 +368,54 @@ int tr31_import(
 			// TODO: decrypt
 			break;
 
-		case TR31_VERSION_B:
-			// TODO: verify payload length
-			// TODO: derive keys
-			// TODO: decrypt
+		case TR31_VERSION_B: {
+			// only allow TDES key block protection keys
+			if (kbpk->algorithm != TR31_KEY_ALGORITHM_TDES) {
+				r = TR31_ERROR_UNSUPPORTED_KBPK_LENGTH;
+				goto error;
+			}
+
+			uint8_t kbek[TDES3_KEY_SIZE];
+			uint8_t kbak[TDES3_KEY_SIZE];
+			uint8_t payload_buf[TR31_TDES3_KEY_UNDER_DES_LENGTH];
+			struct tr31_payload_t* payload = (struct tr31_payload_t*)payload_buf;
+
+			// validate payload length
+			if (ctx->payload_length != TR31_TDES2_KEY_UNDER_DES_LENGTH &&
+				ctx->payload_length != TR31_TDES3_KEY_UNDER_DES_LENGTH
+			) {
+				r = TR31_ERROR_INVALID_KEY_LENGTH;
+				goto error;
+			}
+
+			// derive key block encryption key and key block authentication key from key block protection key
+			r = tr31_tdes_kbpk_derive(kbpk->data, kbpk->length, kbek, kbak);
+			if (r) {
+				// return error value as-is
+				goto error;
+			}
+
+			// decrypt key payload; note that the authenticator is used as the IV
+			r = tr31_tdes_decrypt_cbc(kbek, kbpk->length, ctx->authenticator, ctx->payload, ctx->payload_length, payload);
+			if (r) {
+				// return error value as-is
+				goto error;
+			}
+
+			// validate payload length field
+			ctx->key.length = ntohs(payload->length) / 8; // payload length is big endian and in bits, not bytes
+			if (ctx->key.length != TDES2_KEY_SIZE && ctx->key.length != TDES3_KEY_SIZE) {
+				r = TR31_ERROR_INVALID_KEY_LENGTH;
+				goto error;
+			}
+
+			// extract key data
+			ctx->key.data = calloc(1, ctx->key.length);
+			memcpy(ctx->key.data, payload->data, ctx->key.length);
+
 			// TODO: verify MAC
 			break;
+		}
 
 		default:
 			// invalid format version
@@ -401,6 +435,11 @@ void tr31_release(struct tr31_ctx_t* ctx)
 {
 	if (!ctx) {
 		return;
+	}
+
+	if (ctx->key.data) {
+		free(ctx->key.data);
+		ctx->key.data = NULL;
 	}
 
 	if (ctx->opt_blocks) {
