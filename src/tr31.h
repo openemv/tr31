@@ -138,11 +138,12 @@ enum tr31_error_t {
 	TR31_ERROR_UNSUPPORTED_EXPORTABILITY, ///< Unsupported key exportability
 	TR31_ERROR_INVALID_NUMBER_OF_OPTIONAL_BLOCKS_FIELD, ///< Invalid number of optional blocks field
 	TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA, ///< Invalid optional block data
-	TR31_ERROR_INVALID_PAYLOAD_DATA, ///< Invalid payload data
-	TR31_ERROR_INVALID_AUTHENTICATOR_DATA, ///< Invalid authenticator data
+	TR31_ERROR_INVALID_PAYLOAD_FIELD, ///< Invalid payload data field
+	TR31_ERROR_INVALID_AUTHENTICATOR_FIELD, ///< Invalid authenticator data field
 	TR31_ERROR_UNSUPPORTED_KBPK_ALGORITHM, ///< Unsupported key block protection key algorithm
 	TR31_ERROR_UNSUPPORTED_KBPK_LENGTH, ///< Unsupported key block protection key length
-	TR31_ERROR_INVALID_KEY_LENGTH, ///< Invalid key length
+	TR31_ERROR_INVALID_KEY_LENGTH, ///< Invalid key length; possibly incorrect key block protection key
+	TR31_ERROR_KEY_BLOCK_VERIFICATION_FAILED, ///< Key block verification failed; possibly incorrect key block protection key
 };
 
 /**

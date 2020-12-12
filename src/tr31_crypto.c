@@ -288,6 +288,8 @@ static int tr31_tdes_derive_subkeys(const void* key, size_t key_len, void* k1, v
 	uint8_t zero[DES_BLOCK_SIZE];
 	uint8_t l_buf[DES_BLOCK_SIZE];
 
+	// see NIST SP 800-38B, section 6.1
+
 	// encrypt zero block with input key
 	memset(zero, 0, sizeof(zero));
 	r = tr31_tdes_encrypt_ecb(key, key_len, zero, l_buf);
@@ -313,6 +315,69 @@ static int tr31_tdes_derive_subkeys(const void* key, size_t key_len, void* k1, v
 	}
 
 	return 0;
+}
+
+int tr31_tdes_cmac(const void* key, size_t key_len, const void* buf, size_t len, void* cmac)
+{
+	int r;
+	uint8_t k1[DES_BLOCK_SIZE];
+	uint8_t k2[DES_BLOCK_SIZE];
+	uint8_t iv[DES_BLOCK_SIZE];
+	const void* ptr = buf;
+
+	if (!key || !buf || !cmac) {
+		return -1;
+	}
+	if (key_len != TDES2_KEY_SIZE && key_len != TDES3_KEY_SIZE) {
+		return -2;
+	}
+
+	// ensure that input buffer length is a multiple of the DES block length
+	if ((len & (DES_BLOCK_SIZE-1)) != 0) {
+		return -3;
+	}
+
+	// derive CMAC subkeys
+	r = tr31_tdes_derive_subkeys(key, key_len, k1, k2);
+	if (r) {
+		// internal error
+		return r;
+	}
+
+	// compute CMAC
+	// see NIST SP 800-38B, section 6.2
+	// see ISO 9797-1:2011 MAC algorithm 5
+	memset(iv, 0, sizeof(iv)); // start with zero IV
+	if (len > DES_BLOCK_SIZE) {
+		// for all blocks except the last block
+		for (size_t i = 0; i < len - DES_BLOCK_SIZE; i += DES_BLOCK_SIZE) {
+			r = tr31_tdes_encrypt_cbc(key, key_len, iv, ptr, DES_BLOCK_SIZE, iv);
+			if (r) {
+				// internal error
+				return r;
+			}
+
+			ptr += DES_BLOCK_SIZE;
+		}
+	}
+	// last block
+	tr31_xor(iv, k1, sizeof(iv));
+	tr31_tdes_encrypt_cbc(key, key_len, iv, ptr, DES_BLOCK_SIZE, cmac);
+
+	return 0;
+}
+
+int tr31_tdes_verify_cmac(const void* key, size_t key_len, const void* buf, size_t len, const void* cmac_verify)
+{
+	int r;
+	uint8_t cmac[DES_BLOCK_SIZE];
+
+	r = tr31_tdes_cmac(key, key_len, buf, len, cmac);
+	if (r) {
+		return r;
+	}
+
+	return memcmp(cmac, cmac_verify, sizeof(cmac));
 }
 
 int tr31_tdes_kbpk_derive(const void* kbpk, size_t kbpk_len, void* kbek, void* kbak)

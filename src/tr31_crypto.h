@@ -80,6 +80,29 @@ int tr31_tdes_encrypt_cbc(const void* key, size_t key_len, const void* iv, const
 int tr31_tdes_decrypt_cbc(const void* key, size_t key_len, const void* iv, const void* ciphertext, size_t clen, void* plaintext);
 
 /**
+ * Compute TDES CMAC
+ * @see ISO 9797-1:2011 MAC algorithm 5
+ * @param key Key
+ * @param key_len Length of key in bytes
+ * @param buf Input buffer
+ * @param len Length of input buffer in bytes
+ * @param cmac CMAC output of length @ref DES_BLOCK_SIZE
+ * @return Zero for success. Non-zero for error.
+ */
+int tr31_tdes_cmac(const void* key, size_t key_len, const void* buf, size_t len, void* cmac);
+
+/**
+ * Verify using TDES CMAC
+ * @param key Key
+ * @param key_len Length of key in bytes
+ * @param buf Input buffer to verify
+ * @param len Length of input buffer in bytes
+ * @param cmac_verify CMAC of length @ref DES_BLOCK_SIZE to verify
+ * @return Zero for success. Non-zero for verification failure.
+ */
+int tr31_tdes_verify_cmac(const void* key, size_t key_len, const void* buf, size_t len, const void* cmac_verify);
+
+/**
  * Derive key block encryption key (KBEK) and key block authentication key (KBAK) from key block protection key (KBPK)
  * @param kbpk Key block protection key
  * @param kbpk_len Length of key block protection key in bytes

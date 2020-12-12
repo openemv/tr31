@@ -326,15 +326,16 @@ int tr31_import(
 		goto error;
 	}
 
-	// determine payload length
-	size_t key_block_payload_length = key_block_len - (ptr - (void*)header) - (ctx->authenticator_length * 2);
+	// determine header and payload lengths
+	size_t key_block_header_len = ptr - (void*)header;
+	size_t key_block_payload_length = key_block_len - key_block_header_len - (ctx->authenticator_length * 2);
 	ctx->payload_length = key_block_payload_length / 2;
 
 	// add payload data to context object
 	ctx->payload = calloc(1, ctx->payload_length);
 	r = hex_to_bin(ptr, ctx->payload, ctx->payload_length);
 	if (r) {
-		r = TR31_ERROR_INVALID_PAYLOAD_DATA;
+		r = TR31_ERROR_INVALID_PAYLOAD_FIELD;
 		goto error;
 	}
 	ptr += key_block_payload_length;
@@ -349,7 +350,7 @@ int tr31_import(
 	ctx->authenticator = calloc(1, ctx->authenticator_length);
 	r = hex_to_bin(ptr, ctx->authenticator, ctx->authenticator_length);
 	if (r) {
-		r = TR31_ERROR_INVALID_AUTHENTICATOR_DATA;
+		r = TR31_ERROR_INVALID_AUTHENTICATOR_FIELD;
 		goto error;
 	}
 
@@ -375,11 +376,6 @@ int tr31_import(
 				goto error;
 			}
 
-			uint8_t kbek[TDES3_KEY_SIZE];
-			uint8_t kbak[TDES3_KEY_SIZE];
-			uint8_t payload_buf[TR31_TDES3_KEY_UNDER_DES_LENGTH];
-			struct tr31_payload_t* payload = (struct tr31_payload_t*)payload_buf;
-
 			// validate payload length
 			if (ctx->payload_length != TR31_TDES2_KEY_UNDER_DES_LENGTH &&
 				ctx->payload_length != TR31_TDES3_KEY_UNDER_DES_LENGTH
@@ -387,6 +383,14 @@ int tr31_import(
 				r = TR31_ERROR_INVALID_KEY_LENGTH;
 				goto error;
 			}
+
+			uint8_t kbek[TDES3_KEY_SIZE];
+			uint8_t kbak[TDES3_KEY_SIZE];
+
+			// buffer for decryption and CMAC verification
+			uint8_t decrypted_key_block[key_block_header_len + ctx->payload_length];
+			struct tr31_payload_t* decrypted_payload = (struct tr31_payload_t*)(decrypted_key_block + key_block_header_len);
+			memcpy(decrypted_key_block, key_block, key_block_header_len);
 
 			// derive key block encryption key and key block authentication key from key block protection key
 			r = tr31_tdes_kbpk_derive(kbpk->data, kbpk->length, kbek, kbak);
@@ -396,14 +400,14 @@ int tr31_import(
 			}
 
 			// decrypt key payload; note that the authenticator is used as the IV
-			r = tr31_tdes_decrypt_cbc(kbek, kbpk->length, ctx->authenticator, ctx->payload, ctx->payload_length, payload);
+			r = tr31_tdes_decrypt_cbc(kbek, kbpk->length, ctx->authenticator, ctx->payload, ctx->payload_length, decrypted_payload);
 			if (r) {
 				// return error value as-is
 				goto error;
 			}
 
 			// validate payload length field
-			ctx->key.length = ntohs(payload->length) / 8; // payload length is big endian and in bits, not bytes
+			ctx->key.length = ntohs(decrypted_payload->length) / 8; // payload length is big endian and in bits, not bytes
 			if (ctx->key.length != TDES2_KEY_SIZE && ctx->key.length != TDES3_KEY_SIZE) {
 				r = TR31_ERROR_INVALID_KEY_LENGTH;
 				goto error;
@@ -411,9 +415,17 @@ int tr31_import(
 
 			// extract key data
 			ctx->key.data = calloc(1, ctx->key.length);
-			memcpy(ctx->key.data, payload->data, ctx->key.length);
+			memcpy(ctx->key.data, decrypted_payload->data, ctx->key.length);
 
-			// TODO: verify MAC
+			// verify authenticator
+			r = tr31_tdes_verify_cmac(kbak, kbpk->length, decrypted_key_block, sizeof(decrypted_key_block), ctx->authenticator);
+			if (r) {
+				r = TR31_ERROR_KEY_BLOCK_VERIFICATION_FAILED;
+				goto error;
+			}
+
+			// TODO: clean decrypted_key_block
+
 			break;
 		}
 
