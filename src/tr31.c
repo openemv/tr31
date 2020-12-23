@@ -369,13 +369,6 @@ int tr31_import(
 				goto error;
 			}
 
-			uint8_t kbek[TDES3_KEY_SIZE];
-			uint8_t kbak[TDES3_KEY_SIZE];
-
-			// buffer for decryption
-			uint8_t decrypted_payload_buf[ctx->payload_length];
-			struct tr31_payload_t* decrypted_payload = (struct tr31_payload_t*)decrypted_payload_buf;
-
 			// validate payload length
 			if (ctx->payload_length != TR31_TDES2_KEY_UNDER_DES_LENGTH &&
 				ctx->payload_length != TR31_TDES3_KEY_UNDER_DES_LENGTH
@@ -384,6 +377,18 @@ int tr31_import(
 				goto error;
 			}
 
+			uint8_t kbek[TDES3_KEY_SIZE];
+			uint8_t kbak[TDES3_KEY_SIZE];
+
+			// buffer for decryption
+			uint8_t decrypted_payload_buf[ctx->payload_length];
+			struct tr31_payload_t* decrypted_payload = (struct tr31_payload_t*)decrypted_payload_buf;
+
+			// buffer for MAC verification
+			uint8_t mac_buf[key_block_header_len + ctx->payload_length];
+			memcpy(mac_buf, key_block, key_block_header_len);
+			memcpy(mac_buf + key_block_header_len, ctx->payload, ctx->payload_length);
+
 			// output key block encryption key variant and key block authentication key variant
 			r = tr31_tdes_kbpk_variant(kbpk->data, kbpk->length, kbek, kbak);
 			if (r) {
@@ -391,7 +396,12 @@ int tr31_import(
 				goto error;
 			}
 
-			// TODO: verify MAC
+			// verify authenticator
+			r = tr31_tdes_verify_cbcmac(kbak, kbpk->length, mac_buf, sizeof(mac_buf), ctx->authenticator);
+			if (r) {
+				// return error value as-is
+				goto error;
+			}
 
 			// decrypt key payload; note that the TR-31 header is used as the IV
 			r = tr31_tdes_decrypt_cbc(kbek, kbpk->length, header, ctx->payload, ctx->payload_length, decrypted_payload);

@@ -257,6 +257,45 @@ exit:
 	return r;
 }
 
+int tr31_tdes_cbcmac(const void* key, size_t key_len, const void* buf, size_t len, void* mac)
+{
+	int r;
+	uint8_t iv[DES_BLOCK_SIZE];
+	const void* ptr = buf;
+
+	// see ISO 9797-1:2011 MAC algorithm 1
+
+	// compute CBC-MAC
+	memset(iv, 0, sizeof(iv)); // start with zero IV
+	for (size_t i = 0; i < len; i += DES_BLOCK_SIZE) {
+		r = tr31_tdes_encrypt_cbc(key, key_len, iv, ptr, DES_BLOCK_SIZE, iv);
+		if (r) {
+			// internal error
+			return r;
+		}
+
+		ptr += DES_BLOCK_SIZE;
+	}
+
+	// copy MAC output
+	memcpy(mac, iv, DES_MAC_SIZE);
+
+	return 0;
+}
+
+int tr31_tdes_verify_cbcmac(const void* key, size_t key_len, const void* buf, size_t len, const void* mac_verify)
+{
+	int r;
+	uint8_t mac[DES_MAC_SIZE];
+
+	r = tr31_tdes_cbcmac(key, key_len, buf, len, mac);
+	if (r) {
+		return r;
+	}
+
+	return memcmp(mac, mac_verify, sizeof(mac));
+}
+
 static int tr31_lshift(uint8_t* x, size_t len)
 {
 	uint8_t lsb;
