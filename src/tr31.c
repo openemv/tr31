@@ -362,12 +362,59 @@ int tr31_import(
 
 	switch (ctx->version) {
 		case TR31_VERSION_A:
-		case TR31_VERSION_C:
-			// TODO: verify payload length
-			// TODO: derive keys
+		case TR31_VERSION_C: {
+			// only allow TDES key block protection keys
+			if (kbpk->algorithm != TR31_KEY_ALGORITHM_TDES) {
+				r = TR31_ERROR_UNSUPPORTED_KBPK_LENGTH;
+				goto error;
+			}
+
+			uint8_t kbek[TDES3_KEY_SIZE];
+			uint8_t kbak[TDES3_KEY_SIZE];
+
+			// buffer for decryption
+			uint8_t decrypted_payload_buf[ctx->payload_length];
+			struct tr31_payload_t* decrypted_payload = (struct tr31_payload_t*)decrypted_payload_buf;
+
+			// validate payload length
+			if (ctx->payload_length != TR31_TDES2_KEY_UNDER_DES_LENGTH &&
+				ctx->payload_length != TR31_TDES3_KEY_UNDER_DES_LENGTH
+			) {
+				r = TR31_ERROR_INVALID_KEY_LENGTH;
+				goto error;
+			}
+
+			// output key block encryption key variant and key block authentication key variant
+			r = tr31_tdes_kbpk_variant(kbpk->data, kbpk->length, kbek, kbak);
+			if (r) {
+				// return error value as-is
+				goto error;
+			}
+
 			// TODO: verify MAC
-			// TODO: decrypt
+
+			// decrypt key payload; note that the TR-31 header is used as the IV
+			r = tr31_tdes_decrypt_cbc(kbek, kbpk->length, header, ctx->payload, ctx->payload_length, decrypted_payload);
+			if (r) {
+				// return error value as-is
+				goto error;
+			}
+
+			// validate payload length field
+			ctx->key.length = ntohs(decrypted_payload->length) / 8; // payload length is big endian and in bits, not bytes
+			if (ctx->key.length != TDES2_KEY_SIZE && ctx->key.length != TDES3_KEY_SIZE) {
+				r = TR31_ERROR_INVALID_KEY_LENGTH;
+				goto error;
+			}
+
+			// extract key data
+			ctx->key.data = calloc(1, ctx->key.length);
+			memcpy(ctx->key.data, decrypted_payload->data, ctx->key.length);
+
+			// TODO: clean decrypted_payload_buf
+
 			break;
+		}
 
 		case TR31_VERSION_B: {
 			// only allow TDES key block protection keys

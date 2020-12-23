@@ -14,6 +14,9 @@
 
 #include <openssl/evp.h>
 
+#define TR31_KBEK_VARIANT_XOR (0x45)
+#define TR31_KBAK_VARIANT_XOR (0x4D)
+
 static const uint8_t tr31_subkey_r64[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1B };
 static const uint8_t tr31_derive_kbek_tdes2_input[] = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80 };
 static const uint8_t tr31_derive_kbek_tdes3_input[] = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0xC0, 0x02, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0xC0, 0x03, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0xC0 };
@@ -378,6 +381,27 @@ int tr31_tdes_verify_cmac(const void* key, size_t key_len, const void* buf, size
 	}
 
 	return memcmp(cmac, cmac_verify, sizeof(cmac));
+}
+
+int tr31_tdes_kbpk_variant(const void* kbpk, size_t kbpk_len, void* kbek, void* kbak)
+{
+	const uint8_t* kbpk_buf = kbpk;
+	uint8_t* kbek_buf = kbek;
+	uint8_t* kbak_buf = kbak;
+
+	if (!kbpk || !kbek || !kbak) {
+		return -1;
+	}
+	if (kbpk_len != TDES2_KEY_SIZE && kbpk_len != TDES3_KEY_SIZE) {
+		return TR31_ERROR_UNSUPPORTED_KBPK_LENGTH;
+	}
+
+	for (size_t i = 0; i < kbpk_len; ++i) {
+		kbek_buf[i] = kbpk_buf[i] ^ TR31_KBEK_VARIANT_XOR;
+		kbak_buf[i] = kbpk_buf[i] ^ TR31_KBAK_VARIANT_XOR;
+	}
+
+	return 0;
 }
 
 int tr31_tdes_kbpk_derive(const void* kbpk, size_t kbpk_len, void* kbek, void* kbak)

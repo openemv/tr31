@@ -103,6 +103,16 @@ int tr31_tdes_cmac(const void* key, size_t key_len, const void* buf, size_t len,
 int tr31_tdes_verify_cmac(const void* key, size_t key_len, const void* buf, size_t len, const void* cmac_verify);
 
 /**
+ * Output key block encryption key (KBEK) variant and key block authentication key (KBAK) variant from key block protection key (KBPK)
+ * @param kbpk Key block protection key
+ * @param kbpk_len Length of key block protection key in bytes
+ * @param kbek Key block encryption key output
+ * @param kbak Key block authentication key output
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. @see #tr31_error_t
+ */
+int tr31_tdes_kbpk_variant(const void* kbpk, size_t kbpk_len, void* kbek, void* kbak);
+
+/**
  * Derive key block encryption key (KBEK) and key block authentication key (KBAK) from key block protection key (KBPK)
  * @param kbpk Key block protection key
  * @param kbpk_len Length of key block protection key in bytes
