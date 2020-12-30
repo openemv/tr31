@@ -170,6 +170,29 @@ int main(int argc, char** argv)
 		tr31_ctx.key.exportability,
 		tr31_get_key_exportability_string(tr31_ctx.key.exportability)
 	);
+	for (size_t i = 0; i < tr31_ctx.opt_blocks_count; ++i) {
+		if (i == 0) {
+			printf("Optional blocks:\n");
+		}
+
+		printf("\t[%s] %s",
+			tr31_get_opt_block_id_ascii(tr31_ctx.opt_blocks[i].id, ascii_buf, sizeof(ascii_buf)),
+			tr31_get_opt_block_id_string(tr31_ctx.opt_blocks[i].id)
+		);
+		switch (tr31_ctx.opt_blocks[i].id) {
+			case TR31_OPT_HDR_BLOCK_KS:
+				print_buf("", tr31_ctx.opt_blocks[i].data, tr31_ctx.opt_blocks[i].data_length);
+				break;
+
+			default:
+				printf(" (%zu digits / %zu bytes)\n",
+					tr31_ctx.opt_blocks[i].data_length * 2,
+					tr31_ctx.opt_blocks[i].data_length
+				);
+		}
+	}
+
+	// if available, print decrypted key
 	if (tr31_ctx.key.length) {
 		printf("Key length: %zu\n", tr31_ctx.key.length);
 		print_buf("Key value", tr31_ctx.key.data, tr31_ctx.key.length);

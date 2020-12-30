@@ -209,6 +209,22 @@ const char* tr31_get_key_mode_of_use_string(unsigned int mode_of_use);
  */
 const char* tr31_get_key_exportability_string(unsigned int exportability);
 
+/**
+ * Create ASCII string associated with optional block ID value
+ * @param opt_block_id Optional block ID value
+ * @param ascii ASCII output buffer
+ * @param ascii_len ASCII output buffer length
+ * @return Pointer to output buffer for success. NULL for error.
+ */
+const char* tr31_get_opt_block_id_ascii(unsigned int opt_block_id, char* ascii, size_t ascii_len);
+
+/**
+ * Retrieve string associated with optional block ID value
+ * @param opt_block_id Optional block ID value
+ * @return Pointer to null-terminated string. Do not free.
+ */
+const char* tr31_get_opt_block_id_string(unsigned int opt_block_id);
+
 __END_DECLS
 
 #endif

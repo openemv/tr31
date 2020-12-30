@@ -658,3 +658,38 @@ const char* tr31_get_key_exportability_string(unsigned int exportability)
 
 	return "Unknown key exportability value";
 }
+
+const char* tr31_get_opt_block_id_ascii(unsigned int opt_block_id, char* ascii, size_t ascii_len)
+{
+	union {
+		uint16_t value;
+		char bytes[2];
+	} opt_block_id_ascii;
+
+	opt_block_id_ascii.value = htons(opt_block_id);
+
+	if (ascii_len < 3) {
+		return NULL;
+	}
+	for (size_t i = 0; i < sizeof(opt_block_id_ascii.bytes); ++i) {
+		if (isalnum(opt_block_id_ascii.bytes[i])) {
+			ascii[i] = opt_block_id_ascii.bytes[i];
+		} else {
+			ascii[i] = '?';
+		}
+	}
+	ascii[2] = 0;
+
+	return ascii;
+}
+
+const char* tr31_get_opt_block_id_string(unsigned int opt_block_id)
+{
+	switch (opt_block_id) {
+		case TR31_OPT_HDR_BLOCK_KS:     return "Key Set Identifier";
+		case TR31_OPT_HDR_BLOCK_KV:     return "Key Block Values";
+		case TR31_OPT_HDR_BLOCK_PB:     return "Padding Block";
+	}
+
+	return "Unknown optional block ID value";
+}
