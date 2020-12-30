@@ -195,6 +195,13 @@ const char* tr31_get_key_usage_string(unsigned int usage);
  */
 const char* tr31_get_key_algorithm_string(unsigned int algorithm);
 
+/**
+ * Retrieve string associated with key mode of use value
+ * @param mode_of_use Key mode of use value
+ * @return Pointer to null-terminated string. Do not free.
+ */
+const char* tr31_get_key_mode_of_use_string(unsigned int mode_of_use);
+
 __END_DECLS
 
 #endif

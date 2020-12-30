@@ -629,3 +629,21 @@ const char* tr31_get_key_algorithm_string(unsigned int algorithm)
 
 	return "Unknown key algorithm value";
 }
+
+const char* tr31_get_key_mode_of_use_string(unsigned int mode_of_use)
+{
+	switch (mode_of_use) {
+		case TR31_KEY_MODE_OF_USE_ENC_DEC:      return "Encrypt and Decrypt (Wrap and Unwrap)";
+		case TR31_KEY_MODE_OF_USE_MAC:          return "MAC Calculate (Generate and Verify)";
+		case TR31_KEY_MODE_OF_USE_DEC:          return "Decrypt / Unwrap Only";
+		case TR31_KEY_MODE_OF_USE_ENC:          return "Encrypt / Wrap Only";
+		case TR31_KEY_MODE_OF_USE_MAC_GEN:      return "MAC Generate Only";
+		case TR31_KEY_MODE_OF_USE_ANY:          return "No special restrictions";
+		case TR31_KEY_MODE_OF_USE_SIG:          return "Signature Only";
+		case TR31_KEY_MODE_OF_USE_MAC_VERIFY:   return "MAC Verify Only";
+		case TR31_KEY_MODE_OF_USE_DERIVE:       return "Key Derivation";
+		case TR31_KEY_MODE_OF_USE_VARIANT:      return "Create Key Variants";
+	}
+
+	return "Unknown key mode of use value";
+}

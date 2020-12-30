@@ -157,7 +157,10 @@ int main(int argc, char** argv)
 		tr31_ctx.key.algorithm,
 		tr31_get_key_algorithm_string(tr31_ctx.key.algorithm)
 	);
-	printf("Key mode of use: %c\n", tr31_ctx.key.mode_of_use);
+	printf("Key mode of use: [%c] %s\n",
+		tr31_ctx.key.mode_of_use,
+		tr31_get_key_mode_of_use_string(tr31_ctx.key.mode_of_use)
+	);
 	switch (tr31_ctx.key.key_version) {
 		case TR31_KEY_VERSION_IS_UNUSED: printf("Key version: Unused\n"); break;
 		case TR31_KEY_VERSION_IS_VALID: printf("Key version: %u\n", tr31_ctx.key.key_version_value); break;
