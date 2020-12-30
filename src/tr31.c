@@ -421,7 +421,8 @@ int tr31_import(
 			ctx->key.data = calloc(1, ctx->key.length);
 			memcpy(ctx->key.data, decrypted_payload->data, ctx->key.length);
 
-			// TODO: clean decrypted_payload_buf
+			// cleanse decrypted payload buffer
+			tr31_cleanse(decrypted_payload_buf, sizeof(decrypted_payload_buf));
 
 			break;
 		}
@@ -481,7 +482,8 @@ int tr31_import(
 				goto error;
 			}
 
-			// TODO: clean decrypted_key_block
+			// cleanse decrypted key block buffer
+			tr31_cleanse(decrypted_key_block, sizeof(decrypted_key_block));
 
 			break;
 		}

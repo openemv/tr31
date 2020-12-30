@@ -529,3 +529,8 @@ int tr31_tdes_kbpk_derive(const void* kbpk, size_t kbpk_len, void* kbek, void* k
 
 	return 0;
 }
+
+void tr31_cleanse(void* ptr, size_t len)
+{
+	OPENSSL_cleanse(ptr, len);
+}

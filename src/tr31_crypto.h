@@ -147,6 +147,13 @@ int tr31_tdes_kbpk_variant(const void* kbpk, size_t kbpk_len, void* kbek, void* 
  */
 int tr31_tdes_kbpk_derive(const void* kbpk, size_t kbpk_len, void* kbek, void* kbak);
 
+/**
+ * Cleanse buffer at pointer
+ * @param ptr Pointer to buffer
+ * @param len Length of buffer in bytes
+ */
+void tr31_cleanse(void* ptr, size_t len);
+
 __END_DECLS
 
 #endif
