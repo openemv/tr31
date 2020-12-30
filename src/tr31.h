@@ -32,7 +32,7 @@ enum tr31_version_t {
 #define TR31_KEY_USAGE_EMV_MKSMI        (0x4532) ///< Key Usage E2: EMV/chip Issuer Master Key: Secure Messaging for Integrity (MKSMI)
 #define TR31_KEY_USAGE_EMV_MKDAC        (0x4533) ///< Key Usage E3: EMV/chip Issuer Master Key: Data Authentication Code (MKDAC)
 #define TR31_KEY_USAGE_EMV_MKDN         (0x4534) ///< Key Usage E4: EMV/chip Issuer Master Key: Dynamic Numbers (MKDN)
-#define TR31_KEY_USAGE_EMV_CP           (0x4535) ///< Key Usage E5: EMV/chip Issuer Master Key: Card Personalization
+#define TR31_KEY_USAGE_EMV_CP           (0x4535) ///< Key Usage E5: EMV/chip Issuer Master Key: Card Personalization (CP)
 #define TR31_KEY_USAGE_EMV_OTHER        (0x4536) ///< Key Usage E6: EMV/chip Issuer Master Key: Other
 #define TR31_KEY_USAGE_IV               (0x4930) ///< Key Usage I0: Initialization Vector
 #define TR31_KEY_USAGE_KEY              (0x4B30) ///< Key Usage K0: Key Encryption / Wrapping Key (Generic)
@@ -171,6 +171,22 @@ void tr31_release(struct tr31_ctx_t* ctx);
  * @return Pointer to null-terminated string. Do not free.
  */
 const char* tr31_get_error_string(enum tr31_error_t error);
+
+/**
+ * Create ASCII string associated with key usage value
+ * @param usage Key usage value
+ * @param ascii ASCII output buffer
+ * @param ascii_len ASCII output buffer length
+ * @return Pointer to output buffer for success. NULL for error.
+ */
+const char* tr31_get_key_usage_ascii(unsigned int usage, char* ascii, size_t ascii_len);
+
+/**
+ * Retrieve string associated with key usage value
+ * @param usage Key usage value
+ * @return Pointer to null-terminated string. Do not free.
+ */
+const char* tr31_get_key_usage_string(unsigned int usage);
 
 __END_DECLS
 

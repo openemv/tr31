@@ -558,3 +558,59 @@ const char* tr31_get_error_string(enum tr31_error_t error)
 
 	return "Unknown error";
 }
+
+const char* tr31_get_key_usage_ascii(unsigned int usage, char* ascii, size_t ascii_len)
+{
+	union {
+		uint16_t value;
+		char bytes[2];
+	} usage_ascii;
+
+	usage_ascii.value = htons(usage);
+
+	if (ascii_len < 3) {
+		return NULL;
+	}
+	for (size_t i = 0; i < sizeof(usage_ascii.bytes); ++i) {
+		if (isalnum(usage_ascii.bytes[i])) {
+			ascii[i] = usage_ascii.bytes[i];
+		} else {
+			ascii[i] = '?';
+		}
+	}
+	ascii[2] = 0;
+
+	return ascii;
+}
+
+const char* tr31_get_key_usage_string(unsigned int usage)
+{
+	switch (usage) {
+		case TR31_KEY_USAGE_BDK:                return "Base Derivation Key (BDK)";
+		case TR31_KEY_USAGE_DUKPT_IPEK:         return "DUKPT Initial Key (IPEK)";
+		case TR31_KEY_USAGE_CVK:                return "Card Verification Key (CVK)";
+		case TR31_KEY_USAGE_DATA:               return "Data Encryption Key (Generic)";
+		case TR31_KEY_USAGE_EMV_MKAC:           return "EMV/chip Issuer Master Key: Application cryptograms (MKAC)";
+		case TR31_KEY_USAGE_EMV_MKSMC:          return "EMV/chip Issuer Master Key: Secure Messaging for Confidentiality (MKSMC)";
+		case TR31_KEY_USAGE_EMV_MKSMI:          return "EMV/chip Issuer Master Key: Secure Messaging for Integrity (MKSMI)";
+		case TR31_KEY_USAGE_EMV_MKDAC:          return "EMV/chip Issuer Master Key: Data Authentication Code (MKDAC)";
+		case TR31_KEY_USAGE_EMV_MKDN:           return "EMV/chip Issuer Master Key: Dynamic Numbers (MKDN)";
+		case TR31_KEY_USAGE_EMV_CP:             return "EMV/chip Issuer Master Key: Card Personalization (CP)";
+		case TR31_KEY_USAGE_EMV_OTHER:          return "EMV/chip Issuer Master Key: Other";
+		case TR31_KEY_USAGE_IV:                 return "Initialization Vector";
+		case TR31_KEY_USAGE_KEY:                return "Key Encryption / Wrapping Key (Generic)";
+		case TR31_KEY_USAGE_ISO16609_MAC_1:     return "ISO 16609 MAC algorithm 1 (using 3DES)";
+		case TR31_KEY_USAGE_ISO9797_1_MAC_1:    return "ISO 9797-1 MAC Algorithm 1 (CBC-MAC)";
+		case TR31_KEY_USAGE_ISO9797_1_MAC_2:    return "ISO 9797-1 MAC Algorithm 2";
+		case TR31_KEY_USAGE_ISO9797_1_MAC_3:    return "ISO 9797-1 MAC Algorithm 3 (Retail MAC)";
+		case TR31_KEY_USAGE_ISO9797_1_MAC_4:    return "ISO 9797-1 MAC Algorithm 4";
+		case TR31_KEY_USAGE_ISO9797_1_MAC_5:    return "ISO 9797-1 MAC Algorithm 5 (CMAC)";
+		case TR31_KEY_USAGE_ISO9797_1_MAC_6:    return "ISO 9797-1 MAC Algorithm 6";
+		case TR31_KEY_USAGE_PIN:                return "PIN Encryption Key (Generic)";
+		case TR31_KEY_USAGE_PV:                 return "PIN Verification Key (Generic)";
+		case TR31_KEY_USAGE_PV_IBM3624:         return "PIN Verification Key (IBM 3624)";
+		case TR31_KEY_USAGE_PV_VISA:            return "PIN Verification Key (VISA PVV)";
+	}
+
+	return "Unknown key usage value";
+}

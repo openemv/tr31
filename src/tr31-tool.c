@@ -146,9 +146,13 @@ int main(int argc, char** argv)
 	}
 
 	// print key block details
+	char ascii_buf[3]; // temporary ascii buffer
 	printf("Key block format version: %c\n", tr31_ctx.version);
 	printf("Key block length: %zu bytes\n", tr31_ctx.length);
-	printf("Key usage: 0x%02x\n", tr31_ctx.key.usage); // TODO: prettify
+	printf("Key usage: [%s] %s\n",
+		tr31_get_key_usage_ascii(tr31_ctx.key.usage, ascii_buf, sizeof(ascii_buf)),
+		tr31_get_key_usage_string(tr31_ctx.key.usage)
+	);
 	printf("Key algorithm: %c\n", tr31_ctx.key.algorithm);
 	printf("Key mode of use: %c\n", tr31_ctx.key.mode_of_use);
 	switch (tr31_ctx.key.key_version) {
