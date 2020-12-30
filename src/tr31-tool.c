@@ -135,17 +135,14 @@ int main(int argc, char** argv)
 
 		// parse and decrypt TR-31 key block
 		r = tr31_import(key_block, &kbpk, &tr31_ctx);
-		if (r) {
-			fprintf(stderr, "tr31_import() failed; r=%d\n", r);
-			return 1;
-		}
 	} else { // else if no key block protection key was provided
 		// parse TR-31 key block
 		r = tr31_import(key_block, NULL, &tr31_ctx);
-		if (r) {
-			fprintf(stderr, "tr31_import() failed; r=%d\n", r);
-			return 1;
-		}
+	}
+	// check for errors
+	if (r) {
+		fprintf(stderr, "TR-31 import error %d: %s\n", r, tr31_get_error_string(r));
+		return 1;
 	}
 
 	// print key block details

@@ -165,6 +165,13 @@ int tr31_import(
  */
 void tr31_release(struct tr31_ctx_t* ctx);
 
+/**
+ * Retrieve string associated with error value
+ * @param error Error value
+ * @return Pointer to null-terminated string. Do not free.
+ */
+const char* tr31_get_error_string(enum tr31_error_t error);
+
 __END_DECLS
 
 #endif

@@ -530,3 +530,31 @@ void tr31_release(struct tr31_ctx_t* ctx)
 		ctx->authenticator = NULL;
 	}
 }
+
+const char* tr31_get_error_string(enum tr31_error_t error)
+{
+	if (error < 0) {
+		return "Internal error";
+	}
+
+	switch (error) {
+		case TR31_ERROR_INVALID_LENGTH: return "Invalid key block length";
+		case TR31_ERROR_UNSUPPORTED_VERSION: return "Unsupported key block format version";
+		case TR31_ERROR_INVALID_LENGTH_FIELD: return "Invalid key block length field";
+		case TR31_ERROR_UNSUPPORTED_KEY_USAGE: return "Unsupported key usage";
+		case TR31_ERROR_UNSUPPORTED_ALGORITHM: return "Unsupported key algorithm";
+		case TR31_ERROR_UNSUPPORTED_MODE_OF_USE: return "Unsupported key mode of use";
+		case TR31_ERROR_INVALID_KEY_VERSION_FIELD: return "Invalid key version field";
+		case TR31_ERROR_UNSUPPORTED_EXPORTABILITY: return "Unsupported key exportability";
+		case TR31_ERROR_INVALID_NUMBER_OF_OPTIONAL_BLOCKS_FIELD: return "Invalid number of optional blocks field";
+		case TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA: return "Invalid optional block data";
+		case TR31_ERROR_INVALID_PAYLOAD_FIELD: return "Invalid payload data field";
+		case TR31_ERROR_INVALID_AUTHENTICATOR_FIELD: return "Invalid authenticator data field";
+		case TR31_ERROR_UNSUPPORTED_KBPK_ALGORITHM: return "Unsupported key block protection key algorithm";
+		case TR31_ERROR_UNSUPPORTED_KBPK_LENGTH: return "Unsupported key block protection key length";
+		case TR31_ERROR_INVALID_KEY_LENGTH: return "Invalid key length";
+		case TR31_ERROR_KEY_BLOCK_VERIFICATION_FAILED: return "Key block verification failed";
+	}
+
+	return "Unknown error";
+}
