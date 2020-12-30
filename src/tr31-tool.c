@@ -166,7 +166,10 @@ int main(int argc, char** argv)
 		case TR31_KEY_VERSION_IS_VALID: printf("Key version: %u\n", tr31_ctx.key.key_version_value); break;
 		case TR31_KEY_VERSION_IS_COMPONENT: printf("Key component: %u\n", tr31_ctx.key.key_component_number); break;
 	}
-	printf("Key exportability: %c\n", tr31_ctx.key.exportability);
+	printf("Key exportability: [%c] %s\n",
+		tr31_ctx.key.exportability,
+		tr31_get_key_exportability_string(tr31_ctx.key.exportability)
+	);
 	if (tr31_ctx.key.length) {
 		printf("Key length: %zu\n", tr31_ctx.key.length);
 		print_buf("Key value", tr31_ctx.key.data, tr31_ctx.key.length);

@@ -202,6 +202,13 @@ const char* tr31_get_key_algorithm_string(unsigned int algorithm);
  */
 const char* tr31_get_key_mode_of_use_string(unsigned int mode_of_use);
 
+/**
+ * Retrieve string associated with key exportability value
+ * @param exportability Key exportability value
+ * @return Pointer to null-terminated string. Do not free.
+ */
+const char* tr31_get_key_exportability_string(unsigned int exportability);
+
 __END_DECLS
 
 #endif

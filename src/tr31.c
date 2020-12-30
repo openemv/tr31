@@ -647,3 +647,14 @@ const char* tr31_get_key_mode_of_use_string(unsigned int mode_of_use)
 
 	return "Unknown key mode of use value";
 }
+
+const char* tr31_get_key_exportability_string(unsigned int exportability)
+{
+	switch (exportability) {
+		case TR31_KEY_EXPORT_TRUSTED:           return "Exportable in a trusted key block only";
+		case TR31_KEY_EXPORT_NONE:              return "Not exportable";
+		case TR31_KEY_EXPORT_SENSITIVE:         return "Sensitive";
+	}
+
+	return "Unknown key exportability value";
+}
