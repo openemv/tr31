@@ -614,3 +614,18 @@ const char* tr31_get_key_usage_string(unsigned int usage)
 
 	return "Unknown key usage value";
 }
+
+const char* tr31_get_key_algorithm_string(unsigned int algorithm)
+{
+	switch (algorithm) {
+		case TR31_KEY_ALGORITHM_AES:    return "AES";
+		case TR31_KEY_ALGORITHM_DES:    return "DES";
+		case TR31_KEY_ALGORITHM_EC:     return "Elliptic Curve";
+		case TR31_KEY_ALGORITHM_HMAC:   return "HMAC-SHA1";
+		case TR31_KEY_ALGORITHM_RSA:    return "RSA";
+		case TR31_KEY_ALGORITHM_DSA:    return "DSA";
+		case TR31_KEY_ALGORITHM_TDES:   return "TDES";
+	}
+
+	return "Unknown key algorithm value";
+}

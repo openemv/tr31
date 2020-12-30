@@ -48,13 +48,13 @@ enum tr31_version_t {
 #define TR31_KEY_USAGE_PV_IBM3624       (0x5631) ///< Key Usage V1: PIN Verification Key (IBM 3624)
 #define TR31_KEY_USAGE_PV_VISA          (0x5632) ///< Key Usage V2: PIN Verification Key (VISA PVV)
 
-#define TR31_KEY_ALGORITHM_AES          (0x41) ///< Key Algorithm A: AES
-#define TR31_KEY_ALGORITHM_DES          (0x44) ///< Key Algorithm D: DES
-#define TR31_KEY_ALGORITHM_EC           (0x45) ///< Key Algorithm E: Elliptic Curve
-#define TR31_KEY_ALGORITHM_HMAC         (0x48) ///< Key Algorithm H: HMAC-SHA1
-#define TR31_KEY_ALGORITHM_RSA          (0x52) ///< Key Algorithm R: RSA
-#define TR31_KEY_ALGORITHM_DSA          (0x53) ///< Key Algorithm S: DSA
-#define TR31_KEY_ALGORITHM_TDES         (0x54) ///< Key Algorithm T: Triple DES
+#define TR31_KEY_ALGORITHM_AES          ('A') ///< Key Algorithm A: AES
+#define TR31_KEY_ALGORITHM_DES          ('D') ///< Key Algorithm D: DES
+#define TR31_KEY_ALGORITHM_EC           ('E') ///< Key Algorithm E: Elliptic Curve
+#define TR31_KEY_ALGORITHM_HMAC         ('H') ///< Key Algorithm H: HMAC-SHA1
+#define TR31_KEY_ALGORITHM_RSA          ('R') ///< Key Algorithm R: RSA
+#define TR31_KEY_ALGORITHM_DSA          ('S') ///< Key Algorithm S: DSA
+#define TR31_KEY_ALGORITHM_TDES         ('T') ///< Key Algorithm T: Triple DES
 
 #define TR31_KEY_MODE_OF_USE_ENC_DEC    ('B') ///< Key Mode of Use B: Encrypt and Decrypt (Wrap and Unwrap)
 #define TR31_KEY_MODE_OF_USE_MAC        ('C') ///< Key Mode of Use C: MAC Calculate (Generate and Verify)
@@ -187,6 +187,13 @@ const char* tr31_get_key_usage_ascii(unsigned int usage, char* ascii, size_t asc
  * @return Pointer to null-terminated string. Do not free.
  */
 const char* tr31_get_key_usage_string(unsigned int usage);
+
+/**
+ * Retrieve string associated with key algorithm value
+ * @param algorithm Key algorithm value
+ * @return Pointer to null-terminated string. Do not free.
+ */
+const char* tr31_get_key_algorithm_string(unsigned int algorithm);
 
 __END_DECLS
 
