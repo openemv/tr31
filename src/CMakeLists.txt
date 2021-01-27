@@ -11,6 +11,8 @@ set(LIBTR31_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR} CACHE PATH "libtr31 include 
 
 add_library(tr31 tr31.c tr31_crypto.c)
 target_link_libraries(tr31 OpenSSL::Crypto)
+install(TARGETS tr31)
 
 add_executable(tr31-tool tr31-tool.c)
 target_link_libraries(tr31-tool tr31)
+install(TARGETS tr31-tool)
