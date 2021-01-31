@@ -17,6 +17,7 @@ target_include_directories(tr31 INTERFACE
 )
 target_link_libraries(tr31 OpenSSL::Crypto)
 install(TARGETS tr31
+	EXPORT tr31Targets # for use by install(EXPORT) command
 	PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
 )
 
