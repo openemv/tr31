@@ -22,6 +22,8 @@ find_package(OpenSSL 1.1 REQUIRED)
 add_subdirectory(src)
 add_subdirectory(test)
 
+set(TR31_VERSION 0.0.1)
+
 # generate and install basic CMake config files
 include(CMakePackageConfigHelpers) # provides CMake config generator macros
 include(GNUInstallDirs) # provides CMAKE_INSTALL_* variables
@@ -32,7 +34,7 @@ configure_package_config_file(cmake/tr31Config.cmake.in
 )
 write_basic_package_version_file(
 	"${CMAKE_CURRENT_BINARY_DIR}/cmake/tr31ConfigVersion.cmake"
-	VERSION 0.0.1
+	VERSION ${TR31_VERSION}
 	COMPATIBILITY AnyNewerVersion
 )
 install(FILES
@@ -45,6 +47,21 @@ install(EXPORT tr31Targets
 	DESTINATION "${CONFIG_PACKAGE_LOCATION}"
 )
 
+# generate and install pkgconfig file
+set(PKGCONFIG_LOCATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig CACHE STRING "Installation location for pkgconfig files")
+set(PKGCONFIG_LIB_NAME "tr31")
+set(PKGCONFIG_PKG_DEPS "libcrypto")
+set(PKGCONFIG_LIBS_PRIV "-lcrypto")
+configure_file(pkgconfig/libtr31.pc.in
+	"${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/libtr31.pc"
+	@ONLY
+)
+install(FILES
+	"${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/libtr31.pc"
+	DESTINATION "${PKGCONFIG_LOCATION}"
+)
+
+# configure CPACK to generate .deb package
 set(CPACK_GENERATOR "DEB")
 set(CPACK_DEBIAN_PACKAGE_DEPENDS libssl1.1)
 
