@@ -404,7 +404,11 @@ int tr31_tdes_cmac(const void* key, size_t key_len, const void* buf, size_t len,
 	}
 	// last block
 	tr31_xor(iv, k1, sizeof(iv));
-	tr31_tdes_encrypt_cbc(key, key_len, iv, ptr, DES_BLOCK_SIZE, cmac);
+	r = tr31_tdes_encrypt_cbc(key, key_len, iv, ptr, DES_BLOCK_SIZE, cmac);
+	if (r) {
+		// internal error
+		return r;
+	}
 
 	return 0;
 }

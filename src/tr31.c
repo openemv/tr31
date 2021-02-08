@@ -365,7 +365,7 @@ int tr31_import(
 		case TR31_VERSION_C: {
 			// only allow TDES key block protection keys
 			if (kbpk->algorithm != TR31_KEY_ALGORITHM_TDES) {
-				r = TR31_ERROR_UNSUPPORTED_KBPK_LENGTH;
+				r = TR31_ERROR_UNSUPPORTED_KBPK_ALGORITHM;
 				goto error;
 			}
 
@@ -399,7 +399,7 @@ int tr31_import(
 			// verify authenticator
 			r = tr31_tdes_verify_cbcmac(kbak, kbpk->length, mac_buf, sizeof(mac_buf), ctx->authenticator);
 			if (r) {
-				// return error value as-is
+				r = TR31_ERROR_KEY_BLOCK_VERIFICATION_FAILED;
 				goto error;
 			}
 
@@ -430,7 +430,7 @@ int tr31_import(
 		case TR31_VERSION_B: {
 			// only allow TDES key block protection keys
 			if (kbpk->algorithm != TR31_KEY_ALGORITHM_TDES) {
-				r = TR31_ERROR_UNSUPPORTED_KBPK_LENGTH;
+				r = TR31_ERROR_UNSUPPORTED_KBPK_ALGORITHM;
 				goto error;
 			}
 
