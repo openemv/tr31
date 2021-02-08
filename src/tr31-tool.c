@@ -142,7 +142,7 @@ int main(int argc, char** argv)
 	// check for errors
 	if (r) {
 		fprintf(stderr, "TR-31 import error %d: %s\n", r, tr31_get_error_string(r));
-		return 1;
+		// continue to print key block details
 	}
 
 	// print key block details
@@ -194,8 +194,12 @@ int main(int argc, char** argv)
 
 	// if available, print decrypted key
 	if (tr31_ctx.key.length) {
-		printf("Key length: %zu\n", tr31_ctx.key.length);
-		print_buf("Key value", tr31_ctx.key.data, tr31_ctx.key.length);
+		if (tr31_ctx.key.data) {
+			printf("Key length: %zu\n", tr31_ctx.key.length);
+			print_buf("Key value", tr31_ctx.key.data, tr31_ctx.key.length);
+		} else {
+			printf("Key decryption failed\n");
+		}
 	} else {
 		printf("Key not decrypted\n");
 	}
