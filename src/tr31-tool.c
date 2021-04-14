@@ -26,6 +26,7 @@ static uint8_t kbpk_buf[32]; // max 256-bit KBPK
 // helper functions
 static error_t argp_parser_helper(int key, char* arg, struct argp_state* state);
 static int parse_hex(const char* hex, void* bin, size_t bin_len);
+static void print_buf(const char* buf_name, const void* buf, size_t length);
 
 // argp option structure
 static struct argp_option argp_options[] = {
@@ -117,6 +118,12 @@ int main(int argc, char** argv)
 	int r;
 	struct tr31_ctx_t tr31_ctx;
 
+	if (argc == 1) {
+		// No command line arguments
+		argp_help(&argp_config, stdout, ARGP_HELP_STD_HELP, argv[0]);
+		return 1;
+	}
+
 	r = argp_parse(&argp_config, argc, argv, 0, 0, 0);
 	if (r) {
 		fprintf(stderr, "Failed to parse command line\n");
@@ -170,25 +177,32 @@ int main(int argc, char** argv)
 		tr31_ctx.key.exportability,
 		tr31_get_key_exportability_string(tr31_ctx.key.exportability)
 	);
-	for (size_t i = 0; i < tr31_ctx.opt_blocks_count; ++i) {
-		if (i == 0) {
-			printf("Optional blocks:\n");
-		}
 
-		printf("\t[%s] %s",
-			tr31_get_opt_block_id_ascii(tr31_ctx.opt_blocks[i].id, ascii_buf, sizeof(ascii_buf)),
-			tr31_get_opt_block_id_string(tr31_ctx.opt_blocks[i].id)
-		);
-		switch (tr31_ctx.opt_blocks[i].id) {
-			case TR31_OPT_HDR_BLOCK_KS:
-				print_buf("", tr31_ctx.opt_blocks[i].data, tr31_ctx.opt_blocks[i].data_length);
-				break;
+	// print optional blocks, if available
+	if (tr31_ctx.opt_blocks_count) {
+		printf("Optional blocks [%zu]:\n", tr31_ctx.opt_blocks_count);
+	}
+	if (tr31_ctx.opt_blocks) { // might be NULL when tr31_import() fails
+		for (size_t i = 0; i < tr31_ctx.opt_blocks_count; ++i) {
+			if (i == 0) {
 
-			default:
-				printf(" (%zu digits / %zu bytes)\n",
-					tr31_ctx.opt_blocks[i].data_length * 2,
-					tr31_ctx.opt_blocks[i].data_length
-				);
+			}
+
+			printf("\t[%s] %s",
+				tr31_get_opt_block_id_ascii(tr31_ctx.opt_blocks[i].id, ascii_buf, sizeof(ascii_buf)),
+				tr31_get_opt_block_id_string(tr31_ctx.opt_blocks[i].id)
+			);
+			switch (tr31_ctx.opt_blocks[i].id) {
+				case TR31_OPT_HDR_BLOCK_KS:
+					print_buf("", tr31_ctx.opt_blocks[i].data, tr31_ctx.opt_blocks[i].data_length);
+					break;
+
+				default:
+					printf(" (%zu digits / %zu bytes)\n",
+						tr31_ctx.opt_blocks[i].data_length * 2,
+						tr31_ctx.opt_blocks[i].data_length
+					);
+			}
 		}
 	}
 
