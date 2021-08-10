@@ -424,6 +424,13 @@ int tr31_import(
 			// cleanse decrypted payload buffer
 			tr31_cleanse(decrypted_payload_buf, sizeof(decrypted_payload_buf));
 
+			// populate KCV
+			r = tr31_tdes_kcv(ctx->key.data, ctx->key.length, ctx->key.kcv);
+			if (r) {
+				// return error value as-is
+				goto error;
+			}
+
 			break;
 		}
 
@@ -484,6 +491,13 @@ int tr31_import(
 
 			// cleanse decrypted key block buffer
 			tr31_cleanse(decrypted_key_block, sizeof(decrypted_key_block));
+
+			// populate KCV
+			r = tr31_tdes_kcv(ctx->key.data, ctx->key.length, ctx->key.kcv);
+			if (r) {
+				// return error value as-is
+				goto error;
+			}
 
 			break;
 		}

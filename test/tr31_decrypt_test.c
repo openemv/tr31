@@ -19,9 +19,11 @@ static const char test1_tr31_format_a[] = "A0072K0TN00N0000F40D5672C6D0EC86F860B
 static const char test1_tr31_format_b[] = "B0080K0TN00N00001C414014375212C24995E405B5EE052CB92B67F455EA2680F6751088F9F1C228";
 static const char test1_tr31_format_c[] = "C0072K0TN00N0000C9B875FF7A5316BF221C09ED52080DE0B45632A4EA9CE87699CB565E";
 static const uint8_t test1_tr31_key_verify[] = { 0x5D, 0xB5, 0x0B, 0x45, 0x4F, 0x83, 0x89, 0xAD, 0xCE, 0x57, 0x3B, 0xE5, 0x08, 0x61, 0xF2, 0xBF };
+static const uint8_t test1_tr31_kcv_verify[] = { 0x5C, 0x94, 0x05 };
 
 static const char test2_tr31_format_b[] = "B0080K0TN00E00004C80841B66EA4C638AA70226B5857A1A5F310533A249562C316B2491C05BF802";
 static const uint8_t test2_tr31_key_verify[] = { 0x3F, 0x41, 0x9E, 0x1C, 0xB7, 0x07, 0x94, 0x42, 0xAA, 0x37, 0x47, 0x4C, 0x2E, 0xFB, 0xF8, 0xB8 };
+static const uint8_t test2_tr31_kcv_verify[] = { 0x57, 0xC4, 0x09 };
 
 int main(void)
 {
@@ -67,6 +69,10 @@ int main(void)
 		fprintf(stderr, "TR-31 key data is incorrect\n");
 		goto exit;
 	}
+	if (memcmp(test_tr31.key.kcv, test1_tr31_kcv_verify, sizeof(test1_tr31_kcv_verify)) != 0) {
+		fprintf(stderr, "TR-31 key data KCV is incorrect\n");
+		goto exit;
+	}
 	tr31_release(&test_tr31);
 
 	// test key block decryption for format version B
@@ -97,6 +103,10 @@ int main(void)
 	}
 	if (memcmp(test_tr31.key.data, test1_tr31_key_verify, sizeof(test1_tr31_key_verify)) != 0) {
 		fprintf(stderr, "TR-31 key data is incorrect\n");
+		goto exit;
+	}
+	if (memcmp(test_tr31.key.kcv, test1_tr31_kcv_verify, sizeof(test1_tr31_kcv_verify)) != 0) {
+		fprintf(stderr, "TR-31 key data KCV is incorrect\n");
 		goto exit;
 	}
 	tr31_release(&test_tr31);
@@ -131,6 +141,10 @@ int main(void)
 		fprintf(stderr, "TR-31 key data is incorrect\n");
 		goto exit;
 	}
+	if (memcmp(test_tr31.key.kcv, test1_tr31_kcv_verify, sizeof(test1_tr31_kcv_verify)) != 0) {
+		fprintf(stderr, "TR-31 key data KCV is incorrect\n");
+		goto exit;
+	}
 	tr31_release(&test_tr31);
 
 	// test key block decryption for format version B
@@ -161,6 +175,10 @@ int main(void)
 	}
 	if (memcmp(test_tr31.key.data, test2_tr31_key_verify, sizeof(test2_tr31_key_verify)) != 0) {
 		fprintf(stderr, "TR-31 key data is incorrect\n");
+		goto exit;
+	}
+	if (memcmp(test_tr31.key.kcv, test2_tr31_kcv_verify, sizeof(test2_tr31_kcv_verify)) != 0) {
+		fprintf(stderr, "TR-31 key data KCV is incorrect\n");
 		goto exit;
 	}
 	tr31_release(&test_tr31);

@@ -12,6 +12,7 @@
 
 #include <sys/cdefs.h>
 #include <stddef.h>
+#include <stdint.h>
 
 __BEGIN_DECLS
 
@@ -98,6 +99,7 @@ struct tr31_key_t {
 
 	size_t length; ///< Key data length in bytes
 	void* data; ///< Key data
+	uint8_t kcv[3]; // Key Check Value (KCV)
 };
 
 /// TR-31 optional header block context object

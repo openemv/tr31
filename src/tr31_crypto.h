@@ -148,6 +148,15 @@ int tr31_tdes_kbpk_variant(const void* kbpk, size_t kbpk_len, void* kbek, void* 
 int tr31_tdes_kbpk_derive(const void* kbpk, size_t kbpk_len, void* kbek, void* kbak);
 
 /**
+ * Compute TDES Key Check Value (KCV)
+ * @param key Key
+ * @param key_len Length of key in bytes
+ * @param kcv Key Check Value output of 3 bytes
+ * @return Zero for success. Less than zero for internal error.
+ */
+int tr31_tdes_kcv(const void* key, size_t key_len, void* kcv);
+
+/**
  * Cleanse buffer at pointer
  * @param ptr Pointer to buffer
  * @param len Length of buffer in bytes

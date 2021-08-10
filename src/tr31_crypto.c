@@ -534,6 +534,38 @@ int tr31_tdes_kbpk_derive(const void* kbpk, size_t kbpk_len, void* kbek, void* k
 	return 0;
 }
 
+int tr31_tdes_kcv(const void* key, size_t key_len, void* kcv)
+{
+	int r;
+	uint8_t zero[DES_BLOCK_SIZE];
+	uint8_t ciphertext[DES_BLOCK_SIZE];
+
+	if (!key || !kcv) {
+		return -1;
+	}
+	if (key_len != TDES2_KEY_SIZE && key_len != TDES3_KEY_SIZE) {
+		return -2;
+	}
+
+	// zero KCV in case of error
+	memset(kcv, 0, 3);
+
+	// encrypt zero block with input key
+	memset(zero, 0, sizeof(zero));
+	r = tr31_tdes_encrypt_ecb(key, key_len, zero, ciphertext);
+	if (r) {
+		// internal error
+		return r;
+	}
+
+	// KCV is always first 3 bytes of ciphertext
+	memcpy(kcv, ciphertext, 3);
+
+	tr31_cleanse(ciphertext, sizeof(ciphertext));
+
+	return 0;
+}
+
 void tr31_cleanse(void* ptr, size_t len)
 {
 	OPENSSL_cleanse(ptr, len);
