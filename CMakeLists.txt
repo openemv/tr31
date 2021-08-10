@@ -19,6 +19,8 @@ endif()
 
 find_package(OpenSSL 1.1 REQUIRED)
 
+include(CTest)
+
 add_subdirectory(src)
 add_subdirectory(test)
 

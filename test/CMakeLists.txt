@@ -7,11 +7,16 @@
 
 cmake_minimum_required(VERSION 3.11)
 
-add_executable(tr31_decode_test tr31_decode_test.c)
-target_link_libraries(tr31_decode_test tr31)
+if (BUILD_TESTING)
+	add_executable(tr31_decode_test tr31_decode_test.c)
+	target_link_libraries(tr31_decode_test tr31)
+	add_test(tr31_decode_test tr31_decode_test)
 
-add_executable(tr31_crypto_test tr31_crypto_test.c)
-target_link_libraries(tr31_crypto_test tr31)
+	add_executable(tr31_crypto_test tr31_crypto_test.c)
+	target_link_libraries(tr31_crypto_test tr31)
+	add_test(tr31_crypto_test tr31_crypto_test)
 
-add_executable(tr31_decrypt_test tr31_decrypt_test.c)
-target_link_libraries(tr31_decrypt_test tr31)
+	add_executable(tr31_decrypt_test tr31_decrypt_test.c)
+	target_link_libraries(tr31_decrypt_test tr31)
+	add_test(tr31_decrypt_test tr31_decrypt_test)
+endif()
