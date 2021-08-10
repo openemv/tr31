@@ -8,6 +8,6 @@ implementation is mostly for validation and debugging purposes.
 License
 =======
 
-Copyright (c) 2020 ono//connect.
+Copyright (c) 2020, 2021 ono//connect.
 
 This project is licensed under the terms of the LGPL v2.1 license. See LICENSE file.
