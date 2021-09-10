@@ -7,7 +7,10 @@
 
 cmake_minimum_required(VERSION 3.11)
 
-project(tr31)
+project(tr31
+	VERSION 0.1.0
+	DESCRIPTION "TR-31 library and tools"
+)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_EXTENSIONS OFF)
@@ -24,8 +27,6 @@ include(CTest)
 add_subdirectory(src)
 add_subdirectory(test)
 
-set(TR31_VERSION 0.0.1)
-
 # generate and install basic CMake config files
 include(CMakePackageConfigHelpers) # provides CMake config generator macros
 include(GNUInstallDirs) # provides CMAKE_INSTALL_* variables
@@ -36,7 +37,6 @@ configure_package_config_file(cmake/tr31Config.cmake.in
 )
 write_basic_package_version_file(
 	"${CMAKE_CURRENT_BINARY_DIR}/cmake/tr31ConfigVersion.cmake"
-	VERSION ${TR31_VERSION}
 	COMPATIBILITY AnyNewerVersion
 )
 install(FILES
@@ -51,7 +51,7 @@ install(EXPORT tr31Targets
 
 # generate and install pkgconfig file
 set(PKGCONFIG_LOCATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig CACHE STRING "Installation location for pkgconfig files")
-set(PKGCONFIG_LIB_NAME "tr31")
+set(PKGCONFIG_LIB_NAME ${CMAKE_PROJECT_NAME})
 set(PKGCONFIG_PKG_DEPS "libcrypto")
 set(PKGCONFIG_LIBS_PRIV "-lcrypto")
 configure_file(pkgconfig/libtr31.pc.in
@@ -66,13 +66,8 @@ install(FILES
 # configure CPACK to generate .deb package
 set(CPACK_GENERATOR "DEB")
 set(CPACK_DEBIAN_PACKAGE_DEPENDS libssl1.1)
-
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "TR-31 library")
 set(CPACK_PACKAGE_VENDOR "ono//connect")
 set(CPACK_PACKAGE_CONTACT "leon@onoconnect.com")
 set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
-set(CPACK_PACKAGE_VERSION_MAJOR "0")
-set(CPACK_PACKAGE_VERSION_MINOR "0")
-set(CPACK_PACKAGE_VERSION_PATCH "1")
 include(CPack)
