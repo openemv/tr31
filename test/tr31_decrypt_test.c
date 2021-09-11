@@ -74,14 +74,17 @@ int main(void)
 		test_tr31.authenticator == NULL
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
+		r = 1;
 		goto exit;
 	}
 	if (memcmp(test_tr31.key.data, test1_tr31_key_verify, sizeof(test1_tr31_key_verify)) != 0) {
 		fprintf(stderr, "TR-31 key data is incorrect\n");
+		r = 1;
 		goto exit;
 	}
 	if (memcmp(test_tr31.key.kcv, test1_tr31_kcv_verify, sizeof(test1_tr31_kcv_verify)) != 0) {
 		fprintf(stderr, "TR-31 key data KCV is incorrect\n");
+		r = 1;
 		goto exit;
 	}
 	tr31_release(&test_tr31);
@@ -110,14 +113,17 @@ int main(void)
 		test_tr31.authenticator == NULL
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
+		r = 1;
 		goto exit;
 	}
 	if (memcmp(test_tr31.key.data, test1_tr31_key_verify, sizeof(test1_tr31_key_verify)) != 0) {
 		fprintf(stderr, "TR-31 key data is incorrect\n");
+		r = 1;
 		goto exit;
 	}
 	if (memcmp(test_tr31.key.kcv, test1_tr31_kcv_verify, sizeof(test1_tr31_kcv_verify)) != 0) {
 		fprintf(stderr, "TR-31 key data KCV is incorrect\n");
+		r = 1;
 		goto exit;
 	}
 	tr31_release(&test_tr31);
@@ -146,14 +152,17 @@ int main(void)
 		test_tr31.authenticator == NULL
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
+		r = 1;
 		goto exit;
 	}
 	if (memcmp(test_tr31.key.data, test1_tr31_key_verify, sizeof(test1_tr31_key_verify)) != 0) {
 		fprintf(stderr, "TR-31 key data is incorrect\n");
+		r = 1;
 		goto exit;
 	}
 	if (memcmp(test_tr31.key.kcv, test1_tr31_kcv_verify, sizeof(test1_tr31_kcv_verify)) != 0) {
 		fprintf(stderr, "TR-31 key data KCV is incorrect\n");
+		r = 1;
 		goto exit;
 	}
 	tr31_release(&test_tr31);
@@ -182,14 +191,17 @@ int main(void)
 		test_tr31.authenticator == NULL
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
+		r = 1;
 		goto exit;
 	}
 	if (memcmp(test_tr31.key.data, test2_tr31_key_verify, sizeof(test2_tr31_key_verify)) != 0) {
 		fprintf(stderr, "TR-31 key data is incorrect\n");
+		r = 1;
 		goto exit;
 	}
 	if (memcmp(test_tr31.key.kcv, test2_tr31_kcv_verify, sizeof(test2_tr31_kcv_verify)) != 0) {
 		fprintf(stderr, "TR-31 key data KCV is incorrect\n");
+		r = 1;
 		goto exit;
 	}
 	tr31_release(&test_tr31);

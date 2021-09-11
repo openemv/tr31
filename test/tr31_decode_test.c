@@ -57,8 +57,10 @@ int main(void)
 		test_tr31.authenticator == NULL
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
+		r = 1;
 		goto exit;
 	}
+	tr31_release(&test_tr31);
 
 	printf("All tests passed.\n");
 	r = 0;
