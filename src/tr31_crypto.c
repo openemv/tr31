@@ -294,6 +294,9 @@ int tr31_tdes_cmac(const void* key, size_t key_len, const void* buf, size_t len,
 	uint8_t iv[DES_BLOCK_SIZE];
 	const void* ptr = buf;
 
+	size_t last_block_len;
+	uint8_t last_block[DES_BLOCK_SIZE];
+
 	if (!key || !buf || !cmac) {
 		return -1;
 	}
@@ -301,10 +304,14 @@ int tr31_tdes_cmac(const void* key, size_t key_len, const void* buf, size_t len,
 		return -2;
 	}
 
-	// ensure that input buffer length is a multiple of the DES block length
-	if ((len & (DES_BLOCK_SIZE-1)) != 0) {
-		return -3;
-	}
+	// See NIST SP 800-38B, section 6.2
+	// See ISO 9797-1:2011 MAC algorithm 5
+	// If CMAC message input (M) is a multiple of the cipher block size, then
+	// the last message input block is XOR'd with subkey K1.
+	// If CMAC message input (M) is not a multiple of the cipher block size,
+	// then the last message input block is padded and XOR'd with subkey K2.
+	// The cipher is applied in CBC mode to all message input blocks,
+	// including the modified last block.
 
 	// derive CMAC subkeys
 	r = tr31_tdes_derive_subkeys(key, key_len, k1, k2);
@@ -329,8 +336,31 @@ int tr31_tdes_cmac(const void* key, size_t key_len, const void* buf, size_t len,
 			ptr += DES_BLOCK_SIZE;
 		}
 	}
-	// last block
-	tr31_xor(iv, k1, sizeof(iv));
+
+	// prepare last block
+	last_block_len = len - (ptr - buf);
+	if (last_block_len == DES_BLOCK_SIZE) {
+		// if message input is a multple of cipher block size,
+		// use subkey K1
+		tr31_xor(iv, k1, sizeof(iv));
+	} else {
+		// if message input is a multple of cipher block size,
+		// use subkey K2
+		tr31_xor(iv, k2, sizeof(iv));
+
+		// build new last block
+		memcpy(last_block, ptr, last_block_len);
+
+		// pad last block with 1 bit followed by zeros
+		last_block[last_block_len] = 0x80;
+		if (last_block_len + 1 < DES_BLOCK_SIZE) {
+			memset(last_block + last_block_len + 1, 0, DES_BLOCK_SIZE - last_block_len - 1);
+		}
+
+		ptr = last_block;
+	}
+
+	// process last block
 	r = tr31_tdes_encrypt_cbc(key, key_len, iv, ptr, DES_BLOCK_SIZE, cmac);
 	if (r) {
 		// internal error
