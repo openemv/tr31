@@ -37,6 +37,23 @@ static const uint8_t tr31_derive_kbek_tdes3_input[] = { 0x01, 0x00, 0x00, 0x00, 
 static const uint8_t tr31_derive_kbak_tdes2_input[] = { 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x80 };
 static const uint8_t tr31_derive_kbak_tdes3_input[] = { 0x01, 0x00, 0x01, 0x00, 0x00, 0x01, 0x00, 0xC0 };
 
+static int tr31_memcmp(const void* a, const void* b, size_t n)
+{
+	int r = 0;
+	const uint8_t* ptr_a = a;
+	const uint8_t* ptr_b = b;
+
+	while (n) {
+		r |= *ptr_a ^ *ptr_b;
+		++ptr_a;
+		++ptr_b;
+		--n;
+	}
+
+	// not-not is to sanitise result
+	return !!r;
+}
+
 static int tr31_tdes_encrypt(const void* key, size_t key_len, const void* iv, const void* plaintext, size_t plen, void* ciphertext)
 {
 	int r;
@@ -223,7 +240,7 @@ int tr31_tdes_verify_cbcmac(const void* key, size_t key_len, const void* buf, si
 		return r;
 	}
 
-	return memcmp(mac, mac_verify, sizeof(mac));
+	return tr31_memcmp(mac, mac_verify, sizeof(mac));
 }
 
 static int tr31_lshift(uint8_t* x, size_t len)
@@ -383,7 +400,7 @@ int tr31_tdes_verify_cmac(const void* key, size_t key_len, const void* buf, size
 		return r;
 	}
 
-	return memcmp(cmac, cmac_verify, sizeof(cmac));
+	return tr31_memcmp(cmac, cmac_verify, sizeof(cmac));
 }
 
 int tr31_tdes_kbpk_variant(const void* kbpk, size_t kbpk_len, void* kbek, void* kbak)
