@@ -303,6 +303,9 @@ static int tr31_tdes_derive_subkeys(const void* key, size_t key_len, void* k1, v
 		tr31_xor(k2, tr31_subkey_r64, sizeof(tr31_subkey_r64));
 	}
 
+	// cleanup
+	tr31_cleanse(l_buf, sizeof(l_buf));
+
 	return 0;
 }
 
@@ -386,6 +389,12 @@ int tr31_tdes_cmac(const void* key, size_t key_len, const void* buf, size_t len,
 		// internal error
 		return r;
 	}
+
+	// cleanup
+	tr31_cleanse(k1, sizeof(k1));
+	tr31_cleanse(k2, sizeof(k2));
+	tr31_cleanse(iv, sizeof(iv));
+	tr31_cleanse(last_block, sizeof(last_block));
 
 	return 0;
 }
