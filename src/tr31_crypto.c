@@ -28,11 +28,14 @@
 #define TR31_KBEK_VARIANT_XOR (0x45)
 #define TR31_KBAK_VARIANT_XOR (0x4D)
 
+// see NIST SP 800-38B, section 5.3
 static const uint8_t tr31_subkey_r64[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1B };
-static const uint8_t tr31_derive_kbek_tdes2_input[] = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80 };
-static const uint8_t tr31_derive_kbek_tdes3_input[] = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0xC0, 0x02, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0xC0, 0x03, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0xC0 };
-static const uint8_t tr31_derive_kbak_tdes2_input[] = { 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x80, 0x02, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x80 };
-static const uint8_t tr31_derive_kbak_tdes3_input[] = { 0x01, 0x00, 0x01, 0x00, 0x00, 0x01, 0x00, 0xC0, 0x02, 0x00, 0x01, 0x00, 0x00, 0x01, 0x00, 0xC0, 0x03, 0x00, 0x01, 0x00, 0x00, 0x01, 0x00, 0xC0 };
+
+// see TR-31:2018, section 5.3.2.1
+static const uint8_t tr31_derive_kbek_tdes2_input[] = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80 };
+static const uint8_t tr31_derive_kbek_tdes3_input[] = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0xC0 };
+static const uint8_t tr31_derive_kbak_tdes2_input[] = { 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x80 };
+static const uint8_t tr31_derive_kbak_tdes3_input[] = { 0x01, 0x00, 0x01, 0x00, 0x00, 0x01, 0x00, 0xC0 };
 
 static int tr31_tdes_encrypt(const void* key, size_t key_len, const void* iv, const void* plaintext, size_t plen, void* ciphertext)
 {
@@ -407,9 +410,7 @@ int tr31_tdes_kbpk_variant(const void* kbpk, size_t kbpk_len, void* kbek, void* 
 int tr31_tdes_kbpk_derive(const void* kbpk, size_t kbpk_len, void* kbek, void* kbak)
 {
 	int r;
-	uint8_t k1[DES_BLOCK_SIZE];
-	uint8_t k2[DES_BLOCK_SIZE];
-	uint8_t kbxk[kbpk_len];
+	uint8_t kbxk_input[8];
 
 	if (!kbpk || !kbek || !kbak) {
 		return -1;
@@ -418,21 +419,19 @@ int tr31_tdes_kbpk_derive(const void* kbpk, size_t kbpk_len, void* kbek, void* k
 		return TR31_ERROR_UNSUPPORTED_KBPK_LENGTH;
 	}
 
-	// derive encryption subkeys
-	r = tr31_tdes_derive_subkeys(kbpk, kbpk_len, k1, k2);
-	if (r) {
-		// internal error
-		return r;
-	}
+	// See TR-31:2018, section 5.3.2.1
+	// CMAC uses subkey and message input to output derived key material of
+	// cipher block length.
+	// Message input is as described in TR-31:2018, section 5.3.2.1, table 1
 
 	// populate key block encryption key derivation input
 	switch (kbpk_len) {
 		case TDES2_KEY_SIZE:
-			memcpy(kbxk, tr31_derive_kbek_tdes2_input, sizeof(tr31_derive_kbek_tdes2_input));
+			memcpy(kbxk_input, tr31_derive_kbek_tdes2_input, sizeof(tr31_derive_kbek_tdes2_input));
 			break;
 
 		case TDES3_KEY_SIZE:
-			memcpy(kbxk, tr31_derive_kbek_tdes3_input, sizeof(tr31_derive_kbek_tdes3_input));
+			memcpy(kbxk_input, tr31_derive_kbek_tdes3_input, sizeof(tr31_derive_kbek_tdes3_input));
 			break;
 
 		default:
@@ -440,32 +439,26 @@ int tr31_tdes_kbpk_derive(const void* kbpk, size_t kbpk_len, void* kbek, void* k
 	}
 
 	// derive key block encryption key
-	r = tr31_tdes_encrypt_cbc(kbpk, kbpk_len, k1, kbxk, 8, kbek);
-	if (r) {
-		// internal error
-		return r;
-	}
-	r = tr31_tdes_encrypt_cbc(kbpk, kbpk_len, k1, kbxk + 8, 8, kbek + 8);
-	if (r) {
-		// internal error
-		return r;
-	}
-	if (kbpk_len == TDES3_KEY_SIZE) {
-		r = tr31_tdes_encrypt_cbc(kbpk, kbpk_len, k1, kbxk + 16, 8, kbek + 16);
+	for (size_t kbek_len = 0; kbek_len < kbpk_len; kbek_len += DES_BLOCK_SIZE) {
+		// TDES CMAC creates key material of size DES_BLOCK_SIZE
+		r = tr31_tdes_cmac(kbpk, kbpk_len, kbxk_input, sizeof(kbxk_input), kbek + kbek_len);
 		if (r) {
 			// internal error
 			return r;
 		}
+
+		// increment key derivation input counter
+		kbxk_input[0]++;
 	}
 
 	// populate key block authentication key derivation input
 	switch (kbpk_len) {
 		case TDES2_KEY_SIZE:
-			memcpy(kbxk, tr31_derive_kbak_tdes2_input, sizeof(tr31_derive_kbak_tdes2_input));
+			memcpy(kbxk_input, tr31_derive_kbak_tdes2_input, sizeof(tr31_derive_kbak_tdes2_input));
 			break;
 
 		case TDES3_KEY_SIZE:
-			memcpy(kbxk, tr31_derive_kbak_tdes3_input, sizeof(tr31_derive_kbak_tdes3_input));
+			memcpy(kbxk_input, tr31_derive_kbak_tdes3_input, sizeof(tr31_derive_kbak_tdes3_input));
 			break;
 
 		default:
@@ -473,19 +466,16 @@ int tr31_tdes_kbpk_derive(const void* kbpk, size_t kbpk_len, void* kbek, void* k
 	}
 
 	// derive key block authentication key
-	r = tr31_tdes_encrypt_cbc(kbpk, kbpk_len, k1, kbxk, 8, kbak);
-	if (r) {
-		return r;
-	}
-	r = tr31_tdes_encrypt_cbc(kbpk, kbpk_len, k1, kbxk + 8, 8, kbak + 8);
-	if (r) {
-		return r;
-	}
-	if (kbpk_len == TDES3_KEY_SIZE) {
-		r = tr31_tdes_encrypt_cbc(kbpk, kbpk_len, k1, kbxk + 16, 8, kbak + 16);
+	for (size_t kbak_len = 0; kbak_len < kbpk_len; kbak_len += DES_BLOCK_SIZE) {
+		// TDES CMAC creates key material of size DES_BLOCK_SIZE
+		r = tr31_tdes_cmac(kbpk, kbpk_len, kbxk_input, sizeof(kbxk_input), kbak + kbak_len);
 		if (r) {
+			// internal error
 			return r;
 		}
+
+		// increment key derivation input counter
+		kbxk_input[0]++;
 	}
 
 	return 0;
