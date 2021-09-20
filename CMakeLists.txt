@@ -20,7 +20,9 @@ if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
 	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -ggdb")
 endif()
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 find_package(OpenSSL 1.1 REQUIRED)
+find_package(dpkg) # optional for building Debian/Ubuntu packages
 
 include(CTest)
 
@@ -63,11 +65,18 @@ install(FILES
 	DESTINATION "${PKGCONFIG_LOCATION}"
 )
 
-# configure CPACK to generate .deb package
-set(CPACK_GENERATOR "DEB")
-set(CPACK_DEBIAN_PACKAGE_DEPENDS libssl1.1)
+# configure CPack to generate .tgz package
+set(CPACK_GENERATOR "TGZ")
 set(CPACK_PACKAGE_VENDOR "ono//connect")
 set(CPACK_PACKAGE_CONTACT "leon@onoconnect.com")
 set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+
+if(dpkg_FOUND)
+	# configure CPack to generate .deb package
+	list(APPEND CPACK_GENERATOR "DEB")
+	set(CPACK_DEBIAN_FILE_NAME "DEB-DEFAULT") # use default debian package naming
+	set(CPACK_DEBIAN_PACKAGE_DEPENDS libssl1.1)
+endif()
+
 include(CPack)
