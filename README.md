@@ -19,7 +19,6 @@ Roadmap
 * Implement key block authoring and encryption
 * Implement key block translation
 * Implement key block component combination
-* Add CPack packaging for RPM-based Linux distros
 * Add CPack packaging for Windows and MacOS
 * Test on various ARM architectures
 
