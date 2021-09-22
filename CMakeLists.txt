@@ -8,7 +8,7 @@
 cmake_minimum_required(VERSION 3.11)
 
 project(tr31
-	VERSION 0.1.0
+	VERSION 0.1.1
 	DESCRIPTION "TR-31 library and tools"
 )
 

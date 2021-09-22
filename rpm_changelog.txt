@@ -1,2 +1,5 @@
+* Wed Sep 22 2021 Leon Lynch <leon@onoconnect.com> - 0.1.1-1
+- Update to tr31-0.1.1
+
 * Tue Sep 21 2021 Leon Lynch <leon@onoconnect.com> - 0.1.0-1
 - Initial CPack RPM packaging
