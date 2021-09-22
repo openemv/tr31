@@ -153,9 +153,10 @@ int tr31_import(
 		case TR31_VERSION_A:
 		case TR31_VERSION_B:
 		case TR31_VERSION_C:
+		case TR31_VERSION_D:
+			// supported
 			break;
 
-		case TR31_VERSION_D:
 		default:
 			return TR31_ERROR_UNSUPPORTED_VERSION;
 	}
@@ -323,8 +324,8 @@ int tr31_import(
 			break;
 
 		case TR31_VERSION_D:
-			// TODO: implement TR-31:2018
-			return -1;
+			ctx->authenticator_length = 16; // 16 bytes; 32 ASCII hex digits
+			break;
 
 		default:
 			// invalid format version
@@ -510,6 +511,11 @@ int tr31_import(
 				goto error;
 			}
 
+			break;
+		}
+
+		case TR31_VERSION_D: {
+			// TODO: implement TR-31:2018
 			break;
 		}
 

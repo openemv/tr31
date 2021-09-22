@@ -15,7 +15,7 @@ TR-31 header attributes.
 Roadmap
 =======
 
-* Implement TR-31 format version D parsing and decryption
+* Implement TR-31 format version D decryption and verification
 * Implement key block authoring and encryption
 * Implement key block translation
 * Implement key block component combination
