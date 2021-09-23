@@ -35,6 +35,7 @@ __BEGIN_DECLS
 
 #define AES_BLOCK_SIZE (16) ///< AES block size in bytes
 #define AES128_KEY_SIZE (16) ///< AES-128 key size in bytes
+#define AES192_KEY_SIZE (24) ///< AES-192 key size in bytes
 #define AES256_KEY_SIZE (32) ///< AES-256 key size in bytes
 #define AES_CIPHERTEXT_LENGTH(plen) (((plen) + AES_BLOCK_SIZE-1) & ~(AES_BLOCK_SIZE-1)) ///< AES ciphertext length at next block boundary
 
@@ -169,6 +170,50 @@ int tr31_tdes_kbpk_derive(const void* kbpk, size_t kbpk_len, void* kbek, void* k
  * @return Zero for success. Less than zero for internal error.
  */
 int tr31_tdes_kcv(const void* key, size_t key_len, void* kcv);
+
+/**
+ * Encrypt using AES ECB
+ * @param key Key
+ * @param key_len Length of key in bytes
+ * @param plaintext Plaintext of length @ref AES_BLOCK_SIZE to encrypt
+ * @param ciphertext Encrypted output
+ * @return Zero for success. Less than zero for internal error.
+ */
+int tr31_aes_encrypt_ecb(const void* key, size_t key_len, const void* plaintext, void* ciphertext);
+
+/**
+ * Decrypt using AES ECB
+ * @param key Key
+ * @param key_len Length of key in bytes
+ * @param ciphertext Ciphertext of length @ref AES_BLOCK_SIZE to decrypt
+ * @param plaintext Decrypted output
+ * @return Zero for success. Less than zero for internal error.
+ */
+int tr31_aes_decrypt_ecb(const void* key, size_t key_len, const void* ciphertext, void* plaintext);
+
+/**
+ * Encrypt using AES CBC
+ * @param key Key
+ * @param key_len Length of key in bytes
+ * @param iv Initialization vector
+ * @param plaintext Plaintext to encrypt
+ * @param plen Length of plaintext in bytes. Must be a multiple of @ref AES_BLOCK_SIZE.
+ * @param ciphertext Encrypted output
+ * @return Zero for success. Less than zero for internal error.
+ */
+int tr31_aes_encrypt_cbc(const void* key, size_t key_len, const void* iv, const void* plaintext, size_t plen, void* ciphertext);
+
+/**
+ * Decrypt using AES CBC
+ * @param key Key
+ * @param key_len Length of key in bytes
+ * @param iv Initialization vector
+ * @param ciphertext Ciphertext to decrypt
+ * @param clen Length of ciphertext in bytes. Must be a multiple of @ref AES_BLOCK_SIZE.
+ * @param plaintext Decrypted output
+ * @return Zero for success. Less than zero for internal error.
+ */
+int tr31_aes_decrypt_cbc(const void* key, size_t key_len, const void* iv, const void* ciphertext, size_t clen, void* plaintext);
 
 /**
  * Cleanse buffer at pointer

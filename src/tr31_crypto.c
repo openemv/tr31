@@ -539,6 +539,167 @@ int tr31_tdes_kcv(const void* key, size_t key_len, void* kcv)
 	return 0;
 }
 
+static int tr31_aes_encrypt(const void* key, size_t key_len, const void* iv, const void* plaintext, size_t plen, void* ciphertext)
+{
+	int r;
+	EVP_CIPHER_CTX* ctx;
+	int clen;
+	int clen2;
+
+	// ensure that plaintext length is a multiple of the AES block length
+	if ((plen & (AES_BLOCK_SIZE-1)) != 0) {
+		return -1;
+	}
+
+	ctx = EVP_CIPHER_CTX_new();
+
+	switch (key_len) {
+		case AES128_KEY_SIZE:
+			if (iv) { // IV implies CBC block mode
+				r = EVP_EncryptInit_ex(ctx, EVP_aes_128_cbc(), NULL, key, iv);
+			} else { // no IV implies ECB block mode
+				r = EVP_EncryptInit_ex(ctx, EVP_aes_128_ecb(), NULL, key, NULL);
+			}
+			break;
+
+		case AES192_KEY_SIZE:
+			if (iv) { // IV implies CBC block mode
+				r = EVP_EncryptInit_ex(ctx, EVP_aes_192_cbc(), NULL, key, iv);
+			} else { // no IV implies ECB block mode
+				r = EVP_EncryptInit_ex(ctx, EVP_aes_192_ecb(), NULL, key, NULL);
+			}
+			break;
+
+		case AES256_KEY_SIZE:
+			if (iv) { // IV implies CBC block mode
+				r = EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv);
+			} else { // no IV implies ECB block mode
+				r = EVP_EncryptInit_ex(ctx, EVP_aes_256_ecb(), NULL, key, NULL);
+			}
+			break;
+
+		default:
+			r = -2;
+			goto exit;
+	}
+	if (!r) {
+		r = -3;
+		goto exit;
+	}
+
+	// disable padding
+	EVP_CIPHER_CTX_set_padding(ctx, 0);
+
+	clen = 0;
+	r = EVP_EncryptUpdate(ctx, ciphertext, &clen, plaintext, plen);
+	if (!r) {
+		r = -4;
+		goto exit;
+	}
+
+	clen2 = 0;
+	r = EVP_EncryptFinal_ex(ctx, ciphertext + clen, &clen2);
+	if (!r) {
+		r = -5;
+		goto exit;
+	}
+
+	r = 0;
+	goto exit;
+
+exit:
+	EVP_CIPHER_CTX_free(ctx);
+	return r;
+}
+
+static int tr31_aes_decrypt(const void* key, size_t key_len, const void* iv, const void* ciphertext, size_t clen, void* plaintext)
+{
+	int r;
+	EVP_CIPHER_CTX* ctx;
+	int plen;
+	int plen2;
+
+	ctx = EVP_CIPHER_CTX_new();
+
+	switch (key_len) {
+		case AES128_KEY_SIZE:
+			if (iv) { // IV implies CBC block mode
+				r = EVP_DecryptInit_ex(ctx, EVP_aes_128_cbc(), NULL, key, iv);
+			} else { // no IV implies ECB block mode
+				r = EVP_DecryptInit_ex(ctx, EVP_aes_128_ecb(), NULL, key, NULL);
+			}
+			break;
+
+		case AES192_KEY_SIZE:
+			if (iv) { // IV implies CBC block mode
+				r = EVP_DecryptInit_ex(ctx, EVP_aes_192_cbc(), NULL, key, iv);
+			} else { // no IV implies ECB block mode
+				r = EVP_DecryptInit_ex(ctx, EVP_aes_192_ecb(), NULL, key, NULL);
+			}
+			break;
+
+		case AES256_KEY_SIZE:
+			if (iv) { // IV implies CBC block mode
+				r = EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv);
+			} else { // no IV implies ECB block mode
+				r = EVP_DecryptInit_ex(ctx, EVP_aes_256_ecb(), NULL, key, NULL);
+			}
+			break;
+
+		default:
+			r = -2;
+			goto exit;
+	}
+	if (!r) {
+		r = -3;
+		goto exit;
+	}
+
+	// disable padding
+	EVP_CIPHER_CTX_set_padding(ctx, 0);
+
+	plen = 0;
+	r = EVP_DecryptUpdate(ctx, plaintext, &plen, ciphertext, clen);
+	if (!r) {
+		r = -4;
+		goto exit;
+	}
+
+	plen2 = 0;
+	r = EVP_DecryptFinal_ex(ctx, plaintext + plen, &plen2);
+	if (!r) {
+		r = -5;
+		goto exit;
+	}
+
+	r = 0;
+	goto exit;
+
+exit:
+	EVP_CIPHER_CTX_free(ctx);
+	return r;
+}
+
+int tr31_aes_encrypt_ecb(const void* key, size_t key_len, const void* plaintext, void* ciphertext)
+{
+	return tr31_aes_encrypt(key, key_len, NULL, plaintext, AES_BLOCK_SIZE, ciphertext);
+}
+
+int tr31_aes_decrypt_ecb(const void* key, size_t key_len, const void* ciphertext, void* plaintext)
+{
+	return tr31_aes_decrypt(key, key_len, NULL, ciphertext, AES_BLOCK_SIZE, plaintext);
+}
+
+int tr31_aes_encrypt_cbc(const void* key, size_t key_len, const void* iv, const void* plaintext, size_t plen, void* ciphertext)
+{
+	return tr31_aes_encrypt(key, key_len, iv, plaintext, plen, ciphertext);
+}
+
+int tr31_aes_decrypt_cbc(const void* key, size_t key_len, const void* iv, const void* ciphertext, size_t clen, void* plaintext)
+{
+	return tr31_aes_decrypt(key, key_len, iv, ciphertext, clen, plaintext);
+}
+
 void tr31_cleanse(void* ptr, size_t len)
 {
 	OPENSSL_cleanse(ptr, len);
