@@ -216,6 +216,32 @@ int tr31_aes_encrypt_cbc(const void* key, size_t key_len, const void* iv, const 
 int tr31_aes_decrypt_cbc(const void* key, size_t key_len, const void* iv, const void* ciphertext, size_t clen, void* plaintext);
 
 /**
+ * Compute AES CMAC
+ * @remark See NIST SP 800-38B, section 6.2
+ * @remark See ISO 9797-1:2011 MAC algorithm 5
+ * @param key Key
+ * @param key_len Length of key in bytes
+ * @param buf Input buffer
+ * @param len Length of input buffer in bytes
+ * @param cmac CMAC output of length @ref AES_BLOCK_SIZE
+ * @return Zero for success. Non-zero for error.
+ */
+int tr31_aes_cmac(const void* key, size_t key_len, const void* buf, size_t len, void* cmac);
+
+/**
+ * Verify using AES CMAC
+ * @remark See NIST SP 800-38B, section 6.3
+ * @remark See ISO 9797-1:2011 MAC algorithm 5
+ * @param key Key
+ * @param key_len Length of key in bytes
+ * @param buf Input buffer to verify
+ * @param len Length of input buffer in bytes
+ * @param cmac_verify CMAC of length @ref AES_BLOCK_SIZE to verify
+ * @return Zero for success. Non-zero for verification failure.
+ */
+int tr31_aes_verify_cmac(const void* key, size_t key_len, const void* buf, size_t len, const void* cmac_verify);
+
+/**
  * Cleanse buffer at pointer
  * @param ptr Pointer to buffer
  * @param len Length of buffer in bytes
