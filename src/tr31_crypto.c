@@ -38,6 +38,14 @@ static const uint8_t tr31_derive_kbek_tdes3_input[] = { 0x01, 0x00, 0x00, 0x00, 
 static const uint8_t tr31_derive_kbak_tdes2_input[] = { 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x80 };
 static const uint8_t tr31_derive_kbak_tdes3_input[] = { 0x01, 0x00, 0x01, 0x00, 0x00, 0x01, 0x00, 0xC0 };
 
+// see TR-31:2018, section 5.3.2.3
+static const uint8_t tr31_derive_kbek_aes128_input[] = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x80 };
+static const uint8_t tr31_derive_kbek_aes192_input[] = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0xC0 };
+static const uint8_t tr31_derive_kbek_aes256_input[] = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x04, 0x01, 0x00 };
+static const uint8_t tr31_derive_kbak_aes128_input[] = { 0x01, 0x00, 0x01, 0x00, 0x00, 0x02, 0x00, 0x80 };
+static const uint8_t tr31_derive_kbak_aes192_input[] = { 0x01, 0x00, 0x01, 0x00, 0x00, 0x03, 0x00, 0xC0 };
+static const uint8_t tr31_derive_kbak_aes256_input[] = { 0x01, 0x00, 0x01, 0x00, 0x00, 0x04, 0x01, 0x00 };
+
 static int tr31_memcmp(const void* a, const void* b, size_t n)
 {
 	int r = 0;
@@ -837,6 +845,126 @@ int tr31_aes_verify_cmac(const void* key, size_t key_len, const void* buf, size_
 	}
 
 	return tr31_memcmp(cmac, cmac_verify, sizeof(cmac));
+}
+
+int tr31_aes_kbpk_derive(const void* kbpk, size_t kbpk_len, void* kbek, void* kbak)
+{
+	int r;
+	uint8_t kbxk_input[8];
+
+	if (!kbpk || !kbek || !kbak) {
+		return -1;
+	}
+	if (kbpk_len != AES128_KEY_SIZE &&
+		kbpk_len != AES192_KEY_SIZE &&
+		kbpk_len != AES256_KEY_SIZE
+	) {
+		return TR31_ERROR_UNSUPPORTED_KBPK_LENGTH;
+	}
+
+	// See TR-31:2018, section 5.3.2.3
+	// CMAC uses subkey and message input to output derived key material of
+	// cipher block length.
+	// Message input is as described in TR-31:2018, section 5.3.2.3, table 2
+
+	// populate key block encryption key derivation input
+	memset(kbxk_input, 0, sizeof(kbxk_input));
+	switch (kbpk_len) {
+		case AES128_KEY_SIZE:
+			memcpy(kbxk_input, tr31_derive_kbek_aes128_input, sizeof(tr31_derive_kbek_aes128_input));
+			break;
+
+		case AES192_KEY_SIZE:
+			memcpy(kbxk_input, tr31_derive_kbek_aes192_input, sizeof(tr31_derive_kbek_aes192_input));
+			break;
+
+		case AES256_KEY_SIZE:
+			memcpy(kbxk_input, tr31_derive_kbek_aes256_input, sizeof(tr31_derive_kbek_aes256_input));
+			break;
+
+		default:
+			return -2;
+	}
+
+	// derive key block encryption key
+	for (size_t kbek_len = 0; kbek_len < kbpk_len; kbek_len += AES_BLOCK_SIZE) {
+		// AES CMAC creates key material of size AES_BLOCK_SIZE
+
+		// see TR-31:2018, section 5.3.2.3
+		// for AES-192 key derivation, use the leftmost 8 bytes of the
+		// second CMAC block
+		if (kbpk_len - kbek_len < AES_BLOCK_SIZE) {
+			uint8_t cmac[AES_BLOCK_SIZE];
+
+			r = tr31_aes_cmac(kbpk, kbpk_len, kbxk_input, sizeof(kbxk_input), cmac);
+			if (r) {
+				// internal error
+				return r;
+			}
+
+			memcpy(kbek + kbek_len, cmac, kbpk_len - kbek_len);
+			tr31_cleanse(cmac, sizeof(cmac));
+		} else {
+			r = tr31_aes_cmac(kbpk, kbpk_len, kbxk_input, sizeof(kbxk_input), kbek + kbek_len);
+			if (r) {
+				// internal error
+				return r;
+			}
+		}
+
+		// increment key derivation input counter
+		kbxk_input[0]++;
+	}
+
+	// populate key block authentication key derivation input
+	switch (kbpk_len) {
+		case AES128_KEY_SIZE:
+			memcpy(kbxk_input, tr31_derive_kbak_aes128_input, sizeof(tr31_derive_kbak_aes128_input));
+			break;
+
+		case AES192_KEY_SIZE:
+			memcpy(kbxk_input, tr31_derive_kbak_aes192_input, sizeof(tr31_derive_kbak_aes192_input));
+			break;
+
+		case AES256_KEY_SIZE:
+			memcpy(kbxk_input, tr31_derive_kbak_aes256_input, sizeof(tr31_derive_kbak_aes256_input));
+			break;
+
+		default:
+			return -3;
+	}
+
+	// derive key block authentication key
+	for (size_t kbak_len = 0; kbak_len < kbpk_len; kbak_len += AES_BLOCK_SIZE) {
+		// AES CMAC creates key material of size AES_BLOCK_SIZE
+
+		// see TR-31:2018, section 5.3.2.3
+		// for AES-192 key derivation, use the leftmost 8 bytes of the
+		// second CMAC block
+		if (kbpk_len - kbak_len < AES_BLOCK_SIZE) {
+			uint8_t cmac[AES_BLOCK_SIZE];
+
+			r = tr31_aes_cmac(kbpk, kbpk_len, kbxk_input, sizeof(kbxk_input), cmac);
+			if (r) {
+				// internal error
+				return r;
+			}
+
+			memcpy(kbak + kbak_len, cmac, kbpk_len - kbak_len);
+			tr31_cleanse(cmac, sizeof(cmac));
+		} else {
+			r = tr31_aes_cmac(kbpk, kbpk_len, kbxk_input, sizeof(kbxk_input), kbak + kbak_len);
+			if (r) {
+				// internal error
+				return r;
+			}
+		}
+
+		// increment key derivation input counter
+		kbxk_input[0]++;
+	}
+
+	return 0;
 }
 
 void tr31_cleanse(void* ptr, size_t len)

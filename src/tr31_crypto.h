@@ -242,6 +242,16 @@ int tr31_aes_cmac(const void* key, size_t key_len, const void* buf, size_t len, 
 int tr31_aes_verify_cmac(const void* key, size_t key_len, const void* buf, size_t len, const void* cmac_verify);
 
 /**
+ * Derive AES key block encryption key (KBEK) and key block authentication key (KBAK) from key block protection key (KBPK)
+ * @param kbpk Key block protection key
+ * @param kbpk_len Length of key block protection key in bytes
+ * @param kbek Key block encryption key output
+ * @param kbak Key block authentication key output
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. @see #tr31_error_t
+ */
+int tr31_aes_kbpk_derive(const void* kbpk, size_t kbpk_len, void* kbek, void* kbak);
+
+/**
  * Cleanse buffer at pointer
  * @param ptr Pointer to buffer
  * @param len Length of buffer in bytes
