@@ -48,6 +48,10 @@ __BEGIN_DECLS
 #define TR31_TDES3_KEY_UNDER_DES_LENGTH DES_CIPHERTEXT_LENGTH(2 + TDES3_KEY_SIZE) ///< 2-byte length + TDES3 key + DES padding, in bytes
 #define TR31_TDES3_KEY_UNDER_AES_LENGTH AES_CIPHERTEXT_LENGTH(2 + TDES3_KEY_SIZE) ///< 2-byte length + TDES3 key + AES padding, in bytes
 
+#define TR31_AES128_KEY_UNDER_AES_LENGTH AES_CIPHERTEXT_LENGTH(2 + AES128_KEY_SIZE) ///< 2-byte length + AES-128 key + AES padding, in bytes
+#define TR31_AES192_KEY_UNDER_AES_LENGTH AES_CIPHERTEXT_LENGTH(2 + AES192_KEY_SIZE) ///< 2-byte length + AES-192 key + AES padding, in bytes
+#define TR31_AES256_KEY_UNDER_AES_LENGTH AES_CIPHERTEXT_LENGTH(2 + AES256_KEY_SIZE) ///< 2-byte length + AES-256 key + AES padding, in bytes
+
 /**
  * Encrypt using TDES ECB
  * @param key Key

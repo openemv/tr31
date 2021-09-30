@@ -515,7 +515,79 @@ int tr31_import(
 		}
 
 		case TR31_VERSION_D: {
-			// TODO: implement TR-31:2018
+			// only allow AES key block protection keys
+			if (kbpk->algorithm != TR31_KEY_ALGORITHM_AES) {
+				r = TR31_ERROR_UNSUPPORTED_KBPK_ALGORITHM;
+				goto error;
+			}
+
+			// validate payload length
+			if (ctx->payload_length != TR31_TDES2_KEY_UNDER_AES_LENGTH &&
+				ctx->payload_length != TR31_TDES3_KEY_UNDER_AES_LENGTH &&
+				ctx->payload_length != TR31_AES128_KEY_UNDER_AES_LENGTH &&
+				ctx->payload_length != TR31_AES192_KEY_UNDER_AES_LENGTH &&
+				ctx->payload_length != TR31_AES256_KEY_UNDER_AES_LENGTH
+			) {
+				r = TR31_ERROR_INVALID_KEY_LENGTH;
+				goto error;
+			}
+
+			uint8_t kbek[AES256_KEY_SIZE];
+			uint8_t kbak[AES256_KEY_SIZE];
+
+			// buffer for decryption and CMAC verification
+			uint8_t decrypted_key_block[key_block_header_len + ctx->payload_length];
+			struct tr31_payload_t* decrypted_payload = (struct tr31_payload_t*)(decrypted_key_block + key_block_header_len);
+			memcpy(decrypted_key_block, key_block, key_block_header_len);
+
+			// derive key block encryption key and key block authentication key from key block protection key
+			r = tr31_aes_kbpk_derive(kbpk->data, kbpk->length, kbek, kbak);
+			if (r) {
+				// return error value as-is
+				goto error;
+			}
+
+			// decrypt key payload; note that the authenticator is used as the IV
+			r = tr31_aes_decrypt_cbc(kbek, kbpk->length, ctx->authenticator, ctx->payload, ctx->payload_length, decrypted_payload);
+			if (r) {
+				// return error value as-is
+				goto error;
+			}
+
+			// validate payload length field
+			ctx->key.length = ntohs(decrypted_payload->length) / 8; // payload length is big endian and in bits, not bytes
+			switch (ctx->key.algorithm) {
+				case TR31_KEY_ALGORITHM_TDES:
+					if (ctx->key.length != TDES2_KEY_SIZE &&
+						ctx->key.length != TDES3_KEY_SIZE
+					) {
+						r = TR31_ERROR_INVALID_KEY_LENGTH;
+						goto error;
+					}
+					break;
+
+				case TR31_KEY_ALGORITHM_AES:
+					if (ctx->key.length != AES128_KEY_SIZE &&
+						ctx->key.length != AES192_KEY_SIZE &&
+						ctx->key.length != AES256_KEY_SIZE
+					) {
+						r = TR31_ERROR_INVALID_KEY_LENGTH;
+						goto error;
+					}
+					break;
+
+				default:
+					// unsupported
+					break;
+			}
+
+			// extract key data
+			ctx->key.data = calloc(1, ctx->key.length);
+			memcpy(ctx->key.data, decrypted_payload->data, ctx->key.length);
+
+			// cleanse decrypted key block buffer
+			tr31_cleanse(decrypted_key_block, sizeof(decrypted_key_block));
+
 			break;
 		}
 
