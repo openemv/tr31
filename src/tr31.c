@@ -585,6 +585,13 @@ int tr31_import(
 			ctx->key.data = calloc(1, ctx->key.length);
 			memcpy(ctx->key.data, decrypted_payload->data, ctx->key.length);
 
+			// verify authenticator
+			r = tr31_aes_verify_cmac(kbak, kbpk->length, decrypted_key_block, sizeof(decrypted_key_block), ctx->authenticator);
+			if (r) {
+				r = TR31_ERROR_KEY_BLOCK_VERIFICATION_FAILED;
+				goto error;
+			}
+
 			// cleanse decrypted key block buffer
 			tr31_cleanse(decrypted_key_block, sizeof(decrypted_key_block));
 
