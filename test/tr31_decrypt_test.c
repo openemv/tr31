@@ -65,6 +65,7 @@ static const uint8_t test6_kbpk[] = {
 };
 static const char test6_tr31_ascii[] = "D0112P0AE00E0000B82679114F470F540165EDFBF7E250FCEA43F810D215F8D207E2E417C07156A27E8E31DA05F7425509593D03A457DC34";
 static const uint8_t test6_tr31_key_verify[] = { 0x3F, 0x41, 0x9E, 0x1C, 0xB7, 0x07, 0x94, 0x42, 0xAA, 0x37, 0x47, 0x4C, 0x2E, 0xFB, 0xF8, 0xB8 };
+static const uint8_t test6_tr31_kcv_verify[] = { 0x08, 0x79, 0x3E };
 
 // example data generated using a Thales payShield 10k HSM
 static const uint8_t test7_kbpk[] = {
@@ -73,6 +74,7 @@ static const uint8_t test7_kbpk[] = {
 };
 static const char test7_tr31_ascii[] = "D0112B0TN00N000037DB9B046B7B0048785690759580ABC3B9842AB4BB7717B49E92528E575785D8123559376A2553B27BE94F054F4E971C";
 static const uint8_t test7_tr31_key_verify[] = { 0x1F, 0xA1, 0xF7, 0xCE, 0xC7, 0x98, 0xD9, 0x15, 0x45, 0xDA, 0x8A, 0xE0, 0xC7, 0x79, 0x6B, 0xD9 };
+static const uint8_t test7_tr31_kcv_verify[] = { 0xFF, 0x50, 0x87 };
 
 // example data generated using a Thales payShield 10k HSM
 static const uint8_t test8_kbpk[] = {
@@ -84,6 +86,7 @@ static const uint8_t test8_tr31_key_verify[] = {
 	0xBE, 0x19, 0xE6, 0xA0, 0x7A, 0x76, 0x0F, 0x10, 0xEF, 0x8E, 0x83, 0xA2, 0x26, 0xB6, 0x3A, 0xAD,
 	0x14, 0x1F, 0x46, 0x3F, 0xDD, 0xD4, 0xF4, 0x7D, 0xB2, 0x44, 0xB4, 0x02, 0x3E, 0xC3, 0xCA, 0xCC,
 };
+static const uint8_t test8_tr31_kcv_verify[] = { 0x0A, 0x00, 0xE3 };
 
 int main(void)
 {
@@ -442,6 +445,11 @@ int main(void)
 		r = 1;
 		goto exit;
 	}
+	if (memcmp(test_tr31.key.kcv, test6_tr31_kcv_verify, sizeof(test6_tr31_kcv_verify)) != 0) {
+		fprintf(stderr, "TR-31 key data KCV is incorrect\n");
+		r = 1;
+		goto exit;
+	}
 	tr31_release(&test_tr31);
 
 	// test key block decryption for format version D containing TDES key
@@ -482,6 +490,11 @@ int main(void)
 		r = 1;
 		goto exit;
 	}
+	if (memcmp(test_tr31.key.kcv, test7_tr31_kcv_verify, sizeof(test7_tr31_kcv_verify)) != 0) {
+		fprintf(stderr, "TR-31 key data KCV is incorrect\n");
+		r = 1;
+		goto exit;
+	}
 	tr31_release(&test_tr31);
 
 	// test key block decryption for format version D containing AES key
@@ -519,6 +532,11 @@ int main(void)
 	}
 	if (memcmp(test_tr31.key.data, test8_tr31_key_verify, sizeof(test8_tr31_key_verify)) != 0) {
 		fprintf(stderr, "TR-31 key data is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	if (memcmp(test_tr31.key.kcv, test8_tr31_kcv_verify, sizeof(test8_tr31_kcv_verify)) != 0) {
+		fprintf(stderr, "TR-31 key data KCV is incorrect\n");
 		r = 1;
 		goto exit;
 	}

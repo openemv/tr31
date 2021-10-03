@@ -256,6 +256,15 @@ int tr31_aes_verify_cmac(const void* key, size_t key_len, const void* buf, size_
 int tr31_aes_kbpk_derive(const void* kbpk, size_t kbpk_len, void* kbek, void* kbak);
 
 /**
+ * Compute AES Key Check Value (KCV)
+ * @param key Key
+ * @param key_len Length of key in bytes
+ * @param kcv Key Check Value output of 3 bytes
+ * @return Zero for success. Less than zero for internal error.
+ */
+int tr31_aes_kcv(const void* key, size_t key_len, void* kcv);
+
+/**
  * Cleanse buffer at pointer
  * @param ptr Pointer to buffer
  * @param len Length of buffer in bytes

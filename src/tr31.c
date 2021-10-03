@@ -595,6 +595,26 @@ int tr31_import(
 			// cleanse decrypted key block buffer
 			tr31_cleanse(decrypted_key_block, sizeof(decrypted_key_block));
 
+			// populate KCV
+			switch (ctx->key.algorithm) {
+				case TR31_KEY_ALGORITHM_TDES:
+					r = tr31_tdes_kcv(ctx->key.data, ctx->key.length, ctx->key.kcv);
+					break;
+
+				case TR31_KEY_ALGORITHM_AES:
+					r = tr31_aes_kcv(ctx->key.data, ctx->key.length, ctx->key.kcv);
+					break;
+
+				default:
+					// KCV is not available
+					memset(ctx->key.kcv, 0, sizeof(ctx->key.kcv));
+					r = 0;
+			}
+			if (r) {
+				// return error value as-is
+				goto error;
+			}
+
 			break;
 		}
 

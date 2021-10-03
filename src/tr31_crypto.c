@@ -967,6 +967,43 @@ int tr31_aes_kbpk_derive(const void* kbpk, size_t kbpk_len, void* kbek, void* kb
 	return 0;
 }
 
+int tr31_aes_kcv(const void* key, size_t key_len, void* kcv)
+{
+	int r;
+	uint8_t input[AES_BLOCK_SIZE];
+	uint8_t ciphertext[AES_BLOCK_SIZE];
+
+	if (!key || !kcv) {
+		return -1;
+	}
+	if (key_len != AES128_KEY_SIZE &&
+		key_len != AES192_KEY_SIZE &&
+		key_len != AES256_KEY_SIZE
+	) {
+		return -2;
+	}
+
+	// zero KCV in case of error
+	memset(kcv, 0, 3);
+
+	// use input block populated with 0x00
+	memset(input, 0x00, sizeof(input));
+
+	// Compute CMAC of input block using input key
+	r = tr31_aes_cmac(key, key_len, input, sizeof(input), ciphertext);
+	if (r) {
+		// internal error
+		return r;
+	}
+
+	// KCV is always first 3 bytes of ciphertext
+	memcpy(kcv, ciphertext, 3);
+
+	tr31_cleanse(ciphertext, sizeof(ciphertext));
+
+	return 0;
+}
+
 void tr31_cleanse(void* ptr, size_t len)
 {
 	OPENSSL_cleanse(ptr, len);
