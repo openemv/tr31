@@ -23,7 +23,7 @@ endif()
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 find_package(OpenSSL 1.1 REQUIRED)
 find_package(dpkg) # optional for building Debian/Ubuntu packages
-find_package(rpm) # optional for building RedHat/Fedora packages
+find_package(rpmbuild) # optional for building RedHat/Fedora packages
 
 include(CTest)
 
@@ -80,7 +80,7 @@ if(dpkg_FOUND)
 	set(CPACK_DEBIAN_PACKAGE_DEPENDS libssl1.1)
 endif()
 
-if(rpm_FOUND)
+if(rpmbuild_FOUND)
 	list(APPEND CPACK_GENERATOR "RPM")
 	set(CPACK_RPM_FILE_NAME "RPM-DEFAULT") # use default rpm package naming
 	set(CPACK_RPM_PACKAGE_LICENSE "LGPLv2+")

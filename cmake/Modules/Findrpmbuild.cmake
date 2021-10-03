@@ -7,29 +7,29 @@
 
 # This module will define:
 #
-# rpm_FOUND
-# rpm_VERSION
-# rpm_EXECUTABLE
+# rpmbuild_FOUND
+# rpmbuild_VERSION
+# rpmbuild_EXECUTABLE
 
-find_program(rpm_EXECUTABLE rpm)
-if(rpm_EXECUTABLE)
+find_program(rpmbuild_EXECUTABLE rpmbuild)
+if(rpmbuild_EXECUTABLE)
 	execute_process(
-		COMMAND ${rpm_EXECUTABLE} --version
-		OUTPUT_VARIABLE rpm_VERSION
+		COMMAND ${rpmbuild_EXECUTABLE} --version
+		OUTPUT_VARIABLE rpmbuild_VERSION
 		OUTPUT_STRIP_TRAILING_WHITESPACE
 	)
 
 	string(REGEX MATCH "RPM version ([0-9]+\\.[0-9]+\\.[0-9]+(\\.[0-9]+)?)"
-		rpm_VERSION "${rpm_VERSION}"
+		rpmbuild_VERSION "${rpmbuild_VERSION}"
 	)
-	set(rpm_VERSION "${CMAKE_MATCH_1}")
+	set(rpmbuild_VERSION "${CMAKE_MATCH_1}")
 endif()
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(rpm
+find_package_handle_standard_args(rpmbuild
 	REQUIRED_VARS
-		rpm_EXECUTABLE
-	VERSION_VAR rpm_VERSION
+		rpmbuild_EXECUTABLE
+	VERSION_VAR rpmbuild_VERSION
 )
 
-mark_as_advanced(rpm_EXECUTABLE)
+mark_as_advanced(rpmbuild_EXECUTABLE)
