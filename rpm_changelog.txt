@@ -1,3 +1,7 @@
+* Sun Oct 03 2021 Leon Lynch <leon@onoconnect.com> - 0.1.2-1
+- Update to tr31-0.1.2
+- Check for rpmbuild instead of rpm
+
 * Wed Sep 22 2021 Leon Lynch <leon@onoconnect.com> - 0.1.1-1
 - Update to tr31-0.1.1
 
