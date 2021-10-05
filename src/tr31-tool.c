@@ -134,6 +134,7 @@ static void print_buf(const char* buf_name, const void* buf, size_t length)
 int main(int argc, char** argv)
 {
 	int r;
+	struct tr31_key_t kbpk;
 	struct tr31_ctx_t tr31_ctx;
 
 	if (argc == 1) {
@@ -148,16 +149,31 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
-	if (kbpk_buf_len) { // if key block protection key was provided
-		// populate key block protection key as a key wrapping key
-		struct tr31_key_t kbpk;
-		memset(&kbpk, 0, sizeof(kbpk));
-		kbpk.usage = TR31_KEY_USAGE_KEY;
-		kbpk.algorithm = TR31_KEY_ALGORITHM_TDES;
-		kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
-		kbpk.length = kbpk_buf_len;
-		kbpk.data = kbpk_buf;
+	// populate key block protection key as a key wrapping key
+	memset(&kbpk, 0, sizeof(kbpk));
+	kbpk.usage = TR31_KEY_USAGE_KEY;
+	kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
+	kbpk.length = kbpk_buf_len;
+	kbpk.data = kbpk_buf;
 
+	// determine key block protection key algorithm from keyblock format version
+	switch (key_block[0]) {
+		case TR31_VERSION_A:
+		case TR31_VERSION_B:
+		case TR31_VERSION_C:
+			kbpk.algorithm = TR31_KEY_ALGORITHM_TDES;
+			break;
+
+		case TR31_VERSION_D:
+			kbpk.algorithm = TR31_KEY_ALGORITHM_AES;
+			break;
+
+		default:
+			fprintf(stderr, "%s\n", tr31_get_error_string(TR31_ERROR_UNSUPPORTED_VERSION));
+			return 1;
+	}
+
+	if (kbpk_buf_len) { // if key block protection key was provided
 		// parse and decrypt TR-31 key block
 		r = tr31_import(key_block, &kbpk, &tr31_ctx);
 	} else { // else if no key block protection key was provided

@@ -9,13 +9,12 @@ Features
 ========
 
 Currently this library implements parsing and decryption of TR-31 format
-version A, B, and C. Various helper functions are also available to stringify
-TR-31 header attributes.
+version A, B, C, and D. Various helper functions are also available to
+stringify TR-31 header attributes.
 
 Roadmap
 =======
 
-* Implement TR-31 format version D parsing and decryption
 * Implement key block authoring and encryption
 * Implement key block translation
 * Implement key block component combination

@@ -58,6 +58,36 @@ static const uint8_t test5_tr31_ksn_verify[] = { 0x00, 0x60, 0x4B, 0x12, 0x0F, 0
 static const uint8_t test5_tr31_key_verify[] = { 0xE8, 0xBC, 0x63, 0xE5, 0x47, 0x94, 0x55, 0xE2, 0x65, 0x77, 0xF7, 0x15, 0xD5, 0x87, 0xFE, 0x68 };
 static const uint8_t test5_tr31_kcv_verify[] = { 0x9A, 0x42, 0x12 };
 
+// TR-31:2018, A.7.4
+static const uint8_t test6_kbpk[] = {
+	0x88, 0xE1, 0xAB, 0x2A, 0x2E, 0x3D, 0xD3, 0x8C, 0x1F, 0xA0, 0x39, 0xA5, 0x36, 0x50, 0x0C, 0xC8,
+	0xA8, 0x7A, 0xB9, 0xD6, 0x2D, 0xC9, 0x2C, 0x01, 0x05, 0x8F, 0xA7, 0x9F, 0x44, 0x65, 0x7D, 0xE6,
+};
+static const char test6_tr31_ascii[] = "D0112P0AE00E0000B82679114F470F540165EDFBF7E250FCEA43F810D215F8D207E2E417C07156A27E8E31DA05F7425509593D03A457DC34";
+static const uint8_t test6_tr31_key_verify[] = { 0x3F, 0x41, 0x9E, 0x1C, 0xB7, 0x07, 0x94, 0x42, 0xAA, 0x37, 0x47, 0x4C, 0x2E, 0xFB, 0xF8, 0xB8 };
+static const uint8_t test6_tr31_kcv_verify[] = { 0x08, 0x79, 0x3E };
+
+// example data generated using a Thales payShield 10k HSM
+static const uint8_t test7_kbpk[] = {
+	0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+	0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+};
+static const char test7_tr31_ascii[] = "D0112B0TN00N000037DB9B046B7B0048785690759580ABC3B9842AB4BB7717B49E92528E575785D8123559376A2553B27BE94F054F4E971C";
+static const uint8_t test7_tr31_key_verify[] = { 0x1F, 0xA1, 0xF7, 0xCE, 0xC7, 0x98, 0xD9, 0x15, 0x45, 0xDA, 0x8A, 0xE0, 0xC7, 0x79, 0x6B, 0xD9 };
+static const uint8_t test7_tr31_kcv_verify[] = { 0xFF, 0x50, 0x87 };
+
+// example data generated using a Thales payShield 10k HSM
+static const uint8_t test8_kbpk[] = {
+	0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+	0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+};
+static const char test8_tr31_ascii[] = "D0144D0AN00N0000127862F945C2DED04530FAF7CDBC8B0BA10C7AA79BD5E0C2C5D6AC173BF588E4B19ACF1357178D50EA0AB193228E13958304FC6149632DFDCADF3A5B3D57E814";
+static const uint8_t test8_tr31_key_verify[] = {
+	0xBE, 0x19, 0xE6, 0xA0, 0x7A, 0x76, 0x0F, 0x10, 0xEF, 0x8E, 0x83, 0xA2, 0x26, 0xB6, 0x3A, 0xAD,
+	0x14, 0x1F, 0x46, 0x3F, 0xDD, 0xD4, 0xF4, 0x7D, 0xB2, 0x44, 0xB4, 0x02, 0x3E, 0xC3, 0xCA, 0xCC,
+};
+static const uint8_t test8_tr31_kcv_verify[] = { 0x0A, 0x00, 0xE3 };
+
 int main(void)
 {
 	int r;
@@ -371,6 +401,141 @@ int main(void)
 		goto exit;
 	}
 	if (memcmp(test_tr31.key.kcv, test5_tr31_kcv_verify, sizeof(test5_tr31_kcv_verify)) != 0) {
+		fprintf(stderr, "TR-31 key data KCV is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	tr31_release(&test_tr31);
+
+	// TR-31:2018, A.7.4
+	memset(&test_kbpk, 0, sizeof(test_kbpk));
+	test_kbpk.usage = TR31_KEY_USAGE_KEY;
+	test_kbpk.algorithm = TR31_KEY_ALGORITHM_AES;
+	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
+	test_kbpk.length = sizeof(test6_kbpk);
+	test_kbpk.data = (void*)test6_kbpk;
+	r = tr31_import(test6_tr31_ascii, &test_kbpk, &test_tr31);
+	if (r) {
+		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		goto exit;
+	}
+	if (test_tr31.version != TR31_VERSION_D ||
+		test_tr31.length != 112 ||
+		test_tr31.key.usage != TR31_KEY_USAGE_PIN ||
+		test_tr31.key.algorithm != TR31_KEY_ALGORITHM_AES ||
+		test_tr31.key.mode_of_use != TR31_KEY_MODE_OF_USE_ENC ||
+		test_tr31.key.key_version != TR31_KEY_VERSION_IS_UNUSED ||
+		test_tr31.key.key_version_value != 0 ||
+		test_tr31.key.exportability != TR31_KEY_EXPORT_TRUSTED ||
+		test_tr31.key.length != sizeof(test6_tr31_key_verify) ||
+		test_tr31.key.data == NULL ||
+		test_tr31.opt_blocks_count != 0 ||
+		test_tr31.opt_blocks != NULL ||
+		test_tr31.payload_length != 32 ||
+		test_tr31.payload == NULL ||
+		test_tr31.authenticator_length != 16 ||
+		test_tr31.authenticator == NULL
+	) {
+		fprintf(stderr, "TR-31 context is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	if (memcmp(test_tr31.key.data, test6_tr31_key_verify, sizeof(test6_tr31_key_verify)) != 0) {
+		fprintf(stderr, "TR-31 key data is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	if (memcmp(test_tr31.key.kcv, test6_tr31_kcv_verify, sizeof(test6_tr31_kcv_verify)) != 0) {
+		fprintf(stderr, "TR-31 key data KCV is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	tr31_release(&test_tr31);
+
+	// test key block decryption for format version D containing TDES key
+	memset(&test_kbpk, 0, sizeof(test_kbpk));
+	test_kbpk.usage = TR31_KEY_USAGE_KEY;
+	test_kbpk.algorithm = TR31_KEY_ALGORITHM_AES;
+	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
+	test_kbpk.length = sizeof(test7_kbpk);
+	test_kbpk.data = (void*)test7_kbpk;
+	r = tr31_import(test7_tr31_ascii, &test_kbpk, &test_tr31);
+	if (r) {
+		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		goto exit;
+	}
+	if (test_tr31.version != TR31_VERSION_D ||
+		test_tr31.length != 112 ||
+		test_tr31.key.usage != TR31_KEY_USAGE_BDK ||
+		test_tr31.key.algorithm != TR31_KEY_ALGORITHM_TDES ||
+		test_tr31.key.mode_of_use != TR31_KEY_MODE_OF_USE_ANY ||
+		test_tr31.key.key_version != TR31_KEY_VERSION_IS_UNUSED ||
+		test_tr31.key.key_version_value != 0 ||
+		test_tr31.key.exportability != TR31_KEY_EXPORT_NONE ||
+		test_tr31.key.length != sizeof(test7_tr31_key_verify) ||
+		test_tr31.key.data == NULL ||
+		test_tr31.opt_blocks_count != 0 ||
+		test_tr31.opt_blocks != NULL ||
+		test_tr31.payload_length != 32 ||
+		test_tr31.payload == NULL ||
+		test_tr31.authenticator_length != 16 ||
+		test_tr31.authenticator == NULL
+	) {
+		fprintf(stderr, "TR-31 context is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	if (memcmp(test_tr31.key.data, test7_tr31_key_verify, sizeof(test7_tr31_key_verify)) != 0) {
+		fprintf(stderr, "TR-31 key data is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	if (memcmp(test_tr31.key.kcv, test7_tr31_kcv_verify, sizeof(test7_tr31_kcv_verify)) != 0) {
+		fprintf(stderr, "TR-31 key data KCV is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	tr31_release(&test_tr31);
+
+	// test key block decryption for format version D containing AES key
+	memset(&test_kbpk, 0, sizeof(test_kbpk));
+	test_kbpk.usage = TR31_KEY_USAGE_KEY;
+	test_kbpk.algorithm = TR31_KEY_ALGORITHM_AES;
+	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
+	test_kbpk.length = sizeof(test8_kbpk);
+	test_kbpk.data = (void*)test8_kbpk;
+	r = tr31_import(test8_tr31_ascii, &test_kbpk, &test_tr31);
+	if (r) {
+		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		goto exit;
+	}
+	if (test_tr31.version != TR31_VERSION_D ||
+		test_tr31.length != 144 ||
+		test_tr31.key.usage != TR31_KEY_USAGE_DATA ||
+		test_tr31.key.algorithm != TR31_KEY_ALGORITHM_AES ||
+		test_tr31.key.mode_of_use != TR31_KEY_MODE_OF_USE_ANY ||
+		test_tr31.key.key_version != TR31_KEY_VERSION_IS_UNUSED ||
+		test_tr31.key.key_version_value != 0 ||
+		test_tr31.key.exportability != TR31_KEY_EXPORT_NONE ||
+		test_tr31.key.length != sizeof(test8_tr31_key_verify) ||
+		test_tr31.key.data == NULL ||
+		test_tr31.opt_blocks_count != 0 ||
+		test_tr31.opt_blocks != NULL ||
+		test_tr31.payload_length != 48 ||
+		test_tr31.payload == NULL ||
+		test_tr31.authenticator_length != 16 ||
+		test_tr31.authenticator == NULL
+	) {
+		fprintf(stderr, "TR-31 context is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	if (memcmp(test_tr31.key.data, test8_tr31_key_verify, sizeof(test8_tr31_key_verify)) != 0) {
+		fprintf(stderr, "TR-31 key data is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	if (memcmp(test_tr31.key.kcv, test8_tr31_kcv_verify, sizeof(test8_tr31_kcv_verify)) != 0) {
 		fprintf(stderr, "TR-31 key data KCV is incorrect\n");
 		r = 1;
 		goto exit;
