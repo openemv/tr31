@@ -338,9 +338,13 @@ int tr31_import(
 		goto error;
 	}
 
-	// determine header and payload lengths
-	size_t key_block_header_len = ptr - (void*)header;
-	size_t key_block_payload_length = key_block_len - key_block_header_len - (ctx->authenticator_length * 2);
+	// add header data to context object
+	ctx->header_length = ptr - (void*)header;
+	ctx->header = calloc(1, ctx->header_length);
+	memcpy(ctx->header, header, ctx->header_length);
+
+	// determine payload length
+	size_t key_block_payload_length = key_block_len - ctx->header_length - (ctx->authenticator_length * 2);
 	ctx->payload_length = key_block_payload_length / 2;
 
 	// add payload data to context object
@@ -397,9 +401,9 @@ int tr31_import(
 			struct tr31_payload_t* decrypted_payload = (struct tr31_payload_t*)decrypted_payload_buf;
 
 			// buffer for MAC verification
-			uint8_t mac_buf[key_block_header_len + ctx->payload_length];
-			memcpy(mac_buf, key_block, key_block_header_len);
-			memcpy(mac_buf + key_block_header_len, ctx->payload, ctx->payload_length);
+			uint8_t mac_buf[ctx->header_length + ctx->payload_length];
+			memcpy(mac_buf, ctx->header, ctx->header_length);
+			memcpy(mac_buf + ctx->header_length, ctx->payload, ctx->payload_length);
 
 			// output key block encryption key variant and key block authentication key variant
 			r = tr31_tdes_kbpk_variant(kbpk->data, kbpk->length, kbek, kbak);
@@ -465,9 +469,9 @@ int tr31_import(
 			uint8_t kbak[TDES3_KEY_SIZE];
 
 			// buffer for decryption and CMAC verification
-			uint8_t decrypted_key_block[key_block_header_len + ctx->payload_length];
-			struct tr31_payload_t* decrypted_payload = (struct tr31_payload_t*)(decrypted_key_block + key_block_header_len);
-			memcpy(decrypted_key_block, key_block, key_block_header_len);
+			uint8_t decrypted_key_block[ctx->header_length + ctx->payload_length];
+			memcpy(decrypted_key_block, ctx->header, ctx->header_length);
+			struct tr31_payload_t* decrypted_payload = (struct tr31_payload_t*)(decrypted_key_block + ctx->header_length);
 
 			// derive key block encryption key and key block authentication key from key block protection key
 			r = tr31_tdes_kbpk_derive(kbpk->data, kbpk->length, kbek, kbak);
@@ -536,9 +540,9 @@ int tr31_import(
 			uint8_t kbak[AES256_KEY_SIZE];
 
 			// buffer for decryption and CMAC verification
-			uint8_t decrypted_key_block[key_block_header_len + ctx->payload_length];
-			struct tr31_payload_t* decrypted_payload = (struct tr31_payload_t*)(decrypted_key_block + key_block_header_len);
-			memcpy(decrypted_key_block, key_block, key_block_header_len);
+			uint8_t decrypted_key_block[ctx->header_length + ctx->payload_length];
+			memcpy(decrypted_key_block, ctx->header, ctx->header_length);
+			struct tr31_payload_t* decrypted_payload = (struct tr31_payload_t*)(decrypted_key_block + ctx->header_length);
 
 			// derive key block encryption key and key block authentication key from key block protection key
 			r = tr31_aes_kbpk_derive(kbpk->data, kbpk->length, kbek, kbak);
@@ -653,6 +657,10 @@ void tr31_release(struct tr31_ctx_t* ctx)
 		ctx->opt_blocks = NULL;
 	}
 
+	if (ctx->header) {
+		free(ctx->header);
+		ctx->header = NULL;
+	}
 	if (ctx->payload) {
 		free(ctx->payload);
 		ctx->payload = NULL;
