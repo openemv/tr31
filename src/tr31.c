@@ -61,6 +61,7 @@ static int hex_to_bin(const char* hex, void* bin, size_t bin_len);
 static int tr31_tdes_decrypt_verify_variant_binding(struct tr31_ctx_t* ctx, const struct tr31_key_t* kbpk);
 static int tr31_tdes_decrypt_verify_derivation_binding(struct tr31_ctx_t* ctx, const struct tr31_key_t* kbpk);
 static int tr31_aes_decrypt_verify_derivation_binding(struct tr31_ctx_t* ctx, const struct tr31_key_t* kbpk);
+static const char* tr31_get_opt_block_hmac_string(const struct tr31_opt_ctx_t* opt_block);
 
 static int dec_to_int(const char* str, size_t length)
 {
@@ -198,6 +199,7 @@ int tr31_import(
 		case TR31_KEY_USAGE_ISO9797_1_MAC_4:
 		case TR31_KEY_USAGE_ISO9797_1_MAC_5:
 		case TR31_KEY_USAGE_ISO9797_1_MAC_6:
+		case TR31_KEY_USAGE_HMAC:
 		case TR31_KEY_USAGE_PIN:
 		case TR31_KEY_USAGE_PV:
 		case TR31_KEY_USAGE_PV_IBM3624:
@@ -843,6 +845,7 @@ const char* tr31_get_key_usage_string(unsigned int usage)
 		case TR31_KEY_USAGE_ISO9797_1_MAC_4:    return "ISO 9797-1 MAC Algorithm 4";
 		case TR31_KEY_USAGE_ISO9797_1_MAC_5:    return "ISO 9797-1 MAC Algorithm 5 (CMAC)";
 		case TR31_KEY_USAGE_ISO9797_1_MAC_6:    return "ISO 9797-1 MAC Algorithm 6";
+		case TR31_KEY_USAGE_HMAC:               return "HMAC";
 		case TR31_KEY_USAGE_PIN:                return "PIN Encryption Key (Generic)";
 		case TR31_KEY_USAGE_PV:                 return "PIN Verification Key (Generic)";
 		case TR31_KEY_USAGE_PV_IBM3624:         return "PIN Verification Key (IBM 3624)";
@@ -858,7 +861,7 @@ const char* tr31_get_key_algorithm_string(unsigned int algorithm)
 		case TR31_KEY_ALGORITHM_AES:    return "AES";
 		case TR31_KEY_ALGORITHM_DES:    return "DES";
 		case TR31_KEY_ALGORITHM_EC:     return "Elliptic Curve";
-		case TR31_KEY_ALGORITHM_HMAC:   return "HMAC-SHA1";
+		case TR31_KEY_ALGORITHM_HMAC:   return "HMAC";
 		case TR31_KEY_ALGORITHM_RSA:    return "RSA";
 		case TR31_KEY_ALGORITHM_DSA:    return "DSA";
 		case TR31_KEY_ALGORITHM_TDES:   return "TDES";
@@ -923,6 +926,7 @@ const char* tr31_get_opt_block_id_ascii(unsigned int opt_block_id, char* ascii, 
 const char* tr31_get_opt_block_id_string(unsigned int opt_block_id)
 {
 	switch (opt_block_id) {
+		case TR31_OPT_BLOCK_HM:         return "HMAC hash algorithm";
 		case TR31_OPT_BLOCK_KS:         return "Key Set Identifier";
 		case TR31_OPT_BLOCK_KV:         return "Key Block Values";
 		case TR31_OPT_BLOCK_PB:         return "Padding Block";
@@ -938,8 +942,38 @@ const char* tr31_get_opt_block_data_string(const struct tr31_opt_ctx_t* opt_bloc
 	}
 
 	switch (opt_block->id) {
-		// TODO: decode optional block data here
+		case TR31_OPT_BLOCK_HM: return tr31_get_opt_block_hmac_string(opt_block);
 	}
 
 	return NULL;
+}
+
+static const char* tr31_get_opt_block_hmac_string(const struct tr31_opt_ctx_t* opt_block)
+{
+	const uint8_t* data;
+
+	if (!opt_block ||
+		opt_block->id != TR31_OPT_BLOCK_HM ||
+		opt_block->data_length != 1
+	) {
+		return NULL;
+	}
+	data = opt_block->data;
+
+	// see TR-31:2018, A.5.9
+	switch (data[0]) {
+		case TR31_OPT_BLOCK_HM_SHA1:            return "SHA-1";
+		case TR31_OPT_BLOCK_HM_SHA224:          return "SHA-224";
+		case TR31_OPT_BLOCK_HM_SHA256:          return "SHA-256";
+		case TR31_OPT_BLOCK_HM_SHA384:          return "SHA-384";
+		case TR31_OPT_BLOCK_HM_SHA512:          return "SHA-512";
+		case TR31_OPT_BLOCK_HM_SHA512_224:      return "SHA-512/224";
+		case TR31_OPT_BLOCK_HM_SHA512_256:      return "SHA-512/256";
+		case TR31_OPT_BLOCK_HM_SHA3_224:        return "SHA3-224";
+		case TR31_OPT_BLOCK_HM_SHA3_256:        return "SHA3-256";
+		case TR31_OPT_BLOCK_HM_SHA3_384:        return "SHA3-384";
+		case TR31_OPT_BLOCK_HM_SHA3_512:        return "SHA3-512";
+	}
+
+	return "Unknown";
 }

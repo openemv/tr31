@@ -55,6 +55,7 @@ enum tr31_version_t {
 #define TR31_KEY_USAGE_ISO9797_1_MAC_4  (0x4D34) ///< Key Usage M4: ISO 9797-1 MAC Algorithm 4
 #define TR31_KEY_USAGE_ISO9797_1_MAC_5  (0x4D35) ///< Key Usage M5: ISO 9797-1 MAC Algorithm 5 (CMAC)
 #define TR31_KEY_USAGE_ISO9797_1_MAC_6  (0x4D36) ///< Key Usage M6: ISO 9797-1 MAC Algorithm 6
+#define TR31_KEY_USAGE_HMAC             (0x4D37) ///< Key Usage M7: HMAC
 #define TR31_KEY_USAGE_PIN              (0x5030) ///< Key Usage P0: PIN Encryption Key (Generic)
 #define TR31_KEY_USAGE_PV               (0x5630) ///< Key Usage V0: PIN Verification Key (Generic)
 #define TR31_KEY_USAGE_PV_IBM3624       (0x5631) ///< Key Usage V1: PIN Verification Key (IBM 3624)
@@ -63,7 +64,7 @@ enum tr31_version_t {
 #define TR31_KEY_ALGORITHM_AES          ('A') ///< Key Algorithm A: AES
 #define TR31_KEY_ALGORITHM_DES          ('D') ///< Key Algorithm D: DES
 #define TR31_KEY_ALGORITHM_EC           ('E') ///< Key Algorithm E: Elliptic Curve
-#define TR31_KEY_ALGORITHM_HMAC         ('H') ///< Key Algorithm H: HMAC-SHA1
+#define TR31_KEY_ALGORITHM_HMAC         ('H') ///< Key Algorithm H: HMAC
 #define TR31_KEY_ALGORITHM_RSA          ('R') ///< Key Algorithm R: RSA
 #define TR31_KEY_ALGORITHM_DSA          ('S') ///< Key Algorithm S: DSA
 #define TR31_KEY_ALGORITHM_TDES         ('T') ///< Key Algorithm T: Triple DES
@@ -90,9 +91,23 @@ enum tr31_key_version_t {
 #define TR31_KEY_EXPORT_SENSITIVE       ('S') ///< Exportability S: Sensitive; exportable in forms not in accordance with ANSI X9.24; eg ANSI X9.17
 
 // TR-31 optional block IDs (see TR-31:2018, A.5.6, table 11)
+#define TR31_OPT_BLOCK_HM               (0x484D) ///< Optional Block HM: HMAC hash algorithm
 #define TR31_OPT_BLOCK_KS               (0x4B53) ///< Optional Block KS: Key Set Identifier (see ANSI X9.24-1:2009, Annex D)
 #define TR31_OPT_BLOCK_KV               (0x4B56) ///< Optional Block KV: Key Block Values
 #define TR31_OPT_BLOCK_PB               (0x5042) ///< Optional Block PB: Padding Block
+
+// TR-31 HMAC optional block format (see TR-31:2018, A.5.9)
+#define TR31_OPT_BLOCK_HM_SHA1          (0x10) ///< HMAC Hash Algorithm 10: SHA-1
+#define TR31_OPT_BLOCK_HM_SHA224        (0x20) ///< HMAC Hash Algorithm 20: SHA-224
+#define TR31_OPT_BLOCK_HM_SHA256        (0x21) ///< HMAC Hash Algorithm 21: SHA-256
+#define TR31_OPT_BLOCK_HM_SHA384        (0x22) ///< HMAC Hash Algorithm 22: SHA-384
+#define TR31_OPT_BLOCK_HM_SHA512        (0x23) ///< HMAC Hash Algorithm 23: SHA-512
+#define TR31_OPT_BLOCK_HM_SHA512_224    (0x24) ///< HMAC Hash Algorithm 24: SHA-512/224
+#define TR31_OPT_BLOCK_HM_SHA512_256    (0x25) ///< HMAC Hash Algorithm 25: SHA-512/256
+#define TR31_OPT_BLOCK_HM_SHA3_224      (0x30) ///< HMAC Hash Algorithm 30: SHA3-224
+#define TR31_OPT_BLOCK_HM_SHA3_256      (0x31) ///< HMAC Hash Algorithm 31: SHA3-256
+#define TR31_OPT_BLOCK_HM_SHA3_384      (0x32) ///< HMAC Hash Algorithm 32: SHA3-384
+#define TR31_OPT_BLOCK_HM_SHA3_512      (0x33) ///< HMAC Hash Algorithm 33: SHA3-512
 
 /// TR-31 key object
 struct tr31_key_t {
