@@ -227,7 +227,7 @@ int main(int argc, char** argv)
 				tr31_get_opt_block_id_string(tr31_ctx.opt_blocks[i].id)
 			);
 			switch (tr31_ctx.opt_blocks[i].id) {
-				case TR31_OPT_HDR_BLOCK_KS:
+				case TR31_OPT_BLOCK_KS:
 					print_buf("", tr31_ctx.opt_blocks[i].data, tr31_ctx.opt_blocks[i].data_length);
 					break;
 

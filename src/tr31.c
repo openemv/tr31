@@ -923,9 +923,9 @@ const char* tr31_get_opt_block_id_ascii(unsigned int opt_block_id, char* ascii, 
 const char* tr31_get_opt_block_id_string(unsigned int opt_block_id)
 {
 	switch (opt_block_id) {
-		case TR31_OPT_HDR_BLOCK_KS:     return "Key Set Identifier";
-		case TR31_OPT_HDR_BLOCK_KV:     return "Key Block Values";
-		case TR31_OPT_HDR_BLOCK_PB:     return "Padding Block";
+		case TR31_OPT_BLOCK_KS:         return "Key Set Identifier";
+		case TR31_OPT_BLOCK_KV:         return "Key Block Values";
+		case TR31_OPT_BLOCK_PB:         return "Padding Block";
 	}
 
 	return "Unknown optional block ID value";

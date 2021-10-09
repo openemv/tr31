@@ -333,7 +333,7 @@ int main(void)
 		test_tr31.key.data == NULL ||
 		test_tr31.opt_blocks_count != 1 ||
 		test_tr31.opt_blocks == NULL ||
-		test_tr31.opt_blocks[0].id != TR31_OPT_HDR_BLOCK_KS ||
+		test_tr31.opt_blocks[0].id != TR31_OPT_BLOCK_KS ||
 		test_tr31.opt_blocks[0].data_length != sizeof(test4_tr31_ksn_verify) ||
 		test_tr31.opt_blocks[0].data == NULL ||
 		memcmp(test_tr31.opt_blocks[0].data, test4_tr31_ksn_verify, sizeof(test4_tr31_ksn_verify)) != 0 ||
@@ -382,7 +382,7 @@ int main(void)
 		test_tr31.key.data == NULL ||
 		test_tr31.opt_blocks_count != 1 ||
 		test_tr31.opt_blocks == NULL ||
-		test_tr31.opt_blocks[0].id != TR31_OPT_HDR_BLOCK_KS ||
+		test_tr31.opt_blocks[0].id != TR31_OPT_BLOCK_KS ||
 		test_tr31.opt_blocks[0].data_length != sizeof(test5_tr31_ksn_verify) ||
 		test_tr31.opt_blocks[0].data == NULL ||
 		memcmp(test_tr31.opt_blocks[0].data, test5_tr31_ksn_verify, sizeof(test5_tr31_ksn_verify)) != 0 ||

@@ -89,9 +89,10 @@ enum tr31_key_version_t {
 #define TR31_KEY_EXPORT_NONE            ('N') ///< Exportability N: Not exportable
 #define TR31_KEY_EXPORT_SENSITIVE       ('S') ///< Exportability S: Sensitive; exportable in forms not in accordance with ANSI X9.24; eg ANSI X9.17
 
-#define TR31_OPT_HDR_BLOCK_KS           (0x4B53) ///< Optional Header Block KS: Key Set Identifier
-#define TR31_OPT_HDR_BLOCK_KV           (0x4B56) ///< Optional Header Block KV: Key Block Values
-#define TR31_OPT_HDR_BLOCK_PB           (0x5042) ///< Optional Header Block PB: Padding Block
+// TR-31 optional block IDs (see TR-31:2018, A.5.6, table 11)
+#define TR31_OPT_BLOCK_KS               (0x4B53) ///< Optional Block KS: Key Set Identifier (see ANSI X9.24-1:2009, Annex D)
+#define TR31_OPT_BLOCK_KV               (0x4B56) ///< Optional Block KV: Key Block Values
+#define TR31_OPT_BLOCK_PB               (0x5042) ///< Optional Block PB: Padding Block
 
 /// TR-31 key object
 struct tr31_key_t {
@@ -113,11 +114,11 @@ struct tr31_key_t {
 	uint8_t kcv[3]; // Key Check Value (KCV)
 };
 
-/// TR-31 optional header block context object
+/// TR-31 optional block context object
 struct tr31_opt_ctx_t {
-	unsigned int id; ///< TR-31 optional header block identifier
-	size_t data_length; ///< TR-31 optional header block data length in bytes
-	void* data; ///< TR-31 optional header block data
+	unsigned int id; ///< TR-31 optional block identifier
+	size_t data_length; ///< TR-31 optional block data length in bytes
+	void* data; ///< TR-31 optional block data
 };
 
 /**
@@ -130,8 +131,8 @@ struct tr31_ctx_t {
 
 	struct tr31_key_t key; ///< TR-31 key object
 
-	size_t opt_blocks_count; ///< TR-31 number of optional header blocks
-	struct tr31_opt_ctx_t* opt_blocks; ///< TR-31 optional header block context objects
+	size_t opt_blocks_count; ///< TR-31 number of optional blocks
+	struct tr31_opt_ctx_t* opt_blocks; ///< TR-31 optional block context objects
 
 	size_t header_length; ///< TR-31 header data length in bytes, including optional blocks
 	void* header; ///< TR-31 header data, including optional blocks

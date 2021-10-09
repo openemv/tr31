@@ -52,7 +52,7 @@ int main(void)
 		test_tr31.key.exportability != TR31_KEY_EXPORT_SENSITIVE ||
 		test_tr31.opt_blocks_count != 1 ||
 		test_tr31.opt_blocks == NULL ||
-		test_tr31.opt_blocks[0].id != TR31_OPT_HDR_BLOCK_KS ||
+		test_tr31.opt_blocks[0].id != TR31_OPT_BLOCK_KS ||
 		test_tr31.opt_blocks[0].data_length != sizeof(test1_ksn_verify) ||
 		test_tr31.opt_blocks[0].data == NULL ||
 		memcmp(test_tr31.opt_blocks[0].data, test1_ksn_verify, sizeof(test1_ksn_verify)) != 0 ||
