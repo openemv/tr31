@@ -38,7 +38,6 @@ static uint8_t kbpk_buf[32]; // max 256-bit KBPK
 static error_t argp_parser_helper(int key, char* arg, struct argp_state* state);
 static int parse_hex(const char* hex, void* bin, size_t bin_len);
 static void print_hex(const void* buf, size_t length);
-static void print_buf(const char* buf_name, const void* buf, size_t length);
 
 // argp option structure
 static struct argp_option argp_options[] = {
@@ -121,14 +120,6 @@ static void print_hex(const void* buf, size_t length)
 	for (size_t i = 0; i < length; i++) {
 		printf("%02X", ptr[i]);
 	}
-}
-
-// buffer output helper function
-static void print_buf(const char* buf_name, const void* buf, size_t length)
-{
-	printf("%s: ", buf_name);
-	print_hex(buf, length);
-	printf("\n");
 }
 
 int main(int argc, char** argv)
@@ -218,25 +209,20 @@ int main(int argc, char** argv)
 	}
 	if (tr31_ctx.opt_blocks) { // might be NULL when tr31_import() fails
 		for (size_t i = 0; i < tr31_ctx.opt_blocks_count; ++i) {
-			if (i == 0) {
+			const char* opt_block_data_str;
 
-			}
-
-			printf("\t[%s] %s",
+			printf("\t[%s] %s: ",
 				tr31_get_opt_block_id_ascii(tr31_ctx.opt_blocks[i].id, ascii_buf, sizeof(ascii_buf)),
 				tr31_get_opt_block_id_string(tr31_ctx.opt_blocks[i].id)
 			);
-			switch (tr31_ctx.opt_blocks[i].id) {
-				case TR31_OPT_BLOCK_KS:
-					print_buf("", tr31_ctx.opt_blocks[i].data, tr31_ctx.opt_blocks[i].data_length);
-					break;
+			print_hex(tr31_ctx.opt_blocks[i].data, tr31_ctx.opt_blocks[i].data_length);
 
-				default:
-					printf(" (%zu digits / %zu bytes)\n",
-						tr31_ctx.opt_blocks[i].data_length * 2,
-						tr31_ctx.opt_blocks[i].data_length
-					);
+			opt_block_data_str = tr31_get_opt_block_data_string(&tr31_ctx.opt_blocks[i]);
+			if (opt_block_data_str) {
+				printf(" (%s)", opt_block_data_str);
 			}
+
+			printf("\n");
 		}
 	}
 

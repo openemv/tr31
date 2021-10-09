@@ -928,5 +928,18 @@ const char* tr31_get_opt_block_id_string(unsigned int opt_block_id)
 		case TR31_OPT_BLOCK_PB:         return "Padding Block";
 	}
 
-	return "Unknown optional block ID value";
+	return "Unknown";
+}
+
+const char* tr31_get_opt_block_data_string(const struct tr31_opt_ctx_t* opt_block)
+{
+	if (!opt_block) {
+		return NULL;
+	}
+
+	switch (opt_block->id) {
+		// TODO: decode optional block data here
+	}
+
+	return NULL;
 }
