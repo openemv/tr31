@@ -92,9 +92,15 @@ enum tr31_key_version_t {
 
 // TR-31 optional block IDs (see TR-31:2018, A.5.6, table 11)
 #define TR31_OPT_BLOCK_HM               (0x484D) ///< Optional Block HM: HMAC hash algorithm
+#define TR31_OPT_BLOCK_KC               (0x4B43) ///< Optional Block KC: Key Check Value (KCV) of wrapped key (see ANSI X9.24-1:2017, Annex A)
+#define TR31_OPT_BLOCK_KP               (0x4B50) ///< Optional Block KP: Key Check Value (KCV) of KBPK (see ANSI X9.24-1:2017, Annex A)
 #define TR31_OPT_BLOCK_KS               (0x4B53) ///< Optional Block KS: Key Set Identifier (see ANSI X9.24-1:2009, Annex D)
 #define TR31_OPT_BLOCK_KV               (0x4B56) ///< Optional Block KV: Key Block Values
 #define TR31_OPT_BLOCK_PB               (0x5042) ///< Optional Block PB: Padding Block
+
+// TR-31 KCV optional block format (see TR-31:2018, A.5.8)
+#define TR31_OPT_BLOCK_KCV_LEGACY       (0x00) ///< KCV algorithm: Legacy KCV algorithm
+#define TR31_OPT_BLOCK_KCV_CMAC         (0x01) ///< KCV algorithm: CMAC based KCV
 
 // TR-31 HMAC optional block format (see TR-31:2018, A.5.9)
 #define TR31_OPT_BLOCK_HM_SHA1          (0x10) ///< HMAC Hash Algorithm 10: SHA-1

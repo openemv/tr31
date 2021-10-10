@@ -61,6 +61,7 @@ static int hex_to_bin(const char* hex, void* bin, size_t bin_len);
 static int tr31_tdes_decrypt_verify_variant_binding(struct tr31_ctx_t* ctx, const struct tr31_key_t* kbpk);
 static int tr31_tdes_decrypt_verify_derivation_binding(struct tr31_ctx_t* ctx, const struct tr31_key_t* kbpk);
 static int tr31_aes_decrypt_verify_derivation_binding(struct tr31_ctx_t* ctx, const struct tr31_key_t* kbpk);
+static const char* tr31_get_opt_block_kcv_string(const struct tr31_opt_ctx_t* opt_block);
 static const char* tr31_get_opt_block_hmac_string(const struct tr31_opt_ctx_t* opt_block);
 
 static int dec_to_int(const char* str, size_t length)
@@ -927,6 +928,8 @@ const char* tr31_get_opt_block_id_string(unsigned int opt_block_id)
 {
 	switch (opt_block_id) {
 		case TR31_OPT_BLOCK_HM:         return "HMAC hash algorithm";
+		case TR31_OPT_BLOCK_KC:         return "Key Check Value (KCV) of wrapped key";
+		case TR31_OPT_BLOCK_KP:         return "Key Check Value (KCV) of KBPK";
 		case TR31_OPT_BLOCK_KS:         return "Key Set Identifier";
 		case TR31_OPT_BLOCK_KV:         return "Key Block Values";
 		case TR31_OPT_BLOCK_PB:         return "Padding Block";
@@ -942,10 +945,37 @@ const char* tr31_get_opt_block_data_string(const struct tr31_opt_ctx_t* opt_bloc
 	}
 
 	switch (opt_block->id) {
+		case TR31_OPT_BLOCK_KC: return tr31_get_opt_block_kcv_string(opt_block);
+		case TR31_OPT_BLOCK_KP: return tr31_get_opt_block_kcv_string(opt_block);
 		case TR31_OPT_BLOCK_HM: return tr31_get_opt_block_hmac_string(opt_block);
 	}
 
 	return NULL;
+}
+
+static const char* tr31_get_opt_block_kcv_string(const struct tr31_opt_ctx_t* opt_block)
+{
+	const uint8_t* data;
+
+	if (!opt_block ||
+		opt_block->data_length < 2
+	) {
+		return NULL;
+	}
+	if (opt_block->id != TR31_OPT_BLOCK_KC &&
+		opt_block->id != TR31_OPT_BLOCK_KP
+	) {
+		return NULL;
+	}
+	data = opt_block->data;
+
+	// see TR-31:2018, A.5.8
+	switch (data[0]) {
+		case TR31_OPT_BLOCK_KCV_LEGACY:         return "Legacy KCV algorithm";
+		case TR31_OPT_BLOCK_KCV_CMAC:           return "CMAC based KCV";
+	}
+
+	return "Unknown";
 }
 
 static const char* tr31_get_opt_block_hmac_string(const struct tr31_opt_ctx_t* opt_block)
