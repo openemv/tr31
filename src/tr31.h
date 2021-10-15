@@ -91,12 +91,15 @@ enum tr31_key_version_t {
 #define TR31_KEY_EXPORT_SENSITIVE       ('S') ///< Exportability S: Sensitive; exportable in forms not in accordance with ANSI X9.24; eg ANSI X9.17
 
 // TR-31 optional block IDs (see TR-31:2018, A.5.6, table 11)
+#define TR31_OPT_BLOCK_CT               (0x4354) ///< Optional Block CT: Public Key Certificate
 #define TR31_OPT_BLOCK_HM               (0x484D) ///< Optional Block HM: HMAC hash algorithm
+#define TR31_OPT_BLOCK_IK               (0x494B) ///< Optional Block IK: Initial Key Identifier (see ANSI X9.24-3:2017, 4.17)
 #define TR31_OPT_BLOCK_KC               (0x4B43) ///< Optional Block KC: Key Check Value (KCV) of wrapped key (see ANSI X9.24-1:2017, Annex A)
 #define TR31_OPT_BLOCK_KP               (0x4B50) ///< Optional Block KP: Key Check Value (KCV) of KBPK (see ANSI X9.24-1:2017, Annex A)
 #define TR31_OPT_BLOCK_KS               (0x4B53) ///< Optional Block KS: Key Set Identifier (see ANSI X9.24-1:2009, Annex D)
 #define TR31_OPT_BLOCK_KV               (0x4B56) ///< Optional Block KV: Key Block Values
 #define TR31_OPT_BLOCK_PB               (0x5042) ///< Optional Block PB: Padding Block
+#define TR31_OPT_BLOCK_TS               (0x5453) ///< Optional Block TS: Time Stamp (in UTC time format)
 
 // TR-31 KCV optional block format (see TR-31:2018, A.5.8)
 #define TR31_OPT_BLOCK_KCV_LEGACY       (0x00) ///< KCV algorithm: Legacy KCV algorithm

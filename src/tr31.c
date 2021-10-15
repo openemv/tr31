@@ -926,13 +926,17 @@ const char* tr31_get_opt_block_id_ascii(unsigned int opt_block_id, char* ascii, 
 
 const char* tr31_get_opt_block_id_string(unsigned int opt_block_id)
 {
+	// see TR-31:2018, A.5.6, table 11
 	switch (opt_block_id) {
+		case TR31_OPT_BLOCK_CT:         return "Public Key Certificate";
 		case TR31_OPT_BLOCK_HM:         return "HMAC hash algorithm";
+		case TR31_OPT_BLOCK_IK:         return "Initial Key Identifier";
 		case TR31_OPT_BLOCK_KC:         return "Key Check Value (KCV) of wrapped key";
 		case TR31_OPT_BLOCK_KP:         return "Key Check Value (KCV) of KBPK";
 		case TR31_OPT_BLOCK_KS:         return "Key Set Identifier";
 		case TR31_OPT_BLOCK_KV:         return "Key Block Values";
 		case TR31_OPT_BLOCK_PB:         return "Padding Block";
+		case TR31_OPT_BLOCK_TS:         return "Time Stamp";
 	}
 
 	return "Unknown";
