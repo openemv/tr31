@@ -28,12 +28,8 @@
 
 #include <arpa/inet.h> // for ntohs and friends
 
-struct tr31_opt_header_t {
-	uint16_t id;
-	char length[2];
-	char data[];
-} __attribute__((packed));
-
+// TR-31 header
+// see TR-31:2018, A.2, table 4
 struct tr31_header_t {
 	uint8_t version_id;
 	char length[4];
@@ -46,6 +42,16 @@ struct tr31_header_t {
 	char reserved[2];
 } __attribute__((packed));
 
+// TR-31 optional block
+// see TR-31:2018, A.2, table 4
+struct tr31_opt_blk_t {
+	uint16_t id;
+	char length[2];
+	char data[];
+} __attribute__((packed));
+
+// TR-31 payload
+// see TR-31:2018, A.3, table 5
 struct tr31_payload_t {
 	uint16_t length;
 	uint8_t data[];
@@ -278,42 +284,55 @@ int tr31_import(
 			return TR31_ERROR_UNSUPPORTED_EXPORTABILITY;
 	}
 
-	// decode number of optional header blocks field
+	// decode number of optional blocks field
 	int opt_blocks_count = dec_to_int(header->opt_blocks_count, sizeof(header->opt_blocks_count));
 	if (opt_blocks_count < 0) {
 		return TR31_ERROR_INVALID_NUMBER_OF_OPTIONAL_BLOCKS_FIELD;
 	}
 	ctx->opt_blocks_count = opt_blocks_count;
 
-	// decode optional header blocks
-	ptr = header + 1; // optional header blocks, if any, are after the header
+	// decode optional blocks
+	// see TR-31:2018, A.5.6
+	ptr = header + 1; // optional blocks, if any, are after the header
 	if (ctx->opt_blocks_count) {
 		ctx->opt_blocks = calloc(ctx->opt_blocks_count, sizeof(ctx->opt_blocks[0]));
 	}
 	for (int i = 0; i < opt_blocks_count; ++i) {
-		// ensure that current pointer is valid for minimal optional header block
-		if (ptr + sizeof(struct tr31_opt_header_t) - (void*)header > key_block_len) {
+		// ensure that current pointer is valid for minimal optional block
+		if (ptr + sizeof(struct tr31_opt_blk_t) - (void*)header > key_block_len) {
 			r = TR31_ERROR_INVALID_LENGTH;
 			goto error;
 		}
-		const struct tr31_opt_header_t* opt_header = ptr;
+		const struct tr31_opt_blk_t* opt_blk = ptr;
 
-		// ensure that optional header block length is valid
-		int opt_hdr_len = hex_to_int(opt_header->length, sizeof(opt_header->length));
-		if (opt_hdr_len < sizeof(struct tr31_opt_header_t)) {
+		// ensure that optional block length is valid
+		int opt_hdr_len = hex_to_int(opt_blk->length, sizeof(opt_blk->length));
+		if (opt_hdr_len < 0) {
+			// parse error
+			r = TR31_ERROR_INVALID_LENGTH;
+			goto error;
+		}
+		if (opt_hdr_len == 0) {
+			// extended optional block length not supported
+			r = TR31_ERROR_INVALID_LENGTH;
+			goto error;
+		}
+		if (opt_hdr_len < sizeof(struct tr31_opt_blk_t)) {
+			// optional block length must be at least 4 bytes (2 byte id + 2 byte length)
 			r = TR31_ERROR_INVALID_LENGTH;
 			goto error;
 		}
 		if (ptr + opt_hdr_len - (void*)header > key_block_len) {
+			// optional block length exceeds total key block length
 			r = TR31_ERROR_INVALID_LENGTH;
 			goto error;
 		}
 
-		// copy optional header block fields
-		ctx->opt_blocks[i].id = ntohs(opt_header->id);
+		// copy optional block field
+		ctx->opt_blocks[i].id = ntohs(opt_blk->id);
 		ctx->opt_blocks[i].data_length = (opt_hdr_len - 4) / 2;
 		ctx->opt_blocks[i].data = calloc(1, ctx->opt_blocks[i].data_length);
-		r = hex_to_bin(opt_header->data, ctx->opt_blocks[i].data, ctx->opt_blocks[i].data_length);
+		r = hex_to_bin(opt_blk->data, ctx->opt_blocks[i].data, ctx->opt_blocks[i].data_length);
 		if (r) {
 			r = TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 			goto error;
