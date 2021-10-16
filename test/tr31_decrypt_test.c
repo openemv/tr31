@@ -96,7 +96,7 @@ int main(void)
 
 	// populate key block protection key
 	memset(&test_kbpk, 0, sizeof(test_kbpk));
-	test_kbpk.usage = TR31_KEY_USAGE_KEY;
+	test_kbpk.usage = TR31_KEY_USAGE_KEK;
 	test_kbpk.algorithm = TR31_KEY_ALGORITHM_TDES;
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test1_kbpk);
@@ -110,7 +110,7 @@ int main(void)
 	}
 	if (test_tr31.version != TR31_VERSION_A ||
 		test_tr31.length != 72 ||
-		test_tr31.key.usage != TR31_KEY_USAGE_KEY ||
+		test_tr31.key.usage != TR31_KEY_USAGE_KEK ||
 		test_tr31.key.algorithm != TR31_KEY_ALGORITHM_TDES ||
 		test_tr31.key.mode_of_use != TR31_KEY_MODE_OF_USE_ANY ||
 		test_tr31.key.key_version != TR31_KEY_VERSION_IS_UNUSED ||
@@ -149,7 +149,7 @@ int main(void)
 	}
 	if (test_tr31.version != TR31_VERSION_B ||
 		test_tr31.length != 80 ||
-		test_tr31.key.usage != TR31_KEY_USAGE_KEY ||
+		test_tr31.key.usage != TR31_KEY_USAGE_KEK ||
 		test_tr31.key.algorithm != TR31_KEY_ALGORITHM_TDES ||
 		test_tr31.key.mode_of_use != TR31_KEY_MODE_OF_USE_ANY ||
 		test_tr31.key.key_version != TR31_KEY_VERSION_IS_UNUSED ||
@@ -188,7 +188,7 @@ int main(void)
 	}
 	if (test_tr31.version != TR31_VERSION_C ||
 		test_tr31.length != 72 ||
-		test_tr31.key.usage != TR31_KEY_USAGE_KEY ||
+		test_tr31.key.usage != TR31_KEY_USAGE_KEK ||
 		test_tr31.key.algorithm != TR31_KEY_ALGORITHM_TDES ||
 		test_tr31.key.mode_of_use != TR31_KEY_MODE_OF_USE_ANY ||
 		test_tr31.key.key_version != TR31_KEY_VERSION_IS_UNUSED ||
@@ -221,7 +221,7 @@ int main(void)
 
 	// TR-31:2018, A.7.2.1
 	memset(&test_kbpk, 0, sizeof(test_kbpk));
-	test_kbpk.usage = TR31_KEY_USAGE_KEY;
+	test_kbpk.usage = TR31_KEY_USAGE_KEK;
 	test_kbpk.algorithm = TR31_KEY_ALGORITHM_TDES;
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test2_kbpk);
@@ -266,7 +266,7 @@ int main(void)
 
 	// TR-31:2018, A.7.2.2
 	memset(&test_kbpk, 0, sizeof(test_kbpk));
-	test_kbpk.usage = TR31_KEY_USAGE_KEY;
+	test_kbpk.usage = TR31_KEY_USAGE_KEK;
 	test_kbpk.algorithm = TR31_KEY_ALGORITHM_TDES;
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test3_kbpk);
@@ -311,7 +311,7 @@ int main(void)
 
 	// TR-31:2018, A.7.3.1
 	memset(&test_kbpk, 0, sizeof(test_kbpk));
-	test_kbpk.usage = TR31_KEY_USAGE_KEY;
+	test_kbpk.usage = TR31_KEY_USAGE_KEK;
 	test_kbpk.algorithm = TR31_KEY_ALGORITHM_TDES;
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test4_kbpk);
@@ -360,7 +360,7 @@ int main(void)
 
 	// TR-31:2018, A.7.3.2
 	memset(&test_kbpk, 0, sizeof(test_kbpk));
-	test_kbpk.usage = TR31_KEY_USAGE_KEY;
+	test_kbpk.usage = TR31_KEY_USAGE_KEK;
 	test_kbpk.algorithm = TR31_KEY_ALGORITHM_TDES;
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test5_kbpk);
@@ -409,7 +409,7 @@ int main(void)
 
 	// TR-31:2018, A.7.4
 	memset(&test_kbpk, 0, sizeof(test_kbpk));
-	test_kbpk.usage = TR31_KEY_USAGE_KEY;
+	test_kbpk.usage = TR31_KEY_USAGE_KEK;
 	test_kbpk.algorithm = TR31_KEY_ALGORITHM_AES;
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test6_kbpk);
@@ -454,7 +454,7 @@ int main(void)
 
 	// test key block decryption for format version D containing TDES key
 	memset(&test_kbpk, 0, sizeof(test_kbpk));
-	test_kbpk.usage = TR31_KEY_USAGE_KEY;
+	test_kbpk.usage = TR31_KEY_USAGE_KEK;
 	test_kbpk.algorithm = TR31_KEY_ALGORITHM_AES;
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test7_kbpk);
@@ -499,7 +499,7 @@ int main(void)
 
 	// test key block decryption for format version D containing AES key
 	memset(&test_kbpk, 0, sizeof(test_kbpk));
-	test_kbpk.usage = TR31_KEY_USAGE_KEY;
+	test_kbpk.usage = TR31_KEY_USAGE_KEK;
 	test_kbpk.algorithm = TR31_KEY_ALGORITHM_AES;
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test8_kbpk);

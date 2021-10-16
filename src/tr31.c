@@ -184,12 +184,16 @@ int tr31_import(
 	}
 
 	// decode key usage field
+	// see TR-31:2018, A.5.1, table 6
 	ctx->key.usage = ntohs(header->key_usage);
 	switch (ctx->key.usage) {
 		case TR31_KEY_USAGE_BDK:
 		case TR31_KEY_USAGE_DUKPT_IPEK:
+		case TR31_KEY_USAGE_BKV:
 		case TR31_KEY_USAGE_CVK:
 		case TR31_KEY_USAGE_DATA:
+		case TR31_KEY_USAGE_ASYMMETRIC_DATA:
+		case TR31_KEY_USAGE_DATA_DEC_TABLE:
 		case TR31_KEY_USAGE_EMV_MKAC:
 		case TR31_KEY_USAGE_EMV_MKSMC:
 		case TR31_KEY_USAGE_EMV_MKSMI:
@@ -198,19 +202,28 @@ int tr31_import(
 		case TR31_KEY_USAGE_EMV_CP:
 		case TR31_KEY_USAGE_EMV_OTHER:
 		case TR31_KEY_USAGE_IV:
-		case TR31_KEY_USAGE_KEY:
+		case TR31_KEY_USAGE_KEK:
+		case TR31_KEY_USAGE_TR31_KBPK:
+		case TR31_KEY_USAGE_TR34_KEK:
+		case TR31_KEY_USAGE_ASYMMETRIC_KEK:
 		case TR31_KEY_USAGE_ISO16609_MAC_1:
 		case TR31_KEY_USAGE_ISO9797_1_MAC_1:
 		case TR31_KEY_USAGE_ISO9797_1_MAC_2:
 		case TR31_KEY_USAGE_ISO9797_1_MAC_3:
 		case TR31_KEY_USAGE_ISO9797_1_MAC_4:
 		case TR31_KEY_USAGE_ISO9797_1_MAC_5:
-		case TR31_KEY_USAGE_ISO9797_1_MAC_6:
+		case TR31_KEY_USAGE_ISO9797_1_CMAC:
 		case TR31_KEY_USAGE_HMAC:
+		case TR31_KEY_USAGE_ISO9797_1_MAC_6:
 		case TR31_KEY_USAGE_PIN:
+		case TR31_KEY_USAGE_ASYMMETRIC_SIG:
+		case TR31_KEY_USAGE_ASYMMETRIC_CA:
+		case TR31_KEY_USAGE_ASYMMETRIC_OTHER:
 		case TR31_KEY_USAGE_PV:
 		case TR31_KEY_USAGE_PV_IBM3624:
 		case TR31_KEY_USAGE_PV_VISA:
+		case TR31_KEY_USAGE_PV_X9_132_1:
+		case TR31_KEY_USAGE_PV_X9_132_2:
 			// supported
 			break;
 
@@ -219,6 +232,7 @@ int tr31_import(
 	}
 
 	// decode algorithm field
+	// see TR-31:2018, A.5.2, table 7
 	ctx->key.algorithm = header->algorithm;
 	switch (ctx->key.algorithm) {
 		case TR31_KEY_ALGORITHM_AES:
@@ -236,6 +250,7 @@ int tr31_import(
 	}
 	
 	// decode mode of use field
+	// see TR-31:2018, A.5.3, table 8
 	ctx->key.mode_of_use = header->mode_of_use;
 	switch (ctx->key.mode_of_use) {
 		case TR31_KEY_MODE_OF_USE_ENC_DEC:
@@ -256,6 +271,7 @@ int tr31_import(
 	}
 
 	// decode key version number field
+	// see TR-31:2018, A.5.4, table 9
 	if (header->key_version[0] == '0' && header->key_version[1] == '0') {
 		ctx->key.key_version = TR31_KEY_VERSION_IS_UNUSED;
 	} else if (header->key_version[0] == 'c') {
@@ -272,6 +288,7 @@ int tr31_import(
 	}
 
 	// decode exportability field
+	// see TR-31:2018, A.5.5, table 10
 	ctx->key.exportability = header->exportability;
 	switch (ctx->key.exportability) {
 		case TR31_KEY_EXPORT_TRUSTED:
@@ -844,11 +861,15 @@ const char* tr31_get_key_usage_ascii(unsigned int usage, char* ascii, size_t asc
 
 const char* tr31_get_key_usage_string(unsigned int usage)
 {
+	// see TR-31:2018, A.5.1, table 6
 	switch (usage) {
 		case TR31_KEY_USAGE_BDK:                return "Base Derivation Key (BDK)";
-		case TR31_KEY_USAGE_DUKPT_IPEK:         return "DUKPT Initial Key (IPEK)";
+		case TR31_KEY_USAGE_DUKPT_IPEK:         return "Initial DUKPT Key (IPEK)";
+		case TR31_KEY_USAGE_BKV:                return "Base Key Variant";
 		case TR31_KEY_USAGE_CVK:                return "Card Verification Key (CVK)";
-		case TR31_KEY_USAGE_DATA:               return "Data Encryption Key (Generic)";
+		case TR31_KEY_USAGE_DATA:               return "Symmetric Data Encryption Key";
+		case TR31_KEY_USAGE_ASYMMETRIC_DATA:    return "Asymmetric Data Encryption Key";
+		case TR31_KEY_USAGE_DATA_DEC_TABLE:     return "Decimalization Table Data Encryption Key";
 		case TR31_KEY_USAGE_EMV_MKAC:           return "EMV/chip Issuer Master Key: Application cryptograms (MKAC)";
 		case TR31_KEY_USAGE_EMV_MKSMC:          return "EMV/chip Issuer Master Key: Secure Messaging for Confidentiality (MKSMC)";
 		case TR31_KEY_USAGE_EMV_MKSMI:          return "EMV/chip Issuer Master Key: Secure Messaging for Integrity (MKSMI)";
@@ -857,19 +878,28 @@ const char* tr31_get_key_usage_string(unsigned int usage)
 		case TR31_KEY_USAGE_EMV_CP:             return "EMV/chip Issuer Master Key: Card Personalization (CP)";
 		case TR31_KEY_USAGE_EMV_OTHER:          return "EMV/chip Issuer Master Key: Other";
 		case TR31_KEY_USAGE_IV:                 return "Initialization Vector";
-		case TR31_KEY_USAGE_KEY:                return "Key Encryption / Wrapping Key (Generic)";
-		case TR31_KEY_USAGE_ISO16609_MAC_1:     return "ISO 16609 MAC algorithm 1 (using 3DES)";
+		case TR31_KEY_USAGE_KEK:                return "Key Encryption or Wrapping Key (KEK)";
+		case TR31_KEY_USAGE_TR31_KBPK:          return "TR-31 Key Block Protection Key (KBPK)";
+		case TR31_KEY_USAGE_TR34_KEK:           return "TR-34 Asymmetric Key Exchange Key (KEK)";
+		case TR31_KEY_USAGE_ASYMMETRIC_KEK:     return "Asymmetric Key Agreement or Wrapping Key";
+		case TR31_KEY_USAGE_ISO16609_MAC_1:     return "ISO 16609 MAC algorithm 1 (using TDES)";
 		case TR31_KEY_USAGE_ISO9797_1_MAC_1:    return "ISO 9797-1 MAC Algorithm 1 (CBC-MAC)";
 		case TR31_KEY_USAGE_ISO9797_1_MAC_2:    return "ISO 9797-1 MAC Algorithm 2";
 		case TR31_KEY_USAGE_ISO9797_1_MAC_3:    return "ISO 9797-1 MAC Algorithm 3 (Retail MAC)";
 		case TR31_KEY_USAGE_ISO9797_1_MAC_4:    return "ISO 9797-1 MAC Algorithm 4";
-		case TR31_KEY_USAGE_ISO9797_1_MAC_5:    return "ISO 9797-1 MAC Algorithm 5 (CMAC)";
-		case TR31_KEY_USAGE_ISO9797_1_MAC_6:    return "ISO 9797-1 MAC Algorithm 6";
+		case TR31_KEY_USAGE_ISO9797_1_MAC_5:    return "ISO 9797-1:1999 MAC Algorithm 5 (legacy)";
+		case TR31_KEY_USAGE_ISO9797_1_CMAC:     return "ISO 9797-1:2011 MAC Algorithm 5 (CMAC)";
 		case TR31_KEY_USAGE_HMAC:               return "HMAC";
-		case TR31_KEY_USAGE_PIN:                return "PIN Encryption Key (Generic)";
-		case TR31_KEY_USAGE_PV:                 return "PIN Verification Key (Generic)";
+		case TR31_KEY_USAGE_ISO9797_1_MAC_6:    return "ISO 9797-1 MAC Algorithm 6";
+		case TR31_KEY_USAGE_PIN:                return "PIN Encryption Key";
+		case TR31_KEY_USAGE_ASYMMETRIC_SIG:     return "Asymmetric key pair for digital signature";
+		case TR31_KEY_USAGE_ASYMMETRIC_CA:      return "Asymmetric key pair for CA use";
+		case TR31_KEY_USAGE_ASYMMETRIC_OTHER:   return "Asymmetric key pair for non-X9.24 use";
+		case TR31_KEY_USAGE_PV:                 return "PIN Verification Key (Other)";
 		case TR31_KEY_USAGE_PV_IBM3624:         return "PIN Verification Key (IBM 3624)";
 		case TR31_KEY_USAGE_PV_VISA:            return "PIN Verification Key (VISA PVV)";
+		case TR31_KEY_USAGE_PV_X9_132_1:        return "PIN Verification Key (X9-132 algorithm 1)";
+		case TR31_KEY_USAGE_PV_X9_132_2:        return "PIN Verification Key (X9-132 algorithm 2)";
 	}
 
 	return "Unknown key usage value";
@@ -877,6 +907,7 @@ const char* tr31_get_key_usage_string(unsigned int usage)
 
 const char* tr31_get_key_algorithm_string(unsigned int algorithm)
 {
+	// see TR-31:2018, A.5.2, table 7
 	switch (algorithm) {
 		case TR31_KEY_ALGORITHM_AES:    return "AES";
 		case TR31_KEY_ALGORITHM_DES:    return "DES";
@@ -892,6 +923,7 @@ const char* tr31_get_key_algorithm_string(unsigned int algorithm)
 
 const char* tr31_get_key_mode_of_use_string(unsigned int mode_of_use)
 {
+	// see TR-31:2018, A.5.3, table 8
 	switch (mode_of_use) {
 		case TR31_KEY_MODE_OF_USE_ENC_DEC:      return "Encrypt and Decrypt (Wrap and Unwrap)";
 		case TR31_KEY_MODE_OF_USE_MAC:          return "MAC Calculate (Generate and Verify)";
@@ -910,6 +942,7 @@ const char* tr31_get_key_mode_of_use_string(unsigned int mode_of_use)
 
 const char* tr31_get_key_exportability_string(unsigned int exportability)
 {
+	// see TR-31:2018, A.5.5, table 10
 	switch (exportability) {
 		case TR31_KEY_EXPORT_TRUSTED:           return "Exportable in a trusted key block only";
 		case TR31_KEY_EXPORT_NONE:              return "Not exportable";

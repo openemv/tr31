@@ -140,9 +140,9 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
-	// populate key block protection key as a key wrapping key
+	// populate key block protection key
 	memset(&kbpk, 0, sizeof(kbpk));
-	kbpk.usage = TR31_KEY_USAGE_KEY;
+	kbpk.usage = TR31_KEY_USAGE_TR31_KBPK;
 	kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	kbpk.length = kbpk_buf_len;
 	kbpk.data = kbpk_buf;
