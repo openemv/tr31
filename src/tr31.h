@@ -205,6 +205,12 @@ enum tr31_error_t {
 };
 
 /**
+ * Retrieve TR-31 library version string
+ * @return Pointer to null-terminated string. Do not free.
+ */
+const char* tr31_lib_version_string(void);
+
+/**
  * Import TR-31 key block. This function will also decrypt the key data if possible.
  * @param key_block TR-31 key block. Null terminated. At least the header must be ASCII encoded.
  * @param kbpk TR-31 key block protection key. NULL if not available or decryption is not required.

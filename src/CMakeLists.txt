@@ -7,8 +7,16 @@
 
 cmake_minimum_required(VERSION 3.11)
 
+# generate config file for internal use only
+# this file should NOT be installed or used by an installed header
+configure_file(
+	tr31_config.h.in
+	tr31_config.h
+)
+
 add_library(tr31 tr31.c tr31_crypto.c)
 set_target_properties(tr31 PROPERTIES PUBLIC_HEADER tr31.h)
+target_include_directories(tr31 PRIVATE ${CMAKE_CURRENT_BINARY_DIR}) # for generated config file
 target_include_directories(tr31 INTERFACE
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 	$<INSTALL_INTERFACE:include/${PROJECT_NAME}>

@@ -19,6 +19,7 @@
  */
 
 #include "tr31.h"
+#include "tr31_config.h"
 #include "tr31_crypto.h"
 
 #include <stdint.h>
@@ -137,6 +138,11 @@ static int hex_to_bin(const char* hex, void* bin, size_t bin_len)
 	}
 
 	return 0;
+}
+
+const char* tr31_lib_version_string(void)
+{
+	return TR31_LIB_VERSION_STRING;
 }
 
 int tr31_import(
