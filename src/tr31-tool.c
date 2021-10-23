@@ -43,6 +43,7 @@ static void print_hex(const void* buf, size_t length);
 static struct argp_option argp_options[] = {
 	{ "key-block", 'i', "asdf", 0, "TR-31 key block input" },
 	{ "kbpk", 'k', "key", 0, "TR-31 key block protection key value (hex encoded)" },
+	{ "version", 'v', NULL, 0, "Display TR-31 library version" },
 	{ 0 },
 };
 
@@ -80,6 +81,19 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			}
 
 			return 0;
+
+		case 'v': {
+			const char* version;
+
+			version = tr31_lib_version_string();
+			if (version) {
+				printf("%s\n", version);
+			} else {
+				printf("Unknown\n");
+			}
+			exit(EXIT_SUCCESS);
+			return 0;
+		}
 
 		default:
 			return ARGP_ERR_UNKNOWN;
@@ -129,11 +143,12 @@ int main(int argc, char** argv)
 	struct tr31_ctx_t tr31_ctx;
 
 	if (argc == 1) {
-		// No command line arguments
+		// No command line options
 		argp_help(&argp_config, stdout, ARGP_HELP_STD_HELP, argv[0]);
 		return 1;
 	}
 
+	// parse command line options
 	r = argp_parse(&argp_config, argc, argv, 0, 0, 0);
 	if (r) {
 		fprintf(stderr, "Failed to parse command line\n");
