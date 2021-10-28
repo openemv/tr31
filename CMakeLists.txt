@@ -22,6 +22,7 @@ endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 find_package(OpenSSL 1.1 REQUIRED)
+find_package(bash-completion) # optional for providing bash-completion files
 find_package(dpkg) # optional for building Debian/Ubuntu packages
 find_package(rpmbuild) # optional for building RedHat/Fedora packages
 
@@ -65,6 +66,17 @@ install(FILES
 	"${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/libtr31.pc"
 	DESTINATION "${PKGCONFIG_LOCATION}"
 )
+
+if(BASH_COMPLETION_FOUND)
+	set(BASH_COMPLETION_INSTALL_DIR ${CMAKE_INSTALL_DATADIR}/bash-completion/completions CACHE STRING "Installation location for bash-completion files")
+	message(STATUS "Using bash-completion install location \"${BASH_COMPLETION_INSTALL_DIR}\"")
+
+	# install bash completion file
+	install(FILES
+		"${CMAKE_CURRENT_SOURCE_DIR}/bash-completion/tr31-tool"
+		DESTINATION "${BASH_COMPLETION_INSTALL_DIR}"
+	)
+endif()
 
 # configure CPack to generate .tgz package
 set(CPACK_GENERATOR "TGZ")
