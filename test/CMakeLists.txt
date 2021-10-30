@@ -5,7 +5,7 @@
 # See LICENSE file.
 ##############################################################################
 
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.14)
 
 if (BUILD_TESTING)
 	add_executable(tr31_decode_test tr31_decode_test.c)

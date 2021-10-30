@@ -40,6 +40,19 @@ tests can be run from within the build directory (`build` in the above
 make test
 ```
 
+Documentation
+=============
+
+Assuming the default CMake generator was `Unix Makefiles` (default on Linux),
+and Doxygen was found by CMake, then HTML documentation can be generated from
+within the build directory (`build` in the above [Build](#build) steps) using:
+```
+make docs
+```
+
+Alternatively, the `BUILD_DOCS` option can be specified when generating the
+build system by adding `-DBUILD_DOCS=ON`.
+
 Packaging
 =========
 

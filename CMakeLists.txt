@@ -5,7 +5,7 @@
 # See LICENSE file.
 ##############################################################################
 
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.14)
 
 project(tr31
 	VERSION 0.2.0
@@ -23,6 +23,7 @@ endif()
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 find_package(OpenSSL 1.1 REQUIRED)
 find_package(bash-completion) # optional for providing bash-completion files
+find_package(Doxygen) # optional for generating doxygen files
 find_package(dpkg) # optional for building Debian/Ubuntu packages
 find_package(rpmbuild) # optional for building RedHat/Fedora packages
 
@@ -76,6 +77,32 @@ if(BASH_COMPLETION_FOUND)
 		"${CMAKE_CURRENT_SOURCE_DIR}/bash-completion/tr31-tool"
 		DESTINATION "${BASH_COMPLETION_INSTALL_DIR}"
 	)
+endif()
+
+option(BUILD_DOCS "Build documentation")
+if(Doxygen_FOUND)
+	# use doxygen to generate HTML
+	set(DOXYGEN_GENERATE_HTML YES)
+
+	# generate docs for public header
+	if(BUILD_DOCS)
+		doxygen_add_docs(docs
+			tr31.h
+			ALL # build by default
+			WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src"
+		)
+
+		# install generated docs by default
+		install(
+			DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/html
+			TYPE DOC
+		)
+	else()
+		doxygen_add_docs(docs
+			tr31.h
+			WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src"
+		)
+	endif()
 endif()
 
 # configure CPack to generate .tgz package
