@@ -152,7 +152,7 @@ struct tr31_key_t {
 
 	size_t length; ///< Key data length in bytes
 	void* data; ///< Key data
-	uint8_t kcv[3]; // Key Check Value (KCV)
+	uint8_t kcv[3]; ///< Key Check Value (KCV)
 };
 
 /// TR-31 optional block context object
@@ -163,7 +163,7 @@ struct tr31_opt_ctx_t {
 };
 
 /**
- * TR-31 context object
+ * @brief TR-31 context object
  * @note Resources should be released using #tr31_release
  */
 struct tr31_ctx_t {
@@ -185,6 +185,7 @@ struct tr31_ctx_t {
 	void* authenticator; ///< TR-31 authenticator data
 };
 
+/// TR-31 library errors
 enum tr31_error_t {
 	TR31_ERROR_INVALID_LENGTH = 1, ///< Invalid key block length
 	TR31_ERROR_UNSUPPORTED_VERSION, ///< Unsupported key block format version
