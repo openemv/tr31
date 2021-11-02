@@ -15,7 +15,12 @@ configure_file(
 )
 
 add_library(tr31 tr31.c tr31_crypto.c)
-set_target_properties(tr31 PROPERTIES PUBLIC_HEADER tr31.h)
+set_target_properties(tr31
+	PROPERTIES
+		PUBLIC_HEADER tr31.h
+		VERSION ${CMAKE_PROJECT_VERSION}
+		SOVERSION ${CMAKE_PROJECT_VERSION_MAJOR}
+)
 target_include_directories(tr31 PRIVATE ${CMAKE_CURRENT_BINARY_DIR}) # for generated config file
 target_include_directories(tr31 INTERFACE
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
