@@ -35,10 +35,11 @@ add_subdirectory(test)
 # generate and install basic CMake config files
 include(CMakePackageConfigHelpers) # provides CMake config generator macros
 include(GNUInstallDirs) # provides CMAKE_INSTALL_* variables
-set(CONFIG_PACKAGE_LOCATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME} CACHE STRING "Installation location for CMake config files")
+set(TR31_INSTALL_CMAKEDIR ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME} CACHE STRING "Installation location for tr31 CMake config files")
+message(STATUS "Using Cmake config install location \"${TR31_INSTALL_CMAKEDIR}\"")
 configure_package_config_file(cmake/tr31Config.cmake.in
 	"${CMAKE_CURRENT_BINARY_DIR}/cmake/tr31Config.cmake"
-	INSTALL_DESTINATION "${CONFIG_PACKAGE_LOCATION}"
+	INSTALL_DESTINATION "${TR31_INSTALL_CMAKEDIR}"
 )
 write_basic_package_version_file(
 	"${CMAKE_CURRENT_BINARY_DIR}/cmake/tr31ConfigVersion.cmake"
@@ -47,35 +48,36 @@ write_basic_package_version_file(
 install(FILES
 	"${CMAKE_CURRENT_BINARY_DIR}/cmake/tr31Config.cmake"
 	"${CMAKE_CURRENT_BINARY_DIR}/cmake/tr31ConfigVersion.cmake"
-	DESTINATION "${CONFIG_PACKAGE_LOCATION}"
+	DESTINATION "${TR31_INSTALL_CMAKEDIR}"
 )
 install(EXPORT tr31Targets
 	FILE tr31Targets.cmake
-	DESTINATION "${CONFIG_PACKAGE_LOCATION}"
+	DESTINATION "${TR31_INSTALL_CMAKEDIR}"
 )
 
 # generate and install pkgconfig file
-set(PKGCONFIG_LOCATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig CACHE STRING "Installation location for pkgconfig files")
-set(PKGCONFIG_LIB_NAME ${CMAKE_PROJECT_NAME})
-set(PKGCONFIG_PKG_DEPS "libcrypto")
-set(PKGCONFIG_LIBS_PRIV "-lcrypto")
+set(TR31_INSTALL_PKGCONFIG_DIR ${CMAKE_INSTALL_LIBDIR}/pkgconfig CACHE STRING "Installation location for tr31 pkgconfig files")
+message(STATUS "Using pkgconfig install location \"${TR31_INSTALL_PKGCONFIG_DIR}\"")
+set(TR31_PKGCONFIG_LIB_NAME ${CMAKE_PROJECT_NAME})
+set(TR31_PKGCONFIG_PKG_DEPS "libcrypto")
+set(TR31_PKGCONFIG_LIBS_PRIV "-lcrypto")
 configure_file(pkgconfig/libtr31.pc.in
 	"${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/libtr31.pc"
 	@ONLY
 )
 install(FILES
 	"${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/libtr31.pc"
-	DESTINATION "${PKGCONFIG_LOCATION}"
+	DESTINATION "${TR31_INSTALL_PKGCONFIG_DIR}"
 )
 
 if(BASH_COMPLETION_FOUND)
-	set(BASH_COMPLETION_INSTALL_DIR ${CMAKE_INSTALL_DATADIR}/bash-completion/completions CACHE STRING "Installation location for bash-completion files")
-	message(STATUS "Using bash-completion install location \"${BASH_COMPLETION_INSTALL_DIR}\"")
+	set(TR31_INSTALL_BASH_COMPLETION_DIR ${CMAKE_INSTALL_DATADIR}/bash-completion/completions CACHE STRING "Installation location for tr31 bash-completion files")
+	message(STATUS "Using bash-completion install location \"${TR31_INSTALL_BASH_COMPLETION_DIR}\"")
 
 	# install bash completion file
 	install(FILES
 		"${CMAKE_CURRENT_SOURCE_DIR}/bash-completion/tr31-tool"
-		DESTINATION "${BASH_COMPLETION_INSTALL_DIR}"
+		DESTINATION "${TR31_INSTALL_BASH_COMPLETION_DIR}"
 	)
 endif()
 
