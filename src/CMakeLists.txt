@@ -29,9 +29,21 @@ target_include_directories(tr31 INTERFACE
 target_link_libraries(tr31 OpenSSL::Crypto)
 install(TARGETS tr31
 	EXPORT tr31Targets # for use by install(EXPORT) command
-	PUBLIC_HEADER DESTINATION "include/${PROJECT_NAME}"
+	PUBLIC_HEADER
+		DESTINATION "include/${PROJECT_NAME}"
+		COMPONENT tr31_development
+	RUNTIME
+		COMPONENT tr31_runtime
+	LIBRARY
+		COMPONENT tr31_runtime
+		NAMELINK_COMPONENT tr31_development
+	ARCHIVE
+		COMPONENT tr31_development
 )
 
 add_executable(tr31-tool tr31-tool.c)
 target_link_libraries(tr31-tool tr31)
-install(TARGETS tr31-tool)
+install(TARGETS tr31-tool
+	RUNTIME
+		COMPONENT tr31_runtime
+)

@@ -49,10 +49,12 @@ install(FILES
 	"${CMAKE_CURRENT_BINARY_DIR}/cmake/tr31Config.cmake"
 	"${CMAKE_CURRENT_BINARY_DIR}/cmake/tr31ConfigVersion.cmake"
 	DESTINATION "${TR31_INSTALL_CMAKEDIR}"
+	COMPONENT tr31_development
 )
 install(EXPORT tr31Targets
 	FILE tr31Targets.cmake
 	DESTINATION "${TR31_INSTALL_CMAKEDIR}"
+	COMPONENT tr31_development
 )
 
 # generate and install pkgconfig file
@@ -68,6 +70,7 @@ configure_file(pkgconfig/libtr31.pc.in
 install(FILES
 	"${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/libtr31.pc"
 	DESTINATION "${TR31_INSTALL_PKGCONFIG_DIR}"
+	COMPONENT tr31_development
 )
 
 if(BASH_COMPLETION_FOUND)
@@ -78,6 +81,7 @@ if(BASH_COMPLETION_FOUND)
 	install(FILES
 		"${CMAKE_CURRENT_SOURCE_DIR}/bash-completion/tr31-tool"
 		DESTINATION "${TR31_INSTALL_BASH_COMPLETION_DIR}"
+		COMPONENT tr31_runtime
 	)
 endif()
 
@@ -98,6 +102,7 @@ if(Doxygen_FOUND)
 		install(
 			DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/html
 			TYPE DOC
+			COMPONENT tr31_docs
 		)
 	else()
 		doxygen_add_docs(docs
