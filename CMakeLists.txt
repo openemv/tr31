@@ -32,9 +32,18 @@ include(CTest)
 add_subdirectory(src)
 add_subdirectory(test)
 
+include(GNUInstallDirs) # provides CMAKE_INSTALL_* variables
+
+# install README and LICENSE files to runtime component
+install(FILES
+	"${CMAKE_CURRENT_SOURCE_DIR}/README.md"
+	"${CMAKE_CURRENT_SOURCE_DIR}/LICENSE"
+	TYPE DOC
+	COMPONENT tr31_runtime
+)
+
 # generate and install basic CMake config files
 include(CMakePackageConfigHelpers) # provides CMake config generator macros
-include(GNUInstallDirs) # provides CMAKE_INSTALL_* variables
 set(TR31_INSTALL_CMAKEDIR ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME} CACHE STRING "Installation location for tr31 CMake config files")
 message(STATUS "Using Cmake config install location \"${TR31_INSTALL_CMAKEDIR}\"")
 configure_package_config_file(cmake/tr31Config.cmake.in

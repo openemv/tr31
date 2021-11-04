@@ -47,3 +47,5 @@ src_configure() {
 src_test() {
 	cmake_src_test
 }
+
+DOCS=( README.md LICENSE )
