@@ -33,8 +33,15 @@ specified in the above steps.
 Testing
 =======
 
-Assuming the default CMake generator was `Unix Makefiles` (default on Linux),
-tests can be run from within the build directory (`build` in the above
+The tests can be run using the `test` target of the generated build system.
+
+To run the tests using CMake, do:
+```
+cmake --build build --target test
+```
+
+If the CMake generator was `Unix Makefiles` (default on Linux), the tests can
+can be run from within the build directory (`build` in the above
 [Build](#build) steps) using:
 ```
 make test
@@ -43,9 +50,17 @@ make test
 Documentation
 =============
 
-Assuming the default CMake generator was `Unix Makefiles` (default on Linux),
-and Doxygen was found by CMake, then HTML documentation can be generated from
-within the build directory (`build` in the above [Build](#build) steps) using:
+If Doxygen was found by CMake, then HTML documentation can be generated using
+the `docs` target of the generated build system.
+
+To generate the documentation using CMake, do:
+```
+cmake --build build --target docs
+```
+
+If the CMake generator was `Unix Makefiles` (default on Linux), the
+documentation can be generated from within the build directory (`build` in
+the above [Build](#build) steps) using:
 ```
 make docs
 ```
@@ -56,10 +71,18 @@ build system by adding `-DBUILD_DOCS=ON`.
 Packaging
 =========
 
-Assuming the default CMake generator was `Unix Makefiles` (default on Linux),
-and the required packaging tools were found (`dpkg` and/or `rpmbuild` on
-Linux), then packages can be built from within the build directory (`build` in
-the above [Build](#build) steps) using:
+If the required packaging tools were found (`dpkg` and/or `rpmbuild` on Linux)
+by CMake, packages can be created using the `package` target of the generated
+build system.
+
+To generate the packages using CMake, do:
+```
+cmake --build build --target package
+```
+
+If the CMake generator was `Unix Makefiles` (default on Linux), the packages
+can be generated from within the build directory (`build` in the above
+[Build](#build) steps) using:
 ```
 make package
 ```
