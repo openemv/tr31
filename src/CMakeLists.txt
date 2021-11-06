@@ -7,6 +7,8 @@
 
 cmake_minimum_required(VERSION 3.14)
 
+include(GNUInstallDirs) # provides CMAKE_INSTALL_* variables and good defaults for install()
+
 # generate config file for internal use only
 # this file should NOT be installed or used by an installed header
 configure_file(

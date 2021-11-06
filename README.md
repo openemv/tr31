@@ -64,6 +64,15 @@ the above [Build](#build) steps) using:
 make package
 ```
 
+This is an example of how monolithic release packages can be built from
+scratch on Ubuntu or Fedora:
+```
+rm -Rf build &&
+cmake -B build -DCMAKE_BUILD_TYPE="RelWithDebInfo" -DCMAKE_INSTALL_PREFIX=/usr -DBUILD_SHARED_LIBS=YES -DBUILD_DOCS=YES -DCPACK_COMPONENTS_GROUPING=ALL_COMPONENTS_IN_ONE &&
+cmake --build build &&
+cmake --build build --target package
+```
+
 Usage:
 ======
 

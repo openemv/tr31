@@ -32,7 +32,7 @@ include(CTest)
 add_subdirectory(src)
 add_subdirectory(test)
 
-include(GNUInstallDirs) # provides CMAKE_INSTALL_* variables
+include(GNUInstallDirs) # provides CMAKE_INSTALL_* variables and good defaults for install()
 
 # install README and LICENSE files to runtime component
 install(FILES
@@ -127,19 +127,60 @@ set(CPACK_PACKAGE_VENDOR "ono//connect")
 set(CPACK_PACKAGE_CONTACT "leon@onoconnect.com")
 set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+set(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
+
+# configure generic component packaging attributes
+set(CPACK_COMPONENT_TR31_DEVELOPMENT_DESCRIPTION "Development files for TR-31 library")
+set(CPACK_COMPONENT_TR31_DOCS_DESCRIPTION "Documentation for TR-31 library")
+set(CPACK_COMPONENT_TR31_DEVELOPMENT_DEPENDS tr31_runtime)
+
+# NOTE: for monolithic packages, uncomment the line below or specify it when
+# invoking CMake
+#set(CPACK_COMPONENTS_GROUPING ALL_COMPONENTS_IN_ONE)
 
 if(dpkg_FOUND)
 	# configure CPack to generate .deb package
 	list(APPEND CPACK_GENERATOR "DEB")
-	set(CPACK_DEBIAN_FILE_NAME "DEB-DEFAULT") # use default debian package naming
-	set(CPACK_DEBIAN_PACKAGE_DEPENDS libssl1.1)
+	# generate component packages
+	# NOTE: this is overridden by CPACK_COMPONENTS_GROUPING above
+	set(CPACK_DEB_COMPONENT_INSTALL ON)
+	set(CPACK_DEBIAN_ENABLE_COMPONENT_DEPENDS ON)
+	# use default debian package naming
+	set(CPACK_DEBIAN_FILE_NAME "DEB-DEFAULT")
+	# assign package names to components
+	set(CPACK_DEBIAN_TR31_RUNTIME_PACKAGE_NAME "tr31-runtime")
+	set(CPACK_DEBIAN_TR31_DEVELOPMENT_PACKAGE_NAME "tr31-dev")
+	set(CPACK_DEBIAN_TR31_DOCS_PACKAGE_NAME "tr31-doc")
+	# assign package architecture to documentation component
+	set(CPACK_DEBIAN_TR31_DOCS_PACKAGE_ARCHITECTURE "all")
+	# assign package sections to components
+	set(CPACK_DEBIAN_TR31_RUNTIME_PACKAGE_SECTION "utils")
+	set(CPACK_DEBIAN_TR31_DEVELOPMENT_PACKAGE_SECTION "devel")
+	set(CPACK_DEBIAN_TR31_DOCS_PACKAGE_SECTION "doc")
+	# assign package suggestions
+	set(CPACK_DEBIAN_TR31_DOCS_PACKAGE_SUGGESTS "tr31-dev")
+	# generate package dependency list
+	set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 endif()
 
 if(rpmbuild_FOUND)
 	list(APPEND CPACK_GENERATOR "RPM")
-	set(CPACK_RPM_FILE_NAME "RPM-DEFAULT") # use default rpm package naming
+	# generate component packages
+	# NOTE: this is overridden by CPACK_COMPONENTS_GROUPING above
+	set(CPACK_RPM_COMPONENT_INSTALL ON)
+	# use default rpm package naming
+	set(CPACK_RPM_FILE_NAME "RPM-DEFAULT")
+	# configure license and changelog
 	set(CPACK_RPM_PACKAGE_LICENSE "LGPLv2+")
 	set(CPACK_RPM_CHANGELOG_FILE "${CMAKE_CURRENT_SOURCE_DIR}/rpm_changelog.txt")
+	# assign package names to components
+	set(CPACK_RPM_TR31_RUNTIME_PACKAGE_NAME "tr31-runtime")
+	set(CPACK_RPM_TR31_DEVELOPMENT_PACKAGE_NAME "tr31-devel")
+	set(CPACK_RPM_TR31_DOCS_PACKAGE_NAME "tr31-doc")
+	# assign package architecture to documentation component
+	set(CPACK_RPM_TR31_DOCS_PACKAGE_ARCHITECTURE "noarch")
+	# assign package suggestions
+	set(CPACK_RPM_TR31_DOCS_PACKAGE_SUGGESTS "tr31-devel")
 	# NOTE: RPM generator automatically detects dependencies
 endif()
 
