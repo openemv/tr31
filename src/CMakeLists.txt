@@ -13,6 +13,9 @@ include(GNUInstallDirs) # provides CMAKE_INSTALL_* variables and good defaults f
 
 # generate config file for internal use only
 # this file should NOT be installed or used by an installed header
+if(OpenSSL_FOUND)
+	set(USE_OPENSSL TRUE)
+endif()
 configure_file(
 	tr31_config.h.in
 	tr31_config.h
