@@ -18,9 +18,9 @@
  * <https://www.gnu.org/licenses/>.
  */
 
- #ifndef TR31_CONFIG_H
- #define TR31_CONFIG_H
+#ifndef TR31_CONFIG_H
+#define TR31_CONFIG_H
 
- #define TR31_LIB_VERSION_STRING "@CMAKE_PROJECT_VERSION@"
+#define TR31_LIB_VERSION_STRING "@CMAKE_PROJECT_VERSION@"
 
- #endif
+#endif
