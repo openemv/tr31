@@ -5,7 +5,9 @@
 # See LICENSE file.
 ##############################################################################
 
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.16)
+
+find_package(OpenSSL 1.1 REQUIRED COMPONENTS Crypto)
 
 include(GNUInstallDirs) # provides CMAKE_INSTALL_* variables and good defaults for install()
 

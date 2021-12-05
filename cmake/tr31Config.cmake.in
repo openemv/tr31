@@ -1,6 +1,8 @@
 @PACKAGE_INIT@
 
 include(CMakeFindDependencyMacro)
-find_dependency(OpenSSL 1.1)
+find_dependency(OpenSSL 1.1 COMPONENTS Crypto)
+
+check_required_components(tr31)
 
 include("${CMAKE_CURRENT_LIST_DIR}/tr31Targets.cmake")

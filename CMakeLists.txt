@@ -5,11 +5,13 @@
 # See LICENSE file.
 ##############################################################################
 
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.16)
 
 project(tr31
 	VERSION 0.2.1
 	DESCRIPTION "TR-31 library and tools"
+	HOMEPAGE_URL "https://github.com/ono-connect/tr31"
+	LANGUAGES C
 )
 
 set(CMAKE_C_STANDARD 11)
@@ -21,11 +23,6 @@ if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
 endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
-find_package(OpenSSL 1.1 REQUIRED)
-find_package(bash-completion) # optional for providing bash-completion files
-find_package(Doxygen) # optional for generating doxygen files
-find_package(dpkg) # optional for building Debian/Ubuntu packages
-find_package(rpmbuild) # optional for building RedHat/Fedora packages
 
 include(CTest)
 
@@ -45,7 +42,7 @@ install(FILES
 # generate and install basic CMake config files
 include(CMakePackageConfigHelpers) # provides CMake config generator macros
 set(TR31_INSTALL_CMAKEDIR ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME} CACHE STRING "Installation location for tr31 CMake config files")
-message(STATUS "Using Cmake config install location \"${TR31_INSTALL_CMAKEDIR}\"")
+message(STATUS "Using CMake config install location \"${TR31_INSTALL_CMAKEDIR}\"")
 configure_package_config_file(cmake/tr31Config.cmake.in
 	"${CMAKE_CURRENT_BINARY_DIR}/cmake/tr31Config.cmake"
 	INSTALL_DESTINATION "${TR31_INSTALL_CMAKEDIR}"
@@ -82,6 +79,8 @@ install(FILES
 	COMPONENT tr31_development
 )
 
+# install bash-completion file
+find_package(bash-completion) # optional for providing bash-completion files
 if(BASH_COMPLETION_FOUND)
 	set(TR31_INSTALL_BASH_COMPLETION_DIR ${CMAKE_INSTALL_DATADIR}/bash-completion/completions CACHE STRING "Installation location for tr31 bash-completion files")
 	message(STATUS "Using bash-completion install location \"${TR31_INSTALL_BASH_COMPLETION_DIR}\"")
@@ -94,6 +93,8 @@ if(BASH_COMPLETION_FOUND)
 	)
 endif()
 
+# generate and install doxygen documentation
+find_package(Doxygen) # optional for generating doxygen files
 option(BUILD_DOCS "Build documentation")
 if(Doxygen_FOUND)
 	# use doxygen to generate HTML
@@ -138,6 +139,7 @@ set(CPACK_COMPONENT_TR31_DEVELOPMENT_DEPENDS tr31_runtime)
 # invoking CMake
 #set(CPACK_COMPONENTS_GROUPING ALL_COMPONENTS_IN_ONE)
 
+find_package(dpkg) # optional for building Debian/Ubuntu packages
 if(dpkg_FOUND)
 	# configure CPack to generate .deb package
 	list(APPEND CPACK_GENERATOR "DEB")
@@ -163,6 +165,7 @@ if(dpkg_FOUND)
 	set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 endif()
 
+find_package(rpmbuild) # optional for building RedHat/Fedora packages
 if(rpmbuild_FOUND)
 	list(APPEND CPACK_GENERATOR "RPM")
 	# generate component packages
