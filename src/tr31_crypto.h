@@ -266,10 +266,10 @@ int tr31_aes_kcv(const void* key, size_t key_len, void* kcv);
 
 /**
  * Cleanse buffer at pointer
- * @param ptr Pointer to buffer
+ * @param buf Pointer to buffer
  * @param len Length of buffer in bytes
  */
-void tr31_cleanse(void* ptr, size_t len);
+void tr31_cleanse(void* buf, size_t len);
 
 __END_DECLS
 

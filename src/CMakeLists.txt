@@ -7,13 +7,20 @@
 
 cmake_minimum_required(VERSION 3.16)
 
-find_package(OpenSSL 1.1 REQUIRED COMPONENTS Crypto)
+find_package(MbedTLS 2.16) # Latest version available on Ubuntu 20.04 and Fedora 34
+find_package(OpenSSL 1.1 COMPONENTS Crypto)
+if(NOT MbedTLS_FOUND AND NOT OpenSSL_FOUND)
+	message(FATAL_ERROR "Either MbedTLS or OpenSSL is required")
+endif()
 
 include(GNUInstallDirs) # provides CMAKE_INSTALL_* variables and good defaults for install()
 
 # generate config file for internal use only
 # this file should NOT be installed or used by an installed header
-if(OpenSSL_FOUND)
+if(MbedTLS_FOUND)
+	# prefer MbedTLS
+	set(USE_MBEDTLS TRUE)
+else()
 	set(USE_OPENSSL TRUE)
 endif()
 configure_file(
@@ -33,7 +40,11 @@ target_include_directories(tr31 INTERFACE
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 	$<INSTALL_INTERFACE:include/${PROJECT_NAME}>
 )
-target_link_libraries(tr31 OpenSSL::Crypto)
+if(MbedTLS_FOUND)
+	target_link_libraries(tr31 MbedTLS::mbedcrypto)
+elseif(OpenSSL_FOUND)
+	target_link_libraries(tr31 OpenSSL::Crypto)
+endif()
 install(TARGETS tr31
 	EXPORT tr31Targets # for use by install(EXPORT) command
 	PUBLIC_HEADER

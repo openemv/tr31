@@ -45,7 +45,203 @@ static const uint8_t tr31_derive_kbak_aes128_input[] = { 0x01, 0x00, 0x01, 0x00,
 static const uint8_t tr31_derive_kbak_aes192_input[] = { 0x01, 0x00, 0x01, 0x00, 0x00, 0x03, 0x00, 0xC0 };
 static const uint8_t tr31_derive_kbak_aes256_input[] = { 0x01, 0x00, 0x01, 0x00, 0x00, 0x04, 0x01, 0x00 };
 
-#if defined(USE_OPENSSL)
+#if defined(USE_MBEDTLS)
+#include <mbedtls/des.h>
+#include <mbedtls/aes.h>
+
+static int tr31_tdes_encrypt(const void* key, size_t key_len, const void* iv, const void* plaintext, size_t plen, void* ciphertext)
+{
+	int r;
+	mbedtls_des3_context ctx;
+	uint8_t iv_buf[DES_BLOCK_SIZE];
+
+	// ensure that plaintext length is a multiple of the DES block length
+	if ((plen & (DES_BLOCK_SIZE-1)) != 0) {
+		return -1;
+	}
+
+	mbedtls_des3_init(&ctx);
+
+	switch (key_len) {
+		case TDES2_KEY_SIZE: // double length 3DES key
+			r = mbedtls_des3_set2key_enc(&ctx, key);
+			break;
+
+		case TDES3_KEY_SIZE: // triple length 3DES key
+			r = mbedtls_des3_set3key_enc(&ctx, key);
+			break;
+
+		default:
+			r = -2;
+			goto exit;
+	}
+	if (r) {
+		r = -3;
+		goto exit;
+	}
+
+	if (iv) { // IV implies CBC block mode
+		memcpy(iv_buf, iv, DES_BLOCK_SIZE);
+		r = mbedtls_des3_crypt_cbc(&ctx, MBEDTLS_DES_ENCRYPT, plen, iv_buf, plaintext, ciphertext);
+	} else {
+		r = mbedtls_des3_crypt_ecb(&ctx, plaintext, ciphertext);
+	}
+	if (r) {
+		r = -4;
+		goto exit;
+	}
+
+	r = 0;
+	goto exit;
+
+exit:
+	mbedtls_des3_free(&ctx);
+
+	return r;
+}
+
+static int tr31_tdes_decrypt(const void* key, size_t key_len, const void* iv, const void* ciphertext, size_t clen, void* plaintext)
+{
+	int r;
+	mbedtls_des3_context ctx;
+	uint8_t iv_buf[DES_BLOCK_SIZE];
+
+	// ensure that ciphertext length is a multiple of the DES block length
+	if ((clen & (DES_BLOCK_SIZE-1)) != 0) {
+		return -1;
+	}
+
+	mbedtls_des3_init(&ctx);
+
+	switch (key_len) {
+		case TDES2_KEY_SIZE: // double length 3DES key
+			r = mbedtls_des3_set2key_dec(&ctx, key);
+			break;
+
+		case TDES3_KEY_SIZE: // triple length 3DES key
+			r = mbedtls_des3_set3key_dec(&ctx, key);
+			break;
+
+		default:
+			r = -2;
+			goto exit;
+	}
+	if (r) {
+		r = -3;
+		goto exit;
+	}
+
+	if (iv) { // IV implies CBC block mode
+		memcpy(iv_buf, iv, DES_BLOCK_SIZE);
+		r = mbedtls_des3_crypt_cbc(&ctx, MBEDTLS_DES_DECRYPT, clen, iv_buf, ciphertext, plaintext);
+	} else {
+		r = mbedtls_des3_crypt_ecb(&ctx, ciphertext, plaintext);
+	}
+	if (r) {
+		r = -4;
+		goto exit;
+	}
+
+	r = 0;
+	goto exit;
+
+exit:
+	mbedtls_des3_free(&ctx);
+
+	return r;
+}
+
+static int tr31_aes_encrypt(const void* key, size_t key_len, const void* iv, const void* plaintext, size_t plen, void* ciphertext)
+{
+	int r;
+	mbedtls_aes_context ctx;
+	uint8_t iv_buf[AES_BLOCK_SIZE];
+
+	// ensure that plaintext length is a multiple of the AES block length
+	if ((plen & (AES_BLOCK_SIZE-1)) != 0) {
+		return -1;
+	}
+
+	if (key_len != AES128_KEY_SIZE &&
+		key_len != AES192_KEY_SIZE &&
+		key_len != AES256_KEY_SIZE
+	) {
+		return -2;
+	}
+
+	mbedtls_aes_init(&ctx);
+	r = mbedtls_aes_setkey_enc(&ctx, key, key_len * 8);
+	if (r) {
+		r = -3;
+		goto exit;
+	}
+
+	if (iv) { // IV implies CBC block mode
+		memcpy(iv_buf, iv, AES_BLOCK_SIZE);
+		r = mbedtls_aes_crypt_cbc(&ctx, MBEDTLS_AES_ENCRYPT, plen, iv_buf, plaintext, ciphertext);
+	} else {
+		r = mbedtls_aes_crypt_ecb(&ctx, MBEDTLS_AES_ENCRYPT, plaintext, ciphertext);
+	}
+	if (r) {
+		r = -4;
+		goto exit;
+	}
+
+	r = 0;
+	goto exit;
+
+exit:
+	mbedtls_aes_free(&ctx);
+
+	return r;
+}
+
+static int tr31_aes_decrypt(const void* key, size_t key_len, const void* iv, const void* ciphertext, size_t clen, void* plaintext)
+{
+	int r;
+	mbedtls_aes_context ctx;
+	uint8_t iv_buf[AES_BLOCK_SIZE];
+
+	// ensure that ciphertext length is a multiple of the AES block length
+	if ((clen & (AES_BLOCK_SIZE-1)) != 0) {
+		return -1;
+	}
+
+	if (key_len != AES128_KEY_SIZE &&
+		key_len != AES192_KEY_SIZE &&
+		key_len != AES256_KEY_SIZE
+	) {
+		return -2;
+	}
+
+	mbedtls_aes_init(&ctx);
+	r = mbedtls_aes_setkey_dec(&ctx, key, key_len * 8);
+	if (r) {
+		r = -3;
+		goto exit;
+	}
+
+	if (iv) { // IV implies CBC block mode
+		memcpy(iv_buf, iv, AES_BLOCK_SIZE);
+		r = mbedtls_aes_crypt_cbc(&ctx, MBEDTLS_AES_DECRYPT, clen, iv_buf, ciphertext, plaintext);
+	} else {
+		r = mbedtls_aes_crypt_ecb(&ctx, MBEDTLS_AES_DECRYPT, ciphertext, plaintext);
+	}
+	if (r) {
+		r = -4;
+		goto exit;
+	}
+
+	r = 0;
+	goto exit;
+
+exit:
+	mbedtls_aes_free(&ctx);
+
+	return r;
+}
+
+#elif defined(USE_OPENSSL)
 #include <openssl/evp.h>
 
 static int tr31_tdes_encrypt(const void* key, size_t key_len, const void* iv, const void* plaintext, size_t plen, void* ciphertext)
@@ -257,6 +453,11 @@ static int tr31_aes_decrypt(const void* key, size_t key_len, const void* iv, con
 	EVP_CIPHER_CTX* ctx;
 	int plen;
 	int plen2;
+
+	// ensure that ciphertext length is a multiple of the AES block length
+	if ((clen & (AES_BLOCK_SIZE-1)) != 0) {
+		return -1;
+	}
 
 	ctx = EVP_CIPHER_CTX_new();
 
@@ -1008,7 +1209,14 @@ int tr31_aes_kcv(const void* key, size_t key_len, void* kcv)
 	return 0;
 }
 
-void tr31_cleanse(void* ptr, size_t len)
+void tr31_cleanse(void* buf, size_t len)
 {
-	OPENSSL_cleanse(ptr, len);
+	memset(buf, 0, len);
+
+	// From GCC documentation:
+	// If the function does not have side effects, there are optimizations
+	// other than inlining that cause function calls to be optimized away,
+	// although the function call is live. To keep such calls from being
+	// optimized away, put...
+	__asm__ ("");
 }

@@ -22,6 +22,7 @@
 #define TR31_CONFIG_H
 
 #define TR31_LIB_VERSION_STRING "@CMAKE_PROJECT_VERSION@"
+#cmakedefine USE_MBEDTLS
 #cmakedefine USE_OPENSSL
 
 #endif
