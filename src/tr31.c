@@ -62,38 +62,55 @@ struct tr31_payload_t {
 #define TR31_MIN_KEY_BLOCK_LENGTH (sizeof(struct tr31_header_t) + TR31_MIN_PAYLOAD_LENGTH + 8) // Minimum TR-31 key block length: header + minimum payload + authenticator
 
 // helper functions
-static int dec_to_int(const char* str, size_t length);
-static int hex_to_int(const char* str, size_t length);
+static int dec_to_int(const char* str, size_t str_len);
+static void int_to_dec(unsigned int value, char* str, size_t str_len);
+static int hex_to_int(const char* str, size_t str_len);
+static void int_to_hex(unsigned int value, char* str, size_t str_len);
 static int hex_to_bin(const char* hex, void* bin, size_t bin_len);
+static int bin_to_hex(const void* bin, size_t bin_len, char* str, size_t str_len);
 static int tr31_tdes_decrypt_verify_variant_binding(struct tr31_ctx_t* ctx, const struct tr31_key_t* kbpk);
 static int tr31_tdes_decrypt_verify_derivation_binding(struct tr31_ctx_t* ctx, const struct tr31_key_t* kbpk);
 static int tr31_aes_decrypt_verify_derivation_binding(struct tr31_ctx_t* ctx, const struct tr31_key_t* kbpk);
 static const char* tr31_get_opt_block_kcv_string(const struct tr31_opt_ctx_t* opt_block);
 static const char* tr31_get_opt_block_hmac_string(const struct tr31_opt_ctx_t* opt_block);
 
-static int dec_to_int(const char* str, size_t length)
+static int dec_to_int(const char* str, size_t str_len)
 {
 	int value;
 
 	value = 0;
-	for (size_t i = 0; i < length; ++i) {
+	for (size_t i = 0; i < str_len; ++i) {
 		if (!isdigit(str[i])) {
 			return -1;
 		}
 
 		value *= 10; // shift decimal value
-		value += str[i] - 0x30; // convert ASCII decimal to numeric value
+		value += str[i] - '0'; // convert ASCII decimal to numeric value
 	}
 
 	return value;
 }
 
-static int hex_to_int(const char* str, size_t length)
+static void int_to_dec(unsigned int value, char* str, size_t str_len)
+{
+	// pack string digits, right justified
+	while (str_len) {
+		uint8_t digit;
+
+		digit = value % 10; // extract digit
+		value /= 10; // shift decimal value
+
+		str[str_len - 1] = digit + '0'; // convert numeric value to ASCII decimal
+		--str_len;
+	}
+}
+
+static int hex_to_int(const char* str, size_t str_len)
 {
 	int value;
 
 	value = 0;
-	for (size_t i = 0; i < length; ++i) {
+	for (size_t i = 0; i < str_len; ++i) {
 		if (!isxdigit(str[i])) {
 			return -1;
 		}
@@ -101,7 +118,7 @@ static int hex_to_int(const char* str, size_t length)
 		value <<= 4; // shift hex value
 		// convert ASCII hex to numeric value
 		if (str[i] >= '0' && str[i] <= '9') {
-			value += str[i] - 0x30;
+			value += str[i] - '0';
 		}
 		if (str[i] >= 'A' && str[i] <= 'F') {
 			value += str[i] - ('A' - 10);
@@ -112,6 +129,25 @@ static int hex_to_int(const char* str, size_t length)
 	}
 
 	return value;
+}
+
+static void int_to_hex(unsigned int value, char* str, size_t str_len)
+{
+	// pack string digits, right justified
+	while (str_len) {
+		uint8_t digit;
+
+		digit = value & 0xF; // extract digit
+		value >>= 4; // shift hex value
+
+		// convert numeric value to ASCII hex
+		if (digit < 0xA) {
+			str[str_len - 1] = digit + '0';
+		} else {
+			str[str_len - 1] = digit - 0xA + 'A';
+		}
+		--str_len;
+	}
 }
 
 static int hex_to_bin(const char* hex, void* bin, size_t bin_len)
@@ -135,6 +171,39 @@ static int hex_to_bin(const char* hex, void* bin, size_t bin_len)
 
 		hex += 2;
 		++bin;
+	}
+
+	return 0;
+}
+
+static int bin_to_hex(const void* bin, size_t bin_len, char* hex, size_t hex_len)
+{
+	const uint8_t* buf = bin;
+
+	// minimum string length
+	if (hex_len < bin_len * 2) {
+		return -1;
+	}
+
+	// pack hex digits, left justified
+	for (unsigned int i = 0; i < bin_len; ++i) {
+		uint8_t digit;
+
+		// convert most significant nibble
+		digit = buf[i] >> 4;
+		if (digit < 0xA) {
+			hex[(i * 2)] = digit + '0';
+		} else {
+			hex[(i * 2)] = digit - 0xA + 'A';
+		}
+
+		// convert least significant nibble
+		digit = buf[i] & 0xf;
+		if (digit < 0xA) {
+			hex[(i * 2) + 1] = digit + '0';
+		} else {
+			hex[(i * 2) + 1] = digit - 0xA + 'A';
+		}
 	}
 
 	return 0;
@@ -597,6 +666,131 @@ error:
 	tr31_release(ctx);
 exit:
 	return r;
+}
+
+int tr31_export(
+	const struct tr31_ctx_t* ctx,
+	const struct tr31_key_t* kbpk,
+	char* key_block,
+	size_t key_block_len
+)
+{
+	int r;
+	struct tr31_header_t* header;
+	size_t opt_blk_len_total = 0;
+	void* ptr;
+
+	if (!ctx || !kbpk || !key_block || !key_block_len) {
+		return -1;
+	}
+
+	// ensure space for null-termination
+	--key_block_len;
+
+	// validate minimum length
+	if (key_block_len < TR31_MIN_KEY_BLOCK_LENGTH) {
+		return TR31_ERROR_INVALID_LENGTH;
+	}
+	memset(key_block, 0, key_block_len);
+
+	// validate key block format version
+	switch (ctx->version) {
+		case TR31_VERSION_B:
+		case TR31_VERSION_C:
+		case TR31_VERSION_D:
+			// supported
+			break;
+
+		case TR31_VERSION_A:
+			// deprecated
+			return TR31_ERROR_UNSUPPORTED_VERSION;
+
+		default:
+			// unsupported
+			return TR31_ERROR_UNSUPPORTED_VERSION;
+	}
+
+	// populate key block header
+	header = (struct tr31_header_t*)key_block;
+	header->version_id = ctx->version;
+	int_to_dec(ctx->length, header->length, sizeof(header->length)); // verify later
+	header->key_usage = htons(ctx->key.usage);
+	header->algorithm = ctx->key.algorithm;
+	header->mode_of_use = ctx->key.mode_of_use;
+	header->exportability = ctx->key.exportability;
+	memset(header->reserved, '0', sizeof(header->reserved));
+
+	// populate key version field
+	switch (ctx->key.key_version) {
+		case TR31_KEY_VERSION_IS_UNUSED:
+			memset(header->key_version, '0', sizeof(header->key_version));
+			break;
+
+		case TR31_KEY_VERSION_IS_COMPONENT:
+			header->key_version[0] = 'c';
+			int_to_dec(ctx->key.key_component_number, &header->key_version[1], sizeof(header->key_version[1]));
+			break;
+
+		case TR31_KEY_VERSION_IS_VALID:
+			int_to_dec(ctx->key.key_version_value, header->key_version, sizeof(header->key_version));
+			break;
+
+		default:
+			return TR31_ERROR_INVALID_KEY_VERSION_FIELD;
+	}
+
+	// populate optional blocks
+	int_to_dec(ctx->opt_blocks_count, header->opt_blocks_count, sizeof(header->opt_blocks_count));
+	ptr = header + 1; // optional blocks, if any, are after the header
+	if (ctx->opt_blocks_count && !ctx->opt_blocks) {
+		// optional block count is non-zero but optional block data is missing
+		return TR31_ERROR_INVALID_NUMBER_OF_OPTIONAL_BLOCKS_FIELD;
+	}
+	for (int i = 0; i < ctx->opt_blocks_count; ++i) {
+		// ensure that current pointer is valid for minimal optional block
+		if (ptr + sizeof(struct tr31_opt_blk_t) - (void*)header > key_block_len) {
+			return TR31_ERROR_INVALID_LENGTH;
+		}
+		struct tr31_opt_blk_t* opt_blk = ptr;
+
+		// ensure that optional block length is valid
+		size_t opt_blk_len = (ctx->opt_blocks[i].data_length * 2) + 4;
+		if (ptr + opt_blk_len - (void*)header > key_block_len) {
+			// optional block length exceeds total key block length
+			return TR31_ERROR_INVALID_LENGTH;
+		}
+		opt_blk_len_total += opt_blk_len;
+
+		// populate optional block id and length
+		opt_blk->id = htons(ctx->opt_blocks[i].id);
+		int_to_hex(opt_blk_len, opt_blk->length, sizeof(opt_blk->length));
+
+		// populate optional block data
+		if (ctx->opt_blocks[i].data_length && !ctx->opt_blocks[i].data) {
+			// optional block payload length is non-zero but optional block data is missing
+			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+		}
+		r = bin_to_hex(
+			ctx->opt_blocks[i].data,
+			ctx->opt_blocks[i].data_length,
+			opt_blk->data,
+			ctx->opt_blocks[i].data_length * 2
+		);
+		if (r) {
+			return -2;
+		}
+
+		// advance current pointer
+		ptr += opt_blk_len;
+	}
+
+	// TR-31:2018, A.5.6 indicates that the total optional block length must
+	// be a multiple of 8
+	if (opt_blk_len_total & 0x7) {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+
+	return 0;
 }
 
 static int tr31_tdes_decrypt_verify_variant_binding(struct tr31_ctx_t* ctx, const struct tr31_key_t* kbpk)

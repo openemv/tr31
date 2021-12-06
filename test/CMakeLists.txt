@@ -19,4 +19,8 @@ if (BUILD_TESTING)
 	add_executable(tr31_decrypt_test tr31_decrypt_test.c)
 	target_link_libraries(tr31_decrypt_test tr31)
 	add_test(tr31_decrypt_test tr31_decrypt_test)
+
+	add_executable(tr31_export_test tr31_export_test.c)
+	target_link_libraries(tr31_export_test tr31)
+	add_test(tr31_export_test tr31_export_test)
 endif()
