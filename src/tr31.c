@@ -697,18 +697,25 @@ int tr31_export(
 	memset(key_block, 0, key_block_len);
 
 	// validate key block format version
+	// set associated payload length and authenticator length
 	switch (ctx->version) {
 		case TR31_VERSION_A:
 		case TR31_VERSION_C:
 			// supported
+			ctx->payload_length = DES_CIPHERTEXT_LENGTH(sizeof(struct tr31_payload_t) + ctx->key.length);
+			ctx->authenticator_length = 4; // 4 bytes; 8 ASCII hex digits
 			break;
 
 		case TR31_VERSION_B:
 			// supported
+			ctx->payload_length = DES_CIPHERTEXT_LENGTH(sizeof(struct tr31_payload_t) + ctx->key.length);
+			ctx->authenticator_length = 8; // 8 bytes; 16 ASCII hex digits
 			break;
 
 		case TR31_VERSION_D:
 			// supported
+			ctx->payload_length = AES_CIPHERTEXT_LENGTH(sizeof(struct tr31_payload_t) + ctx->key.length);
+			ctx->authenticator_length = 16; // 16 bytes; 32 ASCII hex digits
 			break;
 
 		default:
@@ -719,7 +726,7 @@ int tr31_export(
 	// populate key block header
 	header = (struct tr31_header_t*)key_block;
 	header->version_id = ctx->version;
-	int_to_dec(ctx->length, header->length, sizeof(header->length)); // verify later
+	memset(header->length, '0', sizeof(header->length)); // update later
 	header->key_usage = htons(ctx->key.usage);
 	header->algorithm = ctx->key.algorithm;
 	header->mode_of_use = ctx->key.mode_of_use;
@@ -796,6 +803,20 @@ int tr31_export(
 		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 	}
 
+	// determine final key block length
+	// this is required before authenticator can be generated
+	size_t final_key_block_len = sizeof(*header)
+		+ opt_blk_len_total
+		+ (ctx->payload_length * 2)
+		+ (ctx->authenticator_length * 2);
+	if (final_key_block_len > key_block_len) {
+		return TR31_ERROR_INVALID_LENGTH;
+	}
+
+	// update key block length in header
+	ctx->length = final_key_block_len;
+	int_to_dec(ctx->length, header->length, sizeof(header->length));
+
 	// add header data to context object
 	ctx->header_length = ptr - (void*)header;
 	ctx->header = calloc(1, ctx->header_length);
@@ -811,7 +832,6 @@ int tr31_export(
 
 			// encrypt and sign payload
 			// this will populate:
-			//   ctx->payload_length
 			//   ctx->payload
 			//   ctx->authenticator
 			r = tr31_tdes_encrypt_sign_variant_binding(ctx, kbpk);
@@ -829,7 +849,6 @@ int tr31_export(
 
 			// sign and encrypt payload
 			// this will populate:
-			//   ctx->payload_length
 			//   ctx->payload
 			//   ctx->authenticator
 			r = tr31_tdes_encrypt_sign_derivation_binding(ctx, kbpk);
@@ -847,7 +866,6 @@ int tr31_export(
 
 			// sign and encrypt payload
 			// this will populate:
-			//   ctx->payload_length
 			//   ctx->payload
 			//   ctx->authenticator
 			r = tr31_aes_encrypt_sign_derivation_binding(ctx, kbpk);
@@ -866,13 +884,6 @@ int tr31_export(
 	if (!ctx->payload || !ctx->authenticator) {
 		// internal error
 		return -4;
-	}
-
-	// validate key block buffer length
-	if (sizeof(*header) + opt_blk_len_total + (ctx->payload_length * 2) + (ctx->authenticator_length * 2)
-		> key_block_len
-	) {
-		return TR31_ERROR_INVALID_LENGTH;
 	}
 
 	// add payload to key block
@@ -963,11 +974,9 @@ static int tr31_tdes_encrypt_sign_variant_binding(struct tr31_ctx_t* ctx, const 
 	uint8_t kbak[TDES3_KEY_SIZE];
 
 	// add payload data to context object
-	ctx->payload_length = DES_CIPHERTEXT_LENGTH(sizeof(struct tr31_payload_t) + ctx->key.length);
 	ctx->payload = calloc(1, ctx->payload_length);
 
 	// add authenticator to context object
-	ctx->authenticator_length = 4; // 4 bytes; 8 ASCII hex digits
 	ctx->authenticator = calloc(1, ctx->authenticator_length);
 
 	// buffer for encrypted
@@ -1088,11 +1097,9 @@ static int tr31_tdes_encrypt_sign_derivation_binding(struct tr31_ctx_t* ctx, con
 	uint8_t kbak[TDES3_KEY_SIZE];
 
 	// add payload data to context object
-	ctx->payload_length = DES_CIPHERTEXT_LENGTH(sizeof(struct tr31_payload_t) + ctx->key.length);
 	ctx->payload = calloc(1, ctx->payload_length);
 
 	// add authenticator to context object
-	ctx->authenticator_length = 8; // 8 bytes; 16 ASCII hex digits
 	ctx->authenticator = calloc(1, ctx->authenticator_length);
 
 	// buffer for CMAC generation and encryption
@@ -1208,11 +1215,9 @@ static int tr31_aes_encrypt_sign_derivation_binding(struct tr31_ctx_t* ctx, cons
 	uint8_t kbak[AES256_KEY_SIZE];
 
 	// add payload data to context object
-	ctx->payload_length = AES_CIPHERTEXT_LENGTH(sizeof(struct tr31_payload_t) + ctx->key.length);
 	ctx->payload = calloc(1, ctx->payload_length);
 
 	// add authenticator to context object
-	ctx->authenticator_length = 16; // 16 bytes; 32 ASCII hex digits
 	ctx->authenticator = calloc(1, ctx->authenticator_length);
 
 	// buffer for CMAC generation and encryption

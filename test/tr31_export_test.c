@@ -156,7 +156,7 @@ int main(void)
 	printf("Test 1...\n");
 	print_buf("kbpk", test1_kbpk_raw, sizeof(test1_kbpk_raw));
 	test_tr31.version = TR31_VERSION_A;
-	test_tr31.length = 72;
+	test_tr31.length = 13; // intentionally incorrect
 	test_tr31.key = test1_key;
 	test_tr31.opt_blocks_count = 0;
 	test_tr31.opt_blocks = NULL;
@@ -183,7 +183,7 @@ int main(void)
 	printf("Test 2...\n");
 	print_buf("kbpk", test2_kbpk_raw, sizeof(test2_kbpk_raw));
 	test_tr31.version = TR31_VERSION_B;
-	test_tr31.length = 104;
+	test_tr31.length = 13; // intentionally incorrect
 	test_tr31.key = test2_key;
 	test_tr31.opt_blocks_count = 1;
 	test_tr31.opt_blocks = test_tr31_opts;
@@ -213,7 +213,7 @@ int main(void)
 	printf("Test 3...\n");
 	print_buf("kbpk", test3_kbpk_raw, sizeof(test3_kbpk_raw));
 	test_tr31.version = TR31_VERSION_C;
-	test_tr31.length = 96;
+	test_tr31.length = 13; // intentionally incorrect
 	test_tr31.key = test3_key;
 	test_tr31.opt_blocks_count = 1;
 	test_tr31.opt_blocks = test_tr31_opts;
@@ -243,7 +243,7 @@ int main(void)
 	printf("Test 4...\n");
 	print_buf("kbpk", test4_kbpk_raw, sizeof(test4_kbpk_raw));
 	test_tr31.version = TR31_VERSION_D;
-	test_tr31.length = 112;
+	test_tr31.length = 13; // intentionally incorrect
 	test_tr31.key = test4_key;
 	test_tr31.opt_blocks_count = 0;
 	test_tr31.opt_blocks = NULL;
