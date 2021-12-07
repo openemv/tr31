@@ -48,6 +48,8 @@ static const uint8_t tr31_derive_kbak_aes256_input[] = { 0x01, 0x00, 0x01, 0x00,
 #if defined(USE_MBEDTLS)
 #include <mbedtls/des.h>
 #include <mbedtls/aes.h>
+#include <mbedtls/entropy.h>
+#include <mbedtls/ctr_drbg.h>
 
 static int tr31_tdes_encrypt(const void* key, size_t key_len, const void* iv, const void* plaintext, size_t plen, void* ciphertext)
 {
@@ -241,8 +243,21 @@ exit:
 	return r;
 }
 
+static void tr31_rand_impl(void* buf, size_t len)
+{
+	mbedtls_entropy_context entropy;
+	mbedtls_ctr_drbg_context ctr_drbg;
+
+	mbedtls_entropy_init(&entropy);
+	mbedtls_ctr_drbg_init(&ctr_drbg);
+	mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy, NULL, 0);
+	mbedtls_ctr_drbg_random(&ctr_drbg, buf, len);
+	mbedtls_ctr_drbg_free(&ctr_drbg);
+}
+
 #elif defined(USE_OPENSSL)
 #include <openssl/evp.h>
+#include <openssl/rand.h>
 
 static int tr31_tdes_encrypt(const void* key, size_t key_len, const void* iv, const void* plaintext, size_t plen, void* ciphertext)
 {
@@ -518,6 +533,11 @@ static int tr31_aes_decrypt(const void* key, size_t key_len, const void* iv, con
 exit:
 	EVP_CIPHER_CTX_free(ctx);
 	return r;
+}
+
+static void tr31_rand_impl(void* buf, size_t len)
+{
+	RAND_bytes(buf, len);
 }
 
 #endif
@@ -1219,4 +1239,9 @@ void tr31_cleanse(void* buf, size_t len)
 	// although the function call is live. To keep such calls from being
 	// optimized away, put...
 	__asm__ ("");
+}
+
+void tr31_rand(void* buf, size_t len)
+{
+	tr31_rand_impl(buf, len);
 }

@@ -271,6 +271,13 @@ int tr31_aes_kcv(const void* key, size_t key_len, void* kcv);
  */
 void tr31_cleanse(void* buf, size_t len);
 
+/**
+ * Generate random data
+ * @param buf Pointer to buffer
+ * @param len Length of buffer in bytes
+ */
+void tr31_rand(void* buf, size_t len);
+
 __END_DECLS
 
 #endif
