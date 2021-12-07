@@ -106,6 +106,35 @@ static const size_t test3_tr31_length_verify =
 	+ (2 /* key length */ + 16 /* key */ + 6 /* padding */) * 2
 	+ (4 /* authenticator */) * 2;
 
+// TR-31:2018, A.7.4
+static const uint8_t test4_kbpk_raw[] = {
+	0x88, 0xE1, 0xAB, 0x2A, 0x2E, 0x3D, 0xD3, 0x8C, 0x1F, 0xA0, 0x39, 0xA5, 0x36, 0x50, 0x0C, 0xC8,
+	0xA8, 0x7A, 0xB9, 0xD6, 0x2D, 0xC9, 0x2C, 0x01, 0x05, 0x8F, 0xA7, 0x9F, 0x44, 0x65, 0x7D, 0xE6,
+};
+static const struct tr31_key_t test4_kbpk = {
+	.usage = TR31_KEY_USAGE_TR31_KBPK,
+	.algorithm = TR31_KEY_ALGORITHM_AES,
+	.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC,
+	.length = sizeof(test4_kbpk_raw),
+	.data = (void*)test4_kbpk_raw,
+};
+static const uint8_t test4_key_raw[] = { 0x3F, 0x41, 0x9E, 0x1C, 0xB7, 0x07, 0x94, 0x42, 0xAA, 0x37, 0x47, 0x4C, 0x2E, 0xFB, 0xF8, 0xB8 };
+static const struct tr31_key_t test4_key = {
+	.usage = TR31_KEY_USAGE_PIN,
+	.algorithm = TR31_KEY_ALGORITHM_AES,
+	.mode_of_use = TR31_KEY_MODE_OF_USE_ENC,
+	.key_version = TR31_KEY_VERSION_IS_UNUSED,
+	.exportability = TR31_KEY_EXPORT_TRUSTED,
+	.length = sizeof(test4_key_raw),
+	.data = (void*)test4_key_raw,
+};
+static const char test4_tr31_header_verify[] = "D0112P0AE00E0000";
+static const size_t test4_tr31_length_verify =
+	16 /* header */
+	+ 0 /* opt block */
+	+ (2 /* key length */ + 16 /* key */ + 14 /* padding */) * 2
+	+ (16 /* authenticator */) * 2;
+
 static void print_buf(const char* buf_name, const void* buf, size_t length)
 {
 	const uint8_t* ptr = buf;
@@ -205,6 +234,33 @@ int main(void)
 		goto exit;
 	}
 	if (strlen(key_block) != test3_tr31_length_verify) {
+		fprintf(stderr, "TR-31 length is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+
+	// TR-31:2018, A.7.4
+	printf("Test 4...\n");
+	print_buf("kbpk", test4_kbpk_raw, sizeof(test4_kbpk_raw));
+	test_tr31.version = TR31_VERSION_D;
+	test_tr31.length = 112;
+	test_tr31.key = test4_key;
+	test_tr31.opt_blocks_count = 0;
+	test_tr31.opt_blocks = NULL;
+
+	r = tr31_export(&test_tr31, &test4_kbpk, key_block, sizeof(key_block));
+	if (r) {
+		fprintf(stderr, "tr31_export() failed; r=%d\n", r);
+		goto exit;
+	}
+	printf("TR-31: %s\n", key_block);
+	if (strncmp(key_block, test4_tr31_header_verify, strlen(test4_tr31_header_verify)) != 0) {
+		fprintf(stderr, "TR-31 header encoding is incorrect\n");
+		fprintf(stderr, "%s\n%s\n", key_block, test4_tr31_header_verify);
+		r = 1;
+		goto exit;
+	}
+	if (strlen(key_block) != test4_tr31_length_verify) {
 		fprintf(stderr, "TR-31 length is incorrect\n");
 		r = 1;
 		goto exit;

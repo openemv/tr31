@@ -73,6 +73,7 @@ static int tr31_tdes_encrypt_sign_variant_binding(struct tr31_ctx_t* ctx, const 
 static int tr31_tdes_decrypt_verify_derivation_binding(struct tr31_ctx_t* ctx, const struct tr31_key_t* kbpk);
 static int tr31_tdes_encrypt_sign_derivation_binding(struct tr31_ctx_t* ctx, const struct tr31_key_t* kbpk);
 static int tr31_aes_decrypt_verify_derivation_binding(struct tr31_ctx_t* ctx, const struct tr31_key_t* kbpk);
+static int tr31_aes_encrypt_sign_derivation_binding(struct tr31_ctx_t* ctx, const struct tr31_key_t* kbpk);
 static const char* tr31_get_opt_block_kcv_string(const struct tr31_opt_ctx_t* opt_block);
 static const char* tr31_get_opt_block_hmac_string(const struct tr31_opt_ctx_t* opt_block);
 
@@ -838,6 +839,24 @@ int tr31_export(
 			}
 			break;
 
+		case TR31_VERSION_D:
+			// only allow AES key block protection keys
+			if (kbpk->algorithm != TR31_KEY_ALGORITHM_AES) {
+				return TR31_ERROR_UNSUPPORTED_KBPK_ALGORITHM;
+			}
+
+			// sign and encrypt payload
+			// this will populate:
+			//   ctx->payload_length
+			//   ctx->payload
+			//   ctx->authenticator
+			r = tr31_aes_encrypt_sign_derivation_binding(ctx, kbpk);
+			if (r) {
+				// return error value as-is
+				return r;
+			}
+			break;
+
 		default:
 			// invalid format version
 			return -3;
@@ -1167,6 +1186,68 @@ static int tr31_aes_decrypt_verify_derivation_binding(struct tr31_ctx_t* ctx, co
 	// extract key data
 	ctx->key.data = calloc(1, ctx->key.length);
 	memcpy(ctx->key.data, decrypted_payload->data, ctx->key.length);
+
+	// success
+	r = 0;
+	goto exit;
+
+error:
+exit:
+	// cleanse sensitive buffers
+	tr31_cleanse(kbek, sizeof(kbek));
+	tr31_cleanse(kbak, sizeof(kbak));
+	tr31_cleanse(decrypted_key_block, sizeof(decrypted_key_block));
+
+	return r;
+}
+
+static int tr31_aes_encrypt_sign_derivation_binding(struct tr31_ctx_t* ctx, const struct tr31_key_t* kbpk)
+{
+	int r;
+	uint8_t kbek[AES256_KEY_SIZE];
+	uint8_t kbak[AES256_KEY_SIZE];
+
+	// add payload data to context object
+	ctx->payload_length = AES_CIPHERTEXT_LENGTH(sizeof(struct tr31_payload_t) + ctx->key.length);
+	ctx->payload = calloc(1, ctx->payload_length);
+
+	// add authenticator to context object
+	ctx->authenticator_length = 16; // 16 bytes; 32 ASCII hex digits
+	ctx->authenticator = calloc(1, ctx->authenticator_length);
+
+	// buffer for CMAC generation and encryption
+	uint8_t decrypted_key_block[ctx->header_length + ctx->payload_length];
+	memcpy(decrypted_key_block, ctx->header, ctx->header_length);
+	struct tr31_payload_t* decrypted_payload = (struct tr31_payload_t*)(decrypted_key_block + ctx->header_length);
+
+	// populate payload key
+	decrypted_payload->length = htons(ctx->key.length * 8); // payload length is big endian and in bits, not bytes
+	memcpy(decrypted_payload->data, ctx->key.data, ctx->key.length);
+	tr31_rand(
+		decrypted_payload->data + ctx->key.length,
+		ctx->payload_length - sizeof(struct tr31_payload_t) - ctx->key.length
+	);
+
+	// derive key block encryption key and key block authentication key from key block protection key
+	r = tr31_aes_kbpk_derive(kbpk->data, kbpk->length, kbek, kbak);
+	if (r) {
+		// return error value as-is
+		goto error;
+	}
+
+	// generate authenticator
+	r = tr31_aes_cmac(kbak, kbpk->length, decrypted_key_block, sizeof(decrypted_key_block), ctx->authenticator);
+	if (r) {
+		// return error value as-is
+		goto error;
+	}
+
+	// encrypt key payload; note that the authenticator is used as the IV
+	r = tr31_aes_encrypt_cbc(kbek, kbpk->length, ctx->authenticator, decrypted_payload, ctx->payload_length, ctx->payload);
+	if (r) {
+		// return error value as-is
+		goto error;
+	}
 
 	// success
 	r = 0;
