@@ -70,6 +70,7 @@ static int hex_to_bin(const char* hex, void* bin, size_t bin_len);
 static int bin_to_hex(const void* bin, size_t bin_len, char* str, size_t str_len);
 static int tr31_tdes_decrypt_verify_variant_binding(struct tr31_ctx_t* ctx, const struct tr31_key_t* kbpk);
 static int tr31_tdes_decrypt_verify_derivation_binding(struct tr31_ctx_t* ctx, const struct tr31_key_t* kbpk);
+static int tr31_tdes_encrypt_sign_derivation_binding(struct tr31_ctx_t* ctx, const struct tr31_key_t* kbpk);
 static int tr31_aes_decrypt_verify_derivation_binding(struct tr31_ctx_t* ctx, const struct tr31_key_t* kbpk);
 static const char* tr31_get_opt_block_kcv_string(const struct tr31_opt_ctx_t* opt_block);
 static const char* tr31_get_opt_block_hmac_string(const struct tr31_opt_ctx_t* opt_block);
@@ -669,7 +670,7 @@ exit:
 }
 
 int tr31_export(
-	const struct tr31_ctx_t* ctx,
+	struct tr31_ctx_t* ctx,
 	const struct tr31_key_t* kbpk,
 	char* key_block,
 	size_t key_block_len
@@ -695,15 +696,18 @@ int tr31_export(
 
 	// validate key block format version
 	switch (ctx->version) {
-		case TR31_VERSION_B:
+		case TR31_VERSION_A:
 		case TR31_VERSION_C:
-		case TR31_VERSION_D:
 			// supported
 			break;
 
-		case TR31_VERSION_A:
-			// deprecated
-			return TR31_ERROR_UNSUPPORTED_VERSION;
+		case TR31_VERSION_B:
+			// supported
+			break;
+
+		case TR31_VERSION_D:
+			// supported
+			break;
 
 		default:
 			// unsupported
@@ -788,6 +792,63 @@ int tr31_export(
 	// be a multiple of 8
 	if (opt_blk_len_total & 0x7) {
 		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+
+	// add header data to context object
+	ctx->header_length = ptr - (void*)header;
+	ctx->header = calloc(1, ctx->header_length);
+	memcpy(ctx->header, header, ctx->header_length);
+
+	switch (ctx->version) {
+		case TR31_VERSION_B:
+			// only allow TDES key block protection keys
+			if (kbpk->algorithm != TR31_KEY_ALGORITHM_TDES) {
+				return TR31_ERROR_UNSUPPORTED_KBPK_ALGORITHM;
+			}
+
+			// sign and encrypt payload
+			// this will populate:
+			//   ctx->payload_length
+			//   ctx->payload
+			//   ctx->authenticator
+			r = tr31_tdes_encrypt_sign_derivation_binding(ctx, kbpk);
+			if (r) {
+				// return error value as-is
+				return r;
+			}
+			break;
+
+		default:
+			// invalid format version
+			return -3;
+	}
+
+	// ensure that encrypted payload and authenticator are available
+	if (!ctx->payload || !ctx->authenticator) {
+		// internal error
+		return -4;
+	}
+
+	// validate key block buffer length
+	if (sizeof(*header) + opt_blk_len_total + (ctx->payload_length * 2) + (ctx->authenticator_length * 2)
+		> key_block_len
+	) {
+		return TR31_ERROR_INVALID_LENGTH;
+	}
+
+	// add payload to key block
+	r = bin_to_hex(ctx->payload, ctx->payload_length, ptr, key_block_len);
+	if (r) {
+		// internal error
+		return -5;
+	}
+	ptr += (ctx->payload_length * 2);
+
+	// add authenticator to key block
+	r = bin_to_hex(ctx->authenticator, ctx->authenticator_length, ptr, key_block_len);
+	if (r) {
+		// internal error
+		return -6;
 	}
 
 	return 0;
@@ -899,6 +960,68 @@ static int tr31_tdes_decrypt_verify_derivation_binding(struct tr31_ctx_t* ctx, c
 	// extract key data
 	ctx->key.data = calloc(1, ctx->key.length);
 	memcpy(ctx->key.data, decrypted_payload->data, ctx->key.length);
+
+	// success
+	r = 0;
+	goto exit;
+
+error:
+exit:
+	// cleanse sensitive buffers
+	tr31_cleanse(kbek, sizeof(kbek));
+	tr31_cleanse(kbak, sizeof(kbak));
+	tr31_cleanse(decrypted_key_block, sizeof(decrypted_key_block));
+
+	return r;
+}
+
+static int tr31_tdes_encrypt_sign_derivation_binding(struct tr31_ctx_t* ctx, const struct tr31_key_t* kbpk)
+{
+	int r;
+	uint8_t kbek[TDES3_KEY_SIZE];
+	uint8_t kbak[TDES3_KEY_SIZE];
+
+	// add payload data to context object
+	ctx->payload_length = DES_CIPHERTEXT_LENGTH(sizeof(struct tr31_payload_t) + ctx->key.length);
+	ctx->payload = calloc(1, ctx->payload_length);
+
+	// add authenticator to context object
+	ctx->authenticator_length = 8; // 8 bytes; 16 ASCII hex digits
+	ctx->authenticator = calloc(1, ctx->authenticator_length);
+
+	// buffer for CMAC generation and encryption
+	uint8_t decrypted_key_block[ctx->header_length + ctx->payload_length];
+	memcpy(decrypted_key_block, ctx->header, ctx->header_length);
+	struct tr31_payload_t* decrypted_payload = (struct tr31_payload_t*)(decrypted_key_block + ctx->header_length);
+
+	// populate payload key
+	decrypted_payload->length = htons(ctx->key.length * 8); // payload length is big endian and in bits, not bytes
+	memcpy(decrypted_payload->data, ctx->key.data, ctx->key.length);
+	tr31_rand(
+		decrypted_payload->data + ctx->key.length,
+		ctx->payload_length - sizeof(struct tr31_payload_t) - ctx->key.length
+	);
+
+	// derive key block encryption key and key block authentication key from key block protection key
+	r = tr31_tdes_kbpk_derive(kbpk->data, kbpk->length, kbek, kbak);
+	if (r) {
+		// return error value as-is
+		goto error;
+	}
+
+	// generate authenticator
+	r = tr31_tdes_cmac(kbak, kbpk->length, decrypted_key_block, sizeof(decrypted_key_block), ctx->authenticator);
+	if (r) {
+		// return error value as-is
+		goto error;
+	}
+
+	// encrypt key payload; note that the authenticator is used as the IV
+	r = tr31_tdes_encrypt_cbc(kbek, kbpk->length, ctx->authenticator, decrypted_payload, ctx->payload_length, ctx->payload);
+	if (r) {
+		// return error value as-is
+		goto error;
+	}
 
 	// success
 	r = 0;

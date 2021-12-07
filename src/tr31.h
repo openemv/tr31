@@ -233,7 +233,7 @@ int tr31_import(
  * @return Zero for success. Less than zero for internal error. Greater than zero for data error. @see #tr31_error_t
  */
 int tr31_export(
-	const struct tr31_ctx_t* ctx,
+	struct tr31_ctx_t* ctx,
 	const struct tr31_key_t* kbpk,
 	char* key_block,
 	size_t key_block_len
