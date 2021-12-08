@@ -226,6 +226,7 @@ int tr31_import(
 	int r;
 	size_t key_block_len;
 	const struct tr31_header_t* header;
+	size_t opt_blk_len_total = 0;
 	const void* ptr;
 
 	if (!key_block || !ctx) {
@@ -326,7 +327,7 @@ int tr31_import(
 		default:
 			return TR31_ERROR_UNSUPPORTED_ALGORITHM;
 	}
-	
+
 	// decode mode of use field
 	// see TR-31:2018, A.5.3, table 8
 	ctx->key.mode_of_use = header->mode_of_use;
@@ -401,31 +402,32 @@ int tr31_import(
 		const struct tr31_opt_blk_t* opt_blk = ptr;
 
 		// ensure that optional block length is valid
-		int opt_hdr_len = hex_to_int(opt_blk->length, sizeof(opt_blk->length));
-		if (opt_hdr_len < 0) {
+		int opt_blk_len = hex_to_int(opt_blk->length, sizeof(opt_blk->length));
+		if (opt_blk_len < 0) {
 			// parse error
 			r = TR31_ERROR_INVALID_LENGTH;
 			goto error;
 		}
-		if (opt_hdr_len == 0) {
+		if (opt_blk_len == 0) {
 			// extended optional block length not supported
 			r = TR31_ERROR_INVALID_LENGTH;
 			goto error;
 		}
-		if (opt_hdr_len < sizeof(struct tr31_opt_blk_t)) {
+		if (opt_blk_len < sizeof(struct tr31_opt_blk_t)) {
 			// optional block length must be at least 4 bytes (2 byte id + 2 byte length)
 			r = TR31_ERROR_INVALID_LENGTH;
 			goto error;
 		}
-		if (ptr + opt_hdr_len - (void*)header > key_block_len) {
+		if (ptr + opt_blk_len - (void*)header > key_block_len) {
 			// optional block length exceeds total key block length
 			r = TR31_ERROR_INVALID_LENGTH;
 			goto error;
 		}
+		opt_blk_len_total += opt_blk_len;
 
 		// copy optional block field
 		ctx->opt_blocks[i].id = ntohs(opt_blk->id);
-		ctx->opt_blocks[i].data_length = (opt_hdr_len - 4) / 2;
+		ctx->opt_blocks[i].data_length = (opt_blk_len - 4) / 2;
 		ctx->opt_blocks[i].data = calloc(1, ctx->opt_blocks[i].data_length);
 		r = hex_to_bin(opt_blk->data, ctx->opt_blocks[i].data, ctx->opt_blocks[i].data_length);
 		if (r) {
@@ -434,7 +436,13 @@ int tr31_import(
 		}
 
 		// advance current pointer
-		ptr += opt_hdr_len;
+		ptr += opt_blk_len;
+	}
+
+	// TR-31:2018, A.5.6 indicates that the total optional block length must
+	// be a multiple of 8
+	if (opt_blk_len_total & 0x7) {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 	}
 
 	// determine authenticator length based on format version
