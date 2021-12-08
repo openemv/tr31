@@ -180,6 +180,23 @@ int main(void)
 	}
 	tr31_release(&test_tr31);
 
+	// Verify and decrypt key block
+	r = tr31_import(key_block, &test1_kbpk, &test_tr31);
+	if (r) {
+		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		goto exit;
+	}
+	if (test_tr31.key.length != sizeof(test1_key_raw) ||
+		memcmp(test_tr31.key.data, test1_key_raw, sizeof(test1_key_raw)) != 0)
+	{
+		fprintf(stderr, "Key verification failed\n");
+		print_buf("key.data", test_tr31.key.data, test_tr31.key.length);
+		print_buf("expected", test1_key_raw, sizeof(test1_key_raw));
+		r = 1;
+		goto exit;
+	}
+	tr31_release(&test_tr31);
+
 	// TR-31:2018, A.7.3.2
 	printf("Test 2...\n");
 	print_buf("key", test2_key.data, test2_key.length);
@@ -214,6 +231,23 @@ int main(void)
 	}
 	if (strlen(key_block) != test2_tr31_length_verify) {
 		fprintf(stderr, "TR-31 length is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	tr31_release(&test_tr31);
+
+	// Verify and decrypt key block
+	r = tr31_import(key_block, &test2_kbpk, &test_tr31);
+	if (r) {
+		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		goto exit;
+	}
+	if (test_tr31.key.length != sizeof(test2_key_raw) ||
+		memcmp(test_tr31.key.data, test2_key_raw, sizeof(test2_key_raw)) != 0)
+	{
+		fprintf(stderr, "Key verification failed\n");
+		print_buf("key.data", test_tr31.key.data, test_tr31.key.length);
+		print_buf("expected", test2_key_raw, sizeof(test2_key_raw));
 		r = 1;
 		goto exit;
 	}
@@ -258,6 +292,23 @@ int main(void)
 	}
 	tr31_release(&test_tr31);
 
+	// Verify and decrypt key block
+	r = tr31_import(key_block, &test3_kbpk, &test_tr31);
+	if (r) {
+		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		goto exit;
+	}
+	if (test_tr31.key.length != sizeof(test3_key_raw) ||
+		memcmp(test_tr31.key.data, test3_key_raw, sizeof(test3_key_raw)) != 0)
+	{
+		fprintf(stderr, "Key verification failed\n");
+		print_buf("key.data", test_tr31.key.data, test_tr31.key.length);
+		print_buf("expected", test3_key_raw, sizeof(test3_key_raw));
+		r = 1;
+		goto exit;
+	}
+	tr31_release(&test_tr31);
+
 	// TR-31:2018, A.7.4
 	printf("Test 4...\n");
 	print_buf("key", test4_key.data, test4_key.length);
@@ -282,6 +333,23 @@ int main(void)
 	}
 	if (strlen(key_block) != test4_tr31_length_verify) {
 		fprintf(stderr, "TR-31 length is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	tr31_release(&test_tr31);
+
+	// Verify and decrypt key block
+	r = tr31_import(key_block, &test4_kbpk, &test_tr31);
+	if (r) {
+		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		goto exit;
+	}
+	if (test_tr31.key.length != sizeof(test4_key_raw) ||
+		memcmp(test_tr31.key.data, test4_key_raw, sizeof(test4_key_raw)) != 0)
+	{
+		fprintf(stderr, "Key verification failed\n");
+		print_buf("key.data", test_tr31.key.data, test_tr31.key.length);
+		print_buf("expected", test4_key_raw, sizeof(test4_key_raw));
 		r = 1;
 		goto exit;
 	}
