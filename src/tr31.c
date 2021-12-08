@@ -232,7 +232,7 @@ int tr31_key_init(
 {
 	int r;
 
-	if (!key_version || !data || !length || !key) {
+	if (!key_version || !key) {
 		return -1;
 	}
 
@@ -347,12 +347,25 @@ int tr31_key_init(
 			return TR31_ERROR_UNSUPPORTED_EXPORTABILITY;
 	}
 
-	// copy key data
-	key->length = length;
-	key->data = calloc(1, key->length);
-	memcpy(key->data, data, key->length);
+	// if key data is available, copy it
+	if (data && length) {
+		r = tr31_key_set_data(key, data, length);
+		if (r) {
+			// return error value as-is
+			return r;
+		}
+	}
 
 	return 0;
+}
+
+void tr31_key_release(struct tr31_key_t* key)
+{
+	if (key->data) {
+		tr31_cleanse(key->data, key->length);
+		free(key->data);
+		key->data = NULL;
+	}
 }
 
 int tr31_key_copy(
@@ -385,13 +398,20 @@ int tr31_key_copy(
 	);
 }
 
-void tr31_key_release(struct tr31_key_t* key)
+int tr31_key_set_data(struct tr31_key_t* key, const void* data, size_t length)
 {
-	if (key->data) {
-		tr31_cleanse(key->data, key->length);
-		free(key->data);
-		key->data = NULL;
+	if (!key || !data || !length) {
+		return 1;
 	}
+
+	tr31_key_release(key);
+
+	// copy key data
+	key->length = length;
+	key->data = calloc(1, key->length);
+	memcpy(key->data, data, key->length);
+
+	return 0;
 }
 
 int tr31_key_set_key_version(struct tr31_key_t* key, const char* key_version)
@@ -495,113 +515,21 @@ int tr31_import(
 		return TR31_ERROR_INVALID_LENGTH_FIELD;
 	}
 
-	// decode key usage field
-	// see TR-31:2018, A.5.1, table 6
-	ctx->key.usage = ntohs(header->key_usage);
-	switch (ctx->key.usage) {
-		case TR31_KEY_USAGE_BDK:
-		case TR31_KEY_USAGE_DUKPT_IPEK:
-		case TR31_KEY_USAGE_BKV:
-		case TR31_KEY_USAGE_CVK:
-		case TR31_KEY_USAGE_DATA:
-		case TR31_KEY_USAGE_ASYMMETRIC_DATA:
-		case TR31_KEY_USAGE_DATA_DEC_TABLE:
-		case TR31_KEY_USAGE_EMV_MKAC:
-		case TR31_KEY_USAGE_EMV_MKSMC:
-		case TR31_KEY_USAGE_EMV_MKSMI:
-		case TR31_KEY_USAGE_EMV_MKDAC:
-		case TR31_KEY_USAGE_EMV_MKDN:
-		case TR31_KEY_USAGE_EMV_CP:
-		case TR31_KEY_USAGE_EMV_OTHER:
-		case TR31_KEY_USAGE_IV:
-		case TR31_KEY_USAGE_KEK:
-		case TR31_KEY_USAGE_TR31_KBPK:
-		case TR31_KEY_USAGE_TR34_KEK:
-		case TR31_KEY_USAGE_ASYMMETRIC_KEK:
-		case TR31_KEY_USAGE_ISO16609_MAC_1:
-		case TR31_KEY_USAGE_ISO9797_1_MAC_1:
-		case TR31_KEY_USAGE_ISO9797_1_MAC_2:
-		case TR31_KEY_USAGE_ISO9797_1_MAC_3:
-		case TR31_KEY_USAGE_ISO9797_1_MAC_4:
-		case TR31_KEY_USAGE_ISO9797_1_MAC_5:
-		case TR31_KEY_USAGE_ISO9797_1_CMAC:
-		case TR31_KEY_USAGE_HMAC:
-		case TR31_KEY_USAGE_ISO9797_1_MAC_6:
-		case TR31_KEY_USAGE_PIN:
-		case TR31_KEY_USAGE_ASYMMETRIC_SIG:
-		case TR31_KEY_USAGE_ASYMMETRIC_CA:
-		case TR31_KEY_USAGE_ASYMMETRIC_OTHER:
-		case TR31_KEY_USAGE_PV:
-		case TR31_KEY_USAGE_PV_IBM3624:
-		case TR31_KEY_USAGE_PV_VISA:
-		case TR31_KEY_USAGE_PV_X9_132_1:
-		case TR31_KEY_USAGE_PV_X9_132_2:
-			// supported
-			break;
-
-		default:
-			return TR31_ERROR_UNSUPPORTED_KEY_USAGE;
-	}
-
-	// decode algorithm field
-	// see TR-31:2018, A.5.2, table 7
-	ctx->key.algorithm = header->algorithm;
-	switch (ctx->key.algorithm) {
-		case TR31_KEY_ALGORITHM_AES:
-		case TR31_KEY_ALGORITHM_DES:
-		case TR31_KEY_ALGORITHM_EC:
-		case TR31_KEY_ALGORITHM_HMAC:
-		case TR31_KEY_ALGORITHM_RSA:
-		case TR31_KEY_ALGORITHM_DSA:
-		case TR31_KEY_ALGORITHM_TDES:
-			// supported
-			break;
-
-		default:
-			return TR31_ERROR_UNSUPPORTED_ALGORITHM;
-	}
-
-	// decode mode of use field
-	// see TR-31:2018, A.5.3, table 8
-	ctx->key.mode_of_use = header->mode_of_use;
-	switch (ctx->key.mode_of_use) {
-		case TR31_KEY_MODE_OF_USE_ENC_DEC:
-		case TR31_KEY_MODE_OF_USE_MAC:
-		case TR31_KEY_MODE_OF_USE_DEC:
-		case TR31_KEY_MODE_OF_USE_ENC:
-		case TR31_KEY_MODE_OF_USE_MAC_GEN:
-		case TR31_KEY_MODE_OF_USE_ANY:
-		case TR31_KEY_MODE_OF_USE_SIG:
-		case TR31_KEY_MODE_OF_USE_MAC_VERIFY:
-		case TR31_KEY_MODE_OF_USE_DERIVE:
-		case TR31_KEY_MODE_OF_USE_VARIANT:
-			// supported
-			break;
-
-		default:
-			return TR31_ERROR_UNSUPPORTED_MODE_OF_USE;
-	}
-
-	// decode key version number field
-	// see TR-31:2018, A.5.4, table 9
-	r = tr31_key_set_key_version(&ctx->key, header->key_version);
+	// decode header fields associated with wrapped key
+	r = tr31_key_init(
+		ntohs(header->key_usage),
+		header->algorithm,
+		header->mode_of_use,
+		header->key_version,
+		header->exportability,
+		NULL,
+		0,
+		&ctx->key
+	);
 	if (r) {
+		tr31_key_release(&ctx->key);
 		// return error value as-is
 		return r;
-	}
-
-	// decode exportability field
-	// see TR-31:2018, A.5.5, table 10
-	ctx->key.exportability = header->exportability;
-	switch (ctx->key.exportability) {
-		case TR31_KEY_EXPORT_TRUSTED:
-		case TR31_KEY_EXPORT_NONE:
-		case TR31_KEY_EXPORT_SENSITIVE:
-			// supported
-			break;
-
-		default:
-			return TR31_ERROR_UNSUPPORTED_EXPORTABILITY;
 	}
 
 	// decode number of optional blocks field
@@ -1129,6 +1057,7 @@ static int tr31_tdes_decrypt_verify_variant_binding(struct tr31_ctx_t* ctx, cons
 	int r;
 	uint8_t kbek[TDES3_KEY_SIZE];
 	uint8_t kbak[TDES3_KEY_SIZE];
+	size_t key_length;
 
 	// buffer for decryption
 	uint8_t decrypted_payload_buf[ctx->payload_length];
@@ -1161,16 +1090,19 @@ static int tr31_tdes_decrypt_verify_variant_binding(struct tr31_ctx_t* ctx, cons
 	}
 
 	// validate payload length field
-	ctx->key.length = ntohs(decrypted_payload->length) / 8; // payload length is big endian and in bits, not bytes
-	if (ctx->key.length > ctx->payload_length - 2) {
+	key_length = ntohs(decrypted_payload->length) / 8; // payload length is big endian and in bits, not bytes
+	if (key_length > ctx->payload_length - 2) {
 		// invalid key length relative to encrypted payload length
 		r = TR31_ERROR_INVALID_KEY_LENGTH;
 		goto error;
 	}
 
 	// extract key data
-	ctx->key.data = calloc(1, ctx->key.length);
-	memcpy(ctx->key.data, decrypted_payload->data, ctx->key.length);
+	r = tr31_key_set_data(&ctx->key, decrypted_payload->data, key_length);
+	if (r) {
+		// return error value as-is
+		goto error;
+	}
 
 	// success
 	r = 0;
@@ -1257,6 +1189,7 @@ static int tr31_tdes_decrypt_verify_derivation_binding(struct tr31_ctx_t* ctx, c
 	int r;
 	uint8_t kbek[TDES3_KEY_SIZE];
 	uint8_t kbak[TDES3_KEY_SIZE];
+	size_t key_length;
 
 	// buffer for decryption and CMAC verification
 	uint8_t decrypted_key_block[ctx->header_length + ctx->payload_length];
@@ -1278,8 +1211,8 @@ static int tr31_tdes_decrypt_verify_derivation_binding(struct tr31_ctx_t* ctx, c
 	}
 
 	// extract payload length field
-	ctx->key.length = ntohs(decrypted_payload->length) / 8; // payload length is big endian and in bits, not bytes
-	if (ctx->key.length > ctx->payload_length - 2) {
+	key_length = ntohs(decrypted_payload->length) / 8; // payload length is big endian and in bits, not bytes
+	if (key_length > ctx->payload_length - 2) {
 		// invalid key length relative to encrypted payload length
 		r = TR31_ERROR_INVALID_KEY_LENGTH;
 		goto error;
@@ -1293,8 +1226,11 @@ static int tr31_tdes_decrypt_verify_derivation_binding(struct tr31_ctx_t* ctx, c
 	}
 
 	// extract key data
-	ctx->key.data = calloc(1, ctx->key.length);
-	memcpy(ctx->key.data, decrypted_payload->data, ctx->key.length);
+	r = tr31_key_set_data(&ctx->key, decrypted_payload->data, key_length);
+	if (r) {
+		// return error value as-is
+		goto error;
+	}
 
 	// success
 	r = 0;
@@ -1375,6 +1311,7 @@ static int tr31_aes_decrypt_verify_derivation_binding(struct tr31_ctx_t* ctx, co
 	int r;
 	uint8_t kbek[AES256_KEY_SIZE];
 	uint8_t kbak[AES256_KEY_SIZE];
+	size_t key_length;
 
 	// buffer for decryption and CMAC verification
 	uint8_t decrypted_key_block[ctx->header_length + ctx->payload_length];
@@ -1396,8 +1333,8 @@ static int tr31_aes_decrypt_verify_derivation_binding(struct tr31_ctx_t* ctx, co
 	}
 
 	// extract payload length field
-	ctx->key.length = ntohs(decrypted_payload->length) / 8; // payload length is big endian and in bits, not bytes
-	if (ctx->key.length > ctx->payload_length - 2) {
+	key_length = ntohs(decrypted_payload->length) / 8; // payload length is big endian and in bits, not bytes
+	if (key_length > ctx->payload_length - 2) {
 		// invalid key length relative to encrypted payload length
 		r = TR31_ERROR_INVALID_KEY_LENGTH;
 		goto error;
@@ -1411,8 +1348,11 @@ static int tr31_aes_decrypt_verify_derivation_binding(struct tr31_ctx_t* ctx, co
 	}
 
 	// extract key data
-	ctx->key.data = calloc(1, ctx->key.length);
-	memcpy(ctx->key.data, decrypted_payload->data, ctx->key.length);
+	r = tr31_key_set_data(&ctx->key, decrypted_payload->data, key_length);
+	if (r) {
+		// return error value as-is
+		goto error;
+	}
 
 	// success
 	r = 0;

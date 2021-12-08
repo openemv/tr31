@@ -221,7 +221,7 @@ const char* tr31_lib_version_string(void);
  * @param mode_of_use TR-31 key mode of use
  * @param key_version TR-31 key version; two bytes (see TR-31:2018, A.5.4, table 9)
  * @param exportability TR-31 key exportability
- * @param data Key data
+ * @param data Key data. If NULL, use @ref tr31_key_set_data() to populate key data later.
  * @param length Length of key data in bytes
  * @param key TR-31 key object output
  * @return Zero for success. Less than zero for internal error. Greater than zero for data error. @see #tr31_error_t
@@ -238,6 +238,12 @@ int tr31_key_init(
 );
 
 /**
+ * Release TR-31 key object resources
+ * @param key TR-31 key object
+ */
+void tr31_key_release(struct tr31_key_t* key);
+
+/**
  * Copy TR-31 key object
  * @note This function will populate a new TR-31 key object.
  *       Use @ref tr31_key_release() to release internal resources when done.
@@ -252,10 +258,16 @@ int tr31_key_copy(
 );
 
 /**
- * Release TR-31 key object resources
+ * Populate key data in TR-31 key object
+ * @note This function requires a populated TR-31 key object
+ *       (after @ref tr31_key_init(), @ref tr31_key_copy() or @ref tr31_export())
+ *
  * @param key TR-31 key object
+ * @param data Key data
+ * @param length Length of key data in bytes
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. @see #tr31_error_t
  */
-void tr31_key_release(struct tr31_key_t* key);
+int tr31_key_set_data(struct tr31_key_t* key, const void* data, size_t length);
 
 /**
  * Decode TR-31 key version field and populate it in TR-31 key object
