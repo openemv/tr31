@@ -470,6 +470,72 @@ int tr31_key_get_key_version(const struct tr31_key_t* key, char* key_version)
 	return 0;
 }
 
+int tr31_init(
+	uint8_t version_id,
+	const struct tr31_key_t* key,
+	struct tr31_ctx_t* ctx
+)
+{
+	int r;
+
+	if (!ctx) {
+		return -1;
+	}
+	memset(ctx, 0, sizeof(*ctx));
+
+	// validate key block format
+	ctx->version = version_id;
+	switch (ctx->version) {
+		case TR31_VERSION_A:
+		case TR31_VERSION_B:
+		case TR31_VERSION_C:
+		case TR31_VERSION_D:
+			// supported
+			break;
+
+		default:
+			return TR31_ERROR_UNSUPPORTED_VERSION;
+	}
+
+	// copy key, if available
+	if (key) {
+		r = tr31_key_copy(key, &ctx->key);
+		if (r) {
+			// return error value as-is
+			return r;
+		}
+	}
+
+	return 0;
+}
+
+int tr31_opt_block_add(
+	struct tr31_ctx_t* ctx,
+	unsigned int id,
+	const void* data,
+	size_t length
+)
+{
+	struct tr31_opt_ctx_t* opt_blk;
+
+	if (!ctx) {
+		return -1;
+	}
+
+	// grow optional block array
+	ctx->opt_blocks_count++;
+	ctx->opt_blocks = realloc(ctx->opt_blocks, ctx->opt_blocks_count * sizeof(struct tr31_opt_ctx_t));
+
+	// add optional block
+	opt_blk = &ctx->opt_blocks[ctx->opt_blocks_count - 1];
+	opt_blk->id = id;
+	opt_blk->data_length = length;
+	opt_blk->data = calloc(1, opt_blk->data_length);
+	memcpy(opt_blk->data, data, opt_blk->data_length);
+
+	return 0;
+}
+
 int tr31_import(
 	const char* key_block,
 	const struct tr31_key_t* kbpk,
@@ -485,7 +551,6 @@ int tr31_import(
 	if (!key_block || !ctx) {
 		return -1;
 	}
-	memset(ctx, 0, sizeof(*ctx));
 
 	key_block_len = strlen(key_block);
 	header = (const struct tr31_header_t*)key_block;
@@ -495,18 +560,11 @@ int tr31_import(
 		return TR31_ERROR_INVALID_LENGTH;
 	}
 
-	// decode key block format
-	ctx->version = header->version_id;
-	switch (ctx->version) {
-		case TR31_VERSION_A:
-		case TR31_VERSION_B:
-		case TR31_VERSION_C:
-		case TR31_VERSION_D:
-			// supported
-			break;
-
-		default:
-			return TR31_ERROR_UNSUPPORTED_VERSION;
+	// initialise TR-31 context object
+	r = tr31_init(header->version_id, NULL, ctx);
+	if (r) {
+		// return error value as-is
+		return r;
 	}
 
 	// decode key block length field

@@ -164,7 +164,14 @@ struct tr31_opt_ctx_t {
 
 /**
  * @brief TR-31 context object
- * @note Resources should be released using #tr31_release
+ * This object is typically populated by @ref tr31_import().
+ *
+ * To manually populate this object for @ref tr31_export(), do:
+ * - Use @ref tr31_init() to initialise the object and set the #version field (and optionally the #key field)
+ * - Use @ref tr31_key_init() or @ref tr31_key_copy() to set #key field (if not set in the previous step)
+ * - Use @ref tr31_opt_block_add() to add optional blocks (if required)
+ *
+ * @note Use @ref tr31_release() to release internal resources when done.
  */
 struct tr31_ctx_t {
 	enum tr31_version_t version; ///< TR-31 key block format version
@@ -286,7 +293,42 @@ int tr31_key_set_key_version(struct tr31_key_t* key, const char* key_version);
 int tr31_key_get_key_version(const struct tr31_key_t* key, char* key_version);
 
 /**
+ * Initialise TR-31 context object
+ * @note Use @ref tr31_release() to release internal resources when done.
+ *
+ * @param version_id TR-31 format version
+ * @param key TR-31 key object. If NULL, use @ref tr31_key_copy() to populate @c key field later.
+ * @param ctx TR-31 context object output
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. @see #tr31_error_t
+ */
+int tr31_init(
+	uint8_t version_id,
+	const struct tr31_key_t* key,
+	struct tr31_ctx_t* ctx
+);
+
+/**
+ * Add optional block to TR-31 context object
+ * @note This function requires an initialised TR-31 context object to be provided.
+ *
+ * @param ctx TR-31 context object
+ * @param id TR-31 optional block identifier (see TR-31:2018, A.5.6, table 11)
+ * @param data TR-31 optional block data
+ * @param length Length of TR-31 optional block data in bytes
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. @see #tr31_error_t
+ */
+int tr31_opt_block_add(
+	struct tr31_ctx_t* ctx,
+	unsigned int id,
+	const void* data,
+	size_t length
+);
+
+/**
  * Import TR-31 key block. This function will also decrypt the key data if possible.
+ * @note This function will populate a new TR-31 context object.
+ *       Use @ref tr31_release() to release internal resources when done.
+ *
  * @param key_block TR-31 key block. Null terminated. At least the header must be ASCII encoded.
  * @param kbpk TR-31 key block protection key. NULL if not available or decryption is not required.
  * @param ctx TR-31 context object output
@@ -300,7 +342,9 @@ int tr31_import(
 
 /**
  * Export TR-31 key block. This function will create and encrypt the key block.
- * @param ctx TR-31 context object input.
+ * @note This function requires a populated TR-31 context object to be provided. See #tr31_ctx_t for populating manually.
+ *
+ * @param ctx TR-31 context object input
  * @param kbpk TR-31 key block protection key.
  * @param key_block TR-31 key block output. Null terminated. At least the header will be ASCII encoded.
  * @param key_block_len TR-31 key block output buffer length.
