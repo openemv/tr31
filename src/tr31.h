@@ -98,8 +98,8 @@ enum tr31_version_t {
 /// TR-31 key version field interpretation (see TR-31:2018, A.5.4, table 9)
 enum tr31_key_version_t {
 	TR31_KEY_VERSION_IS_UNUSED = 0, ///< Key version field unused
-	TR31_KEY_VERSION_IS_VALID, ///< Key version field is valid
 	TR31_KEY_VERSION_IS_COMPONENT, ///< key version field is component number
+	TR31_KEY_VERSION_IS_VALID, ///< Key version field is valid
 };
 
 // TR-31 exportability (see TR-31:2018, A.5.5, table 10)
@@ -210,6 +210,68 @@ enum tr31_error_t {
  * @return Pointer to null-terminated string. Do not free.
  */
 const char* tr31_lib_version_string(void);
+
+/**
+ * Populate TR-31 key object
+ * @note This function will populate a new TR-31 key object.
+ *       Use @ref tr31_key_release() to release internal resources when done.
+ *
+ * @param usage TR-31 key usage
+ * @param algorithm TR-31 key algorithm
+ * @param mode_of_use TR-31 key mode of use
+ * @param key_version TR-31 key version; two bytes (see TR-31:2018, A.5.4, table 9)
+ * @param exportability TR-31 key exportability
+ * @param data Key data
+ * @param length Length of key data in bytes
+ * @param key TR-31 key object output
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. @see #tr31_error_t
+ */
+int tr31_key_init(
+	unsigned int usage,
+	unsigned int algorithm,
+	unsigned int mode_of_use,
+	const char* key_version,
+	unsigned int exportability,
+	const void* data,
+	size_t length,
+	struct tr31_key_t* key
+);
+
+/**
+ * Copy TR-31 key object
+ * @note This function will populate a new TR-31 key object.
+ *       Use @ref tr31_key_release() to release internal resources when done.
+ *
+ * @param src Source TR-31 key object from which to copy
+ * @param key TR-31 key object output
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. @see #tr31_error_t
+ */
+int tr31_key_copy(
+	const struct tr31_key_t* src,
+	struct tr31_key_t* key
+);
+
+/**
+ * Release TR-31 key object resources
+ * @param key TR-31 key object
+ */
+void tr31_key_release(struct tr31_key_t* key);
+
+/**
+ * Decode TR-31 key version field and populate it in TR-31 key object
+ * @param key TR-31 key object
+ * @param key_version TR-31 key version; two bytes (see TR-31:2018, A.5.4, table 9)
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. @see #tr31_error_t
+ */
+int tr31_key_set_key_version(struct tr31_key_t* key, const char* key_version);
+
+/**
+ * Retrieve key version from TR-31 key object and encode as TR-31 key version field
+ * @param key TR-31 key object
+ * @param key_version TR-31 key version; two bytes (see TR-31:2018, A.5.4, table 9)
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. @see #tr31_error_t
+ */
+int tr31_key_get_key_version(const struct tr31_key_t* key, char* key_version);
 
 /**
  * Import TR-31 key block. This function will also decrypt the key data if possible.

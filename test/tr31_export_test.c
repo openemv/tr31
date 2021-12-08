@@ -154,13 +154,19 @@ int main(void)
 
 	// TR-31:2018, A.7.2.1
 	printf("Test 1...\n");
-	print_buf("kbpk", test1_kbpk_raw, sizeof(test1_kbpk_raw));
 	test_tr31.version = TR31_VERSION_A;
 	test_tr31.length = 13; // intentionally incorrect
-	test_tr31.key = test1_key;
 	test_tr31.opt_blocks_count = 0;
 	test_tr31.opt_blocks = NULL;
 
+	print_buf("key", test1_key.data, test1_key.length);
+	r = tr31_key_copy(&test1_key, &test_tr31.key);
+	if (r) {
+		fprintf(stderr, "tr31_key_copy() failed; r=%d\n", r);
+		goto exit;
+	}
+
+	print_buf("kbpk", test1_kbpk_raw, sizeof(test1_kbpk_raw));
 	r = tr31_export(&test_tr31, &test1_kbpk, key_block, sizeof(key_block));
 	if (r) {
 		fprintf(stderr, "tr31_export() failed; r=%d\n", r);
@@ -178,19 +184,26 @@ int main(void)
 		r = 1;
 		goto exit;
 	}
+	tr31_release(&test_tr31);
 
 	// TR-31:2018, A.7.3.2
 	printf("Test 2...\n");
-	print_buf("kbpk", test2_kbpk_raw, sizeof(test2_kbpk_raw));
 	test_tr31.version = TR31_VERSION_B;
 	test_tr31.length = 13; // intentionally incorrect
-	test_tr31.key = test2_key;
 	test_tr31.opt_blocks_count = 1;
 	test_tr31.opt_blocks = test_tr31_opts;
 	test_tr31.opt_blocks[0].id = TR31_OPT_BLOCK_KS;
 	test_tr31.opt_blocks[0].data_length = sizeof(test2_ksn);
 	test_tr31.opt_blocks[0].data = (void*)test2_ksn;
 
+	print_buf("key", test2_key.data, test2_key.length);
+	r = tr31_key_copy(&test2_key, &test_tr31.key);
+	if (r) {
+		fprintf(stderr, "tr31_key_copy() failed; r=%d\n", r);
+		goto exit;
+	}
+
+	print_buf("kbpk", test2_kbpk_raw, sizeof(test2_kbpk_raw));
 	r = tr31_export(&test_tr31, &test2_kbpk, key_block, sizeof(key_block));
 	if (r) {
 		fprintf(stderr, "tr31_export() failed; r=%d\n", r);
@@ -208,19 +221,30 @@ int main(void)
 		r = 1;
 		goto exit;
 	}
+	// TODO: fix to avoid segfaults
+	test_tr31.opt_blocks_count = 0;
+	test_tr31.opt_blocks = NULL;
+
+	tr31_release(&test_tr31);
 
 	// TR-31:2018, A.7.3.1
 	printf("Test 3...\n");
-	print_buf("kbpk", test3_kbpk_raw, sizeof(test3_kbpk_raw));
 	test_tr31.version = TR31_VERSION_C;
 	test_tr31.length = 13; // intentionally incorrect
-	test_tr31.key = test3_key;
 	test_tr31.opt_blocks_count = 1;
 	test_tr31.opt_blocks = test_tr31_opts;
 	test_tr31.opt_blocks[0].id = TR31_OPT_BLOCK_KS;
 	test_tr31.opt_blocks[0].data_length = sizeof(test3_ksn);
 	test_tr31.opt_blocks[0].data = (void*)test3_ksn;
 
+	print_buf("key", test3_key.data, test3_key.length);
+	r = tr31_key_copy(&test3_key, &test_tr31.key);
+	if (r) {
+		fprintf(stderr, "tr31_key_copy() failed; r=%d\n", r);
+		goto exit;
+	}
+
+	print_buf("kbpk", test3_kbpk_raw, sizeof(test3_kbpk_raw));
 	r = tr31_export(&test_tr31, &test3_kbpk, key_block, sizeof(key_block));
 	if (r) {
 		fprintf(stderr, "tr31_export() failed; r=%d\n", r);
@@ -238,16 +262,27 @@ int main(void)
 		r = 1;
 		goto exit;
 	}
-
-	// TR-31:2018, A.7.4
-	printf("Test 4...\n");
-	print_buf("kbpk", test4_kbpk_raw, sizeof(test4_kbpk_raw));
-	test_tr31.version = TR31_VERSION_D;
-	test_tr31.length = 13; // intentionally incorrect
-	test_tr31.key = test4_key;
+	// TODO: fix to avoid segfaults
 	test_tr31.opt_blocks_count = 0;
 	test_tr31.opt_blocks = NULL;
 
+	tr31_release(&test_tr31);
+
+	// TR-31:2018, A.7.4
+	printf("Test 4...\n");
+	test_tr31.version = TR31_VERSION_D;
+	test_tr31.length = 13; // intentionally incorrect
+	test_tr31.opt_blocks_count = 0;
+	test_tr31.opt_blocks = NULL;
+
+	print_buf("key", test4_key.data, test4_key.length);
+	r = tr31_key_copy(&test4_key, &test_tr31.key);
+	if (r) {
+		fprintf(stderr, "tr31_key_copy() failed; r=%d\n", r);
+		goto exit;
+	}
+
+	print_buf("kbpk", test4_kbpk_raw, sizeof(test4_kbpk_raw));
 	r = tr31_export(&test_tr31, &test4_kbpk, key_block, sizeof(key_block));
 	if (r) {
 		fprintf(stderr, "tr31_export() failed; r=%d\n", r);
@@ -265,11 +300,13 @@ int main(void)
 		r = 1;
 		goto exit;
 	}
+	tr31_release(&test_tr31);
 
 	printf("All tests passed.\n");
 	r = 0;
 	goto exit;
 
 exit:
+	tr31_release(&test_tr31);
 	return r;
 }

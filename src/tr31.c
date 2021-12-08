@@ -29,6 +29,8 @@
 
 #include <arpa/inet.h> // for ntohs and friends
 
+#define sizeof_field(TYPE, FIELD) sizeof(((TYPE*)0)->FIELD)
+
 // TR-31 header
 // see TR-31:2018, A.2, table 4
 struct tr31_header_t {
@@ -217,6 +219,237 @@ const char* tr31_lib_version_string(void)
 	return TR31_LIB_VERSION_STRING;
 }
 
+int tr31_key_init(
+	unsigned int usage,
+	unsigned int algorithm,
+	unsigned int mode_of_use,
+	const char* key_version,
+	unsigned int exportability,
+	const void* data,
+	size_t length,
+	struct tr31_key_t* key
+)
+{
+	int r;
+
+	if (!key_version || !data || !length || !key) {
+		return -1;
+	}
+
+	memset(key, 0, sizeof(*key));
+
+	// validate key usage field
+	// see TR-31:2018, A.5.1, table 6
+	key->usage = usage;
+	switch (usage) {
+		case TR31_KEY_USAGE_BDK:
+		case TR31_KEY_USAGE_DUKPT_IPEK:
+		case TR31_KEY_USAGE_BKV:
+		case TR31_KEY_USAGE_CVK:
+		case TR31_KEY_USAGE_DATA:
+		case TR31_KEY_USAGE_ASYMMETRIC_DATA:
+		case TR31_KEY_USAGE_DATA_DEC_TABLE:
+		case TR31_KEY_USAGE_EMV_MKAC:
+		case TR31_KEY_USAGE_EMV_MKSMC:
+		case TR31_KEY_USAGE_EMV_MKSMI:
+		case TR31_KEY_USAGE_EMV_MKDAC:
+		case TR31_KEY_USAGE_EMV_MKDN:
+		case TR31_KEY_USAGE_EMV_CP:
+		case TR31_KEY_USAGE_EMV_OTHER:
+		case TR31_KEY_USAGE_IV:
+		case TR31_KEY_USAGE_KEK:
+		case TR31_KEY_USAGE_TR31_KBPK:
+		case TR31_KEY_USAGE_TR34_KEK:
+		case TR31_KEY_USAGE_ASYMMETRIC_KEK:
+		case TR31_KEY_USAGE_ISO16609_MAC_1:
+		case TR31_KEY_USAGE_ISO9797_1_MAC_1:
+		case TR31_KEY_USAGE_ISO9797_1_MAC_2:
+		case TR31_KEY_USAGE_ISO9797_1_MAC_3:
+		case TR31_KEY_USAGE_ISO9797_1_MAC_4:
+		case TR31_KEY_USAGE_ISO9797_1_MAC_5:
+		case TR31_KEY_USAGE_ISO9797_1_CMAC:
+		case TR31_KEY_USAGE_HMAC:
+		case TR31_KEY_USAGE_ISO9797_1_MAC_6:
+		case TR31_KEY_USAGE_PIN:
+		case TR31_KEY_USAGE_ASYMMETRIC_SIG:
+		case TR31_KEY_USAGE_ASYMMETRIC_CA:
+		case TR31_KEY_USAGE_ASYMMETRIC_OTHER:
+		case TR31_KEY_USAGE_PV:
+		case TR31_KEY_USAGE_PV_IBM3624:
+		case TR31_KEY_USAGE_PV_VISA:
+		case TR31_KEY_USAGE_PV_X9_132_1:
+		case TR31_KEY_USAGE_PV_X9_132_2:
+			// supported
+			break;
+
+		default:
+			return TR31_ERROR_UNSUPPORTED_KEY_USAGE;
+	}
+
+	// validate algorithm field
+	// see TR-31:2018, A.5.2, table 7
+	key->algorithm = algorithm;
+	switch (algorithm) {
+		case TR31_KEY_ALGORITHM_AES:
+		case TR31_KEY_ALGORITHM_DES:
+		case TR31_KEY_ALGORITHM_EC:
+		case TR31_KEY_ALGORITHM_HMAC:
+		case TR31_KEY_ALGORITHM_RSA:
+		case TR31_KEY_ALGORITHM_DSA:
+		case TR31_KEY_ALGORITHM_TDES:
+			// supported
+			break;
+
+		default:
+			return TR31_ERROR_UNSUPPORTED_ALGORITHM;
+	}
+
+	// validate mode of use field
+	// see TR-31:2018, A.5.3, table 8
+	key->mode_of_use = mode_of_use;
+	switch (mode_of_use) {
+		case TR31_KEY_MODE_OF_USE_ENC_DEC:
+		case TR31_KEY_MODE_OF_USE_MAC:
+		case TR31_KEY_MODE_OF_USE_DEC:
+		case TR31_KEY_MODE_OF_USE_ENC:
+		case TR31_KEY_MODE_OF_USE_MAC_GEN:
+		case TR31_KEY_MODE_OF_USE_ANY:
+		case TR31_KEY_MODE_OF_USE_SIG:
+		case TR31_KEY_MODE_OF_USE_MAC_VERIFY:
+		case TR31_KEY_MODE_OF_USE_DERIVE:
+		case TR31_KEY_MODE_OF_USE_VARIANT:
+			// supported
+			break;
+
+		default:
+			return TR31_ERROR_UNSUPPORTED_MODE_OF_USE;
+	}
+
+	// validate key version number field
+	// see TR-31:2018, A.5.4, table 9
+	r = tr31_key_set_key_version(key, key_version);
+	if (r) {
+		// return error value as-is
+		return r;
+	}
+
+	// validate exportability field
+	// see TR-31:2018, A.5.5, table 10
+	key->exportability = exportability;
+	switch (exportability) {
+		case TR31_KEY_EXPORT_TRUSTED:
+		case TR31_KEY_EXPORT_NONE:
+		case TR31_KEY_EXPORT_SENSITIVE:
+			// supported
+			break;
+
+		default:
+			return TR31_ERROR_UNSUPPORTED_EXPORTABILITY;
+	}
+
+	// copy key data
+	key->length = length;
+	key->data = calloc(1, key->length);
+	memcpy(key->data, data, key->length);
+
+	return 0;
+}
+
+int tr31_key_copy(
+	const struct tr31_key_t* src,
+	struct tr31_key_t* key
+)
+{
+	int r;
+	char key_version[2];
+
+	if (!src || !key) {
+		return -1;
+	}
+
+	r = tr31_key_get_key_version(src, key_version);
+	if (r) {
+		// return error value as-is
+		return r;
+	}
+
+	return tr31_key_init(
+		src->usage,
+		src->algorithm,
+		src->mode_of_use,
+		key_version,
+		src->exportability,
+		src->data,
+		src->length,
+		key
+	);
+}
+
+void tr31_key_release(struct tr31_key_t* key)
+{
+	if (key->data) {
+		tr31_cleanse(key->data, key->length);
+		free(key->data);
+		key->data = NULL;
+	}
+}
+
+int tr31_key_set_key_version(struct tr31_key_t* key, const char* key_version)
+{
+	if (!key || !key_version) {
+		return -1;
+	}
+
+	// decode key version number field
+	// see TR-31:2018, A.5.4, table 9
+	if (key_version[0] == '0' && key_version[1] == '0') {
+		key->key_version = TR31_KEY_VERSION_IS_UNUSED;
+		key->key_version_value = 0;
+	} else if (key_version[0] == 'c') {
+		key->key_version = TR31_KEY_VERSION_IS_COMPONENT;
+		key->key_component_number = dec_to_int(&key_version[1], 1);
+	} else {
+		int key_version_value = dec_to_int(key_version, 2);
+		if (key_version_value < 0) {
+			return TR31_ERROR_INVALID_KEY_VERSION_FIELD;
+		}
+
+		key->key_version = TR31_KEY_VERSION_IS_VALID;
+		key->key_version_value = key_version_value;
+	}
+
+	return 0;
+}
+
+int tr31_key_get_key_version(const struct tr31_key_t* key, char* key_version)
+{
+	if (!key || !key_version) {
+		return -1;
+	}
+
+	// encode key version number field
+	// see TR-31:2018, A.5.4, table 9
+	switch (key->key_version) {
+		case TR31_KEY_VERSION_IS_UNUSED:
+			memset(key_version, '0', sizeof_field(struct tr31_header_t, key_version));
+			break;
+
+		case TR31_KEY_VERSION_IS_COMPONENT:
+			key_version[0] = 'c';
+			int_to_dec(key->key_component_number, &key_version[1], sizeof(key_version[1]));
+			break;
+
+		case TR31_KEY_VERSION_IS_VALID:
+			int_to_dec(key->key_version_value, key_version, sizeof_field(struct tr31_header_t, key_version));
+			break;
+
+		default:
+			return TR31_ERROR_INVALID_KEY_VERSION_FIELD;
+	}
+
+	return 0;
+}
+
 int tr31_import(
 	const char* key_block,
 	const struct tr31_key_t* kbpk,
@@ -351,19 +584,10 @@ int tr31_import(
 
 	// decode key version number field
 	// see TR-31:2018, A.5.4, table 9
-	if (header->key_version[0] == '0' && header->key_version[1] == '0') {
-		ctx->key.key_version = TR31_KEY_VERSION_IS_UNUSED;
-	} else if (header->key_version[0] == 'c') {
-		ctx->key.key_version = TR31_KEY_VERSION_IS_COMPONENT;
-		ctx->key.key_component_number = dec_to_int(&header->key_version[1], sizeof(header->key_version[1]));
-	} else {
-		int key_version_value = dec_to_int(header->key_version, sizeof(header->key_version));
-		if (key_version_value < 0) {
-			return TR31_ERROR_INVALID_KEY_VERSION_FIELD;
-		}
-
-		ctx->key.key_version = TR31_KEY_VERSION_IS_VALID;
-		ctx->key.key_version_value = key_version_value;
+	r = tr31_key_set_key_version(&ctx->key, header->key_version);
+	if (r) {
+		// return error value as-is
+		return r;
 	}
 
 	// decode exportability field
@@ -742,22 +966,10 @@ int tr31_export(
 	memset(header->reserved, '0', sizeof(header->reserved));
 
 	// populate key version field
-	switch (ctx->key.key_version) {
-		case TR31_KEY_VERSION_IS_UNUSED:
-			memset(header->key_version, '0', sizeof(header->key_version));
-			break;
-
-		case TR31_KEY_VERSION_IS_COMPONENT:
-			header->key_version[0] = 'c';
-			int_to_dec(ctx->key.key_component_number, &header->key_version[1], sizeof(header->key_version[1]));
-			break;
-
-		case TR31_KEY_VERSION_IS_VALID:
-			int_to_dec(ctx->key.key_version_value, header->key_version, sizeof(header->key_version));
-			break;
-
-		default:
-			return TR31_ERROR_INVALID_KEY_VERSION_FIELD;
+	r = tr31_key_get_key_version(&ctx->key, header->key_version);
+	if (r) {
+		// return error value as-is
+		return r;
 	}
 
 	// populate optional blocks
@@ -1282,10 +1494,7 @@ void tr31_release(struct tr31_ctx_t* ctx)
 		return;
 	}
 
-	if (ctx->key.data) {
-		free(ctx->key.data);
-		ctx->key.data = NULL;
-	}
+	tr31_key_release(&ctx->key);
 
 	if (ctx->opt_blocks) {
 		for (size_t i = 0; i < ctx->opt_blocks_count; ++i) {
