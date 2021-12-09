@@ -21,6 +21,7 @@
 #include "tr31.h"
 
 #include <stddef.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -28,22 +29,41 @@
 #include <stdio.h>
 #include <argp.h>
 
-// global parameters
-static size_t key_block_len = 0;
-static const char* key_block = NULL;
-static size_t kbpk_buf_len = 0;
-static uint8_t kbpk_buf[32]; // max 256-bit KBPK
+// command line options
+struct tr31_tool_options_t {
+	bool import;
+	bool kbpk;
+
+	// import parameters
+	// valid if import is true
+	size_t key_block_len;
+	const char* key_block;
+
+	// kbpk parameters
+	// valid if kbpk is true
+	size_t kbpk_buf_len;
+	uint8_t kbpk_buf[32]; // max 256-bit KBPK
+};
 
 // helper functions
 static error_t argp_parser_helper(int key, char* arg, struct argp_state* state);
 static int parse_hex(const char* hex, void* bin, size_t bin_len);
 static void print_hex(const void* buf, size_t length);
 
+// argp option keys
+enum tr31_tool_option_keys_t {
+	TR31_TOOL_OPTION_IMPORT,
+	TR31_TOOL_OPTION_KBPK,
+	TR31_TOOL_OPTION_VERSION,
+};
+
 // argp option structure
 static struct argp_option argp_options[] = {
-	{ "key-block", 'i', "asdf", 0, "TR-31 key block input" },
-	{ "kbpk", 'k', "key", 0, "TR-31 key block protection key value (hex encoded)" },
-	{ "version", 'v', NULL, 0, "Display TR-31 library version" },
+	{ NULL, 0, NULL, 0, "Options for decoding/decrypting TR-31 key blocks:", 1 },
+	{ "import", TR31_TOOL_OPTION_IMPORT, "KEYBLOCK", 0, "Import TR-31 key block to decode/decrypt. Optionally specify KBPK (--kbpk) to decrypt." },
+	{ NULL, 0, NULL, 0, "Options for decrypting/encrypting TR-31 key blocks:", 2 },
+	{ "kbpk", TR31_TOOL_OPTION_KBPK, "KEY", 0, "TR-31 key block protection key value (hex encoded)" },
+	{ "version", TR31_TOOL_OPTION_VERSION, NULL, 0, "Display TR-31 library version" },
 	{ 0 },
 };
 
@@ -52,37 +72,49 @@ static struct argp argp_config = {
 	argp_options,
 	argp_parser_helper,
 	NULL,
-	NULL,
+	" \v" // force the text to be after the options in the help message
+	"NOTE: All KEY values are strings of hex digits representing binary data.",
 };
 
 // argp parser helper function
 static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 {
 	int r;
+	struct tr31_tool_options_t* options;
+
+	options = state->input;
+	if (!options) {
+		return ARGP_ERR_UNKNOWN;
+	}
 
 	switch (key) {
-		case 'i':
-			key_block = arg;
-			key_block_len = strlen(arg);
+		case TR31_TOOL_OPTION_IMPORT:
+			options->key_block = arg;
+			options->key_block_len = strlen(arg);
+			options->import = true;
 			return 0;
 
-		case 'k':
-			if (strlen(arg) > sizeof(kbpk_buf) * 2) {
-				argp_error(state, "kbpk string may not have more than %zu digits (thus %zu bytes)", sizeof(kbpk_buf) * 2, sizeof(kbpk_buf));
+		case TR31_TOOL_OPTION_KBPK:
+			if (strlen(arg) > sizeof(options->kbpk_buf) * 2) {
+				argp_error(state, "KEY string may not have more than %zu digits (thus %zu bytes)",
+					sizeof(options->kbpk_buf) * 2,
+					sizeof(options->kbpk_buf)
+				);
 			}
 			if (strlen(arg) % 2 != 0) {
-				argp_error(state, "kbpk string must have even number of digits");
+				argp_error(state, "KEY string must have even number of digits");
 			}
-			kbpk_buf_len = strlen(arg) / 2;
+			options->kbpk_buf_len = strlen(arg) / 2;
 
-			r = parse_hex(arg, kbpk_buf, kbpk_buf_len);
+			r = parse_hex(arg, options->kbpk_buf, options->kbpk_buf_len);
 			if (r) {
-				argp_error(state, "kbpk string must must consist of hex digits");
+				argp_error(state, "KEY string must consist of hex digits");
 			}
 
+			options->kbpk = true;
 			return 0;
 
-		case 'v': {
+		case TR31_TOOL_OPTION_VERSION: {
 			const char* version;
 
 			version = tr31_lib_version_string();
@@ -92,6 +124,16 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 				printf("Unknown\n");
 			}
 			exit(EXIT_SUCCESS);
+			return 0;
+		}
+
+		case ARGP_KEY_END: {
+			// check for required options
+			if (!options->import) {
+				// --import was not specified
+				argp_error(state, "The --import option is required");
+			}
+
 			return 0;
 		}
 
@@ -136,34 +178,22 @@ static void print_hex(const void* buf, size_t length)
 	}
 }
 
-int main(int argc, char** argv)
+// TR-31 import helper function
+static int do_tr31_import(const struct tr31_tool_options_t* options)
 {
 	int r;
 	struct tr31_key_t kbpk;
 	struct tr31_ctx_t tr31_ctx;
 
-	if (argc == 1) {
-		// No command line options
-		argp_help(&argp_config, stdout, ARGP_HELP_STD_HELP, argv[0]);
-		return 1;
-	}
-
-	// parse command line options
-	r = argp_parse(&argp_config, argc, argv, 0, 0, 0);
-	if (r) {
-		fprintf(stderr, "Failed to parse command line\n");
-		return 1;
-	}
-
 	// populate key block protection key
 	memset(&kbpk, 0, sizeof(kbpk));
 	kbpk.usage = TR31_KEY_USAGE_TR31_KBPK;
 	kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
-	kbpk.length = kbpk_buf_len;
-	kbpk.data = kbpk_buf;
+	kbpk.length = options->kbpk_buf_len;
+	kbpk.data = (void*)options->kbpk_buf;
 
 	// determine key block protection key algorithm from keyblock format version
-	switch (key_block[0]) {
+	switch (options->key_block[0]) {
 		case TR31_VERSION_A:
 		case TR31_VERSION_B:
 		case TR31_VERSION_C:
@@ -179,12 +209,12 @@ int main(int argc, char** argv)
 			return 1;
 	}
 
-	if (kbpk_buf_len) { // if key block protection key was provided
+	if (options->kbpk) { // if key block protection key was provided
 		// parse and decrypt TR-31 key block
-		r = tr31_import(key_block, &kbpk, &tr31_ctx);
+		r = tr31_import(options->key_block, &kbpk, &tr31_ctx);
 	} else { // else if no key block protection key was provided
 		// parse TR-31 key block
-		r = tr31_import(key_block, NULL, &tr31_ctx);
+		r = tr31_import(options->key_block, NULL, &tr31_ctx);
 	}
 	// check for errors
 	if (r) {
@@ -259,4 +289,29 @@ int main(int argc, char** argv)
 
 	// cleanup
 	tr31_release(&tr31_ctx);
+
+	return 0;
+}
+
+int main(int argc, char** argv)
+{
+	int r;
+	struct tr31_tool_options_t options;
+
+	memset(&options, 0, sizeof(options));
+
+	if (argc == 1) {
+		// No command line options
+		argp_help(&argp_config, stdout, ARGP_HELP_STD_HELP, argv[0]);
+		return 1;
+	}
+
+	// parse command line options
+	r = argp_parse(&argp_config, argc, argv, 0, 0, &options);
+	if (r) {
+		fprintf(stderr, "Failed to parse command line\n");
+		return 1;
+	}
+
+	return do_tr31_import(&options);
 }
