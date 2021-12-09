@@ -8,9 +8,9 @@ implementation is mostly for validation and debugging purposes.
 Features
 ========
 
-Currently this library implements parsing and decryption of TR-31 format
-version A, B, C, and D. Various helper functions are also available to
-stringify TR-31 header attributes.
+Currently this library implements parsing/decryption and encoding/encryption
+of TR-31 format version A, B, C, and D. Various helper functions are also
+available to stringify TR-31 header attributes.
 
 Build
 =====
@@ -116,10 +116,20 @@ protection key to be used for decryption. For example:
 tr31-tool --import B0128B1TX00N0300KS18FFFF00A0200001E00000KC0C000169E3KP0C00ECAD626F9F1A826814AA066D86C8C18BD0E14033E1EBEC75BEDF586E6E325F3AA8C0E5 --kbpk AB2E09DB3EF0BA71E0CE6CD755C23A3B
 ```
 
+To encode/encrypt a TR-31 key block, use the `--export` option to specify the
+key to be wrapped/encrypted. The key block attributes can be specified using
+either a combination of the `--export-format-version B`,
+`--export-key-algorithm` and `--export-template` options, or using the
+`--export-header` option. For example:
+```
+tr31-tool --kbpk AB2E09DB3EF0BA71E0CE6CD755C23A3B --export BF82DAC6A33DF92CE66E15B70E5DCEB6 --export-header B0128B1TX00N0300KS18FFFF00A0200001E00000KC0C000169E3KP0C00ECAD62
+```
+
 Roadmap
 =======
 
-* Implement key block authoring and encryption
+* Implement authoring of optional blocks using TR-31 tool
+* Implement authoring of key blocks for HMAC keys using TR-31 tool
 * Implement key block translation
 * Implement key block component combination
 * Add CPack packaging for Windows and MacOS
