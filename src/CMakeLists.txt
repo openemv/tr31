@@ -13,16 +13,26 @@ if(NOT MbedTLS_FOUND AND NOT OpenSSL_FOUND)
 	message(FATAL_ERROR "Either MbedTLS or OpenSSL is required")
 endif()
 
+# choose crypto implementation and inform parent scope
+if(MbedTLS_FOUND)
+	# prefer MbedTLS
+	set(USE_MBEDTLS TRUE)
+	list(APPEND TR31_PACKAGE_DEPENDENCIES "MbedTLS 2.16")
+	set(TR31_PACKAGE_DEPENDENCIES ${TR31_PACKAGE_DEPENDENCIES} PARENT_SCOPE)
+	# NOTE: MbedTLS has no pkgconfig file so TR31_PKGCONFIG_REQ_PRIV cannot be set
+	set(TR31_PKGCONFIG_LIBS_PRIV "-lmbedcrypto" PARENT_SCOPE)
+else()
+	set(USE_OPENSSL TRUE)
+	list(APPEND TR31_PACKAGE_DEPENDENCIES "OpenSSL 1.1 COMPONENTS Crypto")
+	set(TR31_PACKAGE_DEPENDENCIES ${TR31_PACKAGE_DEPENDENCIES} PARENT_SCOPE)
+	set(TR31_PKGCONFIG_REQ_PRIV "libcrypto" PARENT_SCOPE)
+	set(TR31_PKGCONFIG_LIBS_PRIV "-lcrypto" PARENT_SCOPE)
+endif()
+
 include(GNUInstallDirs) # provides CMAKE_INSTALL_* variables and good defaults for install()
 
 # generate config file for internal use only
 # this file should NOT be installed or used by an installed header
-if(MbedTLS_FOUND)
-	# prefer MbedTLS
-	set(USE_MBEDTLS TRUE)
-else()
-	set(USE_OPENSSL TRUE)
-endif()
 configure_file(
 	tr31_config.h.in
 	tr31_config.h

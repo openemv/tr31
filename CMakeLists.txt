@@ -41,6 +41,10 @@ install(FILES
 
 # generate and install basic CMake config files
 include(CMakePackageConfigHelpers) # provides CMake config generator macros
+foreach(pkg IN LISTS TR31_PACKAGE_DEPENDENCIES)
+	# build dependency string for use in CMake config file
+	string(APPEND TR31_CONFIG_PACKAGE_DEPENDENCIES "find_dependency(${pkg})\n")
+endforeach()
 set(TR31_INSTALL_CMAKEDIR ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME} CACHE STRING "Installation location for tr31 CMake config files")
 message(STATUS "Using CMake config install location \"${TR31_INSTALL_CMAKEDIR}\"")
 configure_package_config_file(cmake/tr31Config.cmake.in
@@ -67,8 +71,7 @@ install(EXPORT tr31Targets
 set(TR31_INSTALL_PKGCONFIG_DIR ${CMAKE_INSTALL_LIBDIR}/pkgconfig CACHE STRING "Installation location for tr31 pkgconfig files")
 message(STATUS "Using pkgconfig install location \"${TR31_INSTALL_PKGCONFIG_DIR}\"")
 set(TR31_PKGCONFIG_LIB_NAME ${CMAKE_PROJECT_NAME})
-set(TR31_PKGCONFIG_PKG_DEPS "libcrypto")
-set(TR31_PKGCONFIG_LIBS_PRIV "-lcrypto")
+# NOTE: subdirectories will provide TR31_PKGCONFIG_REQ_PRIV and TR31_PKGCONFIG_LIBS_PRIV
 configure_file(pkgconfig/libtr31.pc.in
 	"${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/libtr31.pc"
 	@ONLY

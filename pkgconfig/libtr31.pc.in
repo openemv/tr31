@@ -6,7 +6,7 @@ libdir=@CMAKE_INSTALL_FULL_LIBDIR@
 Name: TR-31
 Description: @CMAKE_PROJECT_DESCRIPTION@
 Version: @CMAKE_PROJECT_VERSION@
-Requires.private: @TR31_PKGCONFIG_PKG_DEPS@
+Requires.private: @TR31_PKGCONFIG_REQ_PRIV@
 Libs: -L${libdir} -l@TR31_PKGCONFIG_LIB_NAME@
 Libs.private: @TR31_PKGCONFIG_LIBS_PRIV@
 Cflags: -I${includedir}
