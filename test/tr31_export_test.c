@@ -26,12 +26,12 @@
 
 // TR-31:2018, A.7.2.1
 static const uint8_t test1_kbpk_raw[] = { 0x89, 0xE8, 0x8C, 0xF7, 0x93, 0x14, 0x44, 0xF3, 0x34, 0xBD, 0x75, 0x47, 0xFC, 0x3F, 0x38, 0x0C };
-static const struct tr31_key_t test1_kbpk = {
+static struct tr31_key_t test1_kbpk = {
 	.usage = TR31_KEY_USAGE_TR31_KBPK,
 	.algorithm = TR31_KEY_ALGORITHM_TDES,
 	.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC,
-	.length = sizeof(test1_kbpk_raw),
-	.data = (void*)test1_kbpk_raw,
+	.length = 0,
+	.data = NULL,
 };
 static const uint8_t test1_key_raw[] = { 0xED, 0xB3, 0x80, 0xDD, 0x34, 0x0B, 0xC2, 0x62, 0x02, 0x47, 0xD4, 0x45, 0xF5, 0xB8, 0xD6, 0x78 };
 static const struct tr31_key_t test1_key = {
@@ -52,12 +52,12 @@ static const size_t test1_tr31_length_verify =
 
 // TR-31:2018, A.7.3.2
 static const uint8_t test2_kbpk_raw[] = { 0x1D, 0x22, 0xBF, 0x32, 0x38, 0x7C, 0x60, 0x0A, 0xD9, 0x7F, 0x9B, 0x97, 0xA5, 0x13, 0x11, 0xAC };
-static const struct tr31_key_t test2_kbpk = {
+static struct tr31_key_t test2_kbpk = {
 	.usage = TR31_KEY_USAGE_TR31_KBPK,
 	.algorithm = TR31_KEY_ALGORITHM_TDES,
 	.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC,
-	.length = sizeof(test2_kbpk_raw),
-	.data = (void*)test2_kbpk_raw,
+	.length = 0,
+	.data = NULL,
 };
 static const uint8_t test2_key_raw[] = { 0xE8, 0xBC, 0x63, 0xE5, 0x47, 0x94, 0x55, 0xE2, 0x65, 0x77, 0xF7, 0x15, 0xD5, 0x87, 0xFE, 0x68 };
 static const struct tr31_key_t test2_key = {
@@ -80,12 +80,12 @@ static const size_t test2_tr31_length_verify =
 
 // TR-31:2018, A.7.3.1
 static const uint8_t test3_kbpk_raw[] = { 0xB8, 0xED, 0x59, 0xE0, 0xA2, 0x79, 0xA2, 0x95, 0xE9, 0xF5, 0xED, 0x79, 0x44, 0xFD, 0x06, 0xB9 };
-static const struct tr31_key_t test3_kbpk = {
+static struct tr31_key_t test3_kbpk = {
 	.usage = TR31_KEY_USAGE_TR31_KBPK,
 	.algorithm = TR31_KEY_ALGORITHM_TDES,
 	.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC,
-	.length = sizeof(test3_kbpk_raw),
-	.data = (void*)test3_kbpk_raw,
+	.length = 0,
+	.data = NULL,
 };
 static const uint8_t test3_key_raw[] = { 0xED, 0xB3, 0x80, 0xDD, 0x34, 0x0B, 0xC2, 0x62, 0x02, 0x47, 0xD4, 0x45, 0xF5, 0xB8, 0xD6, 0x78 };
 static const struct tr31_key_t test3_key = {
@@ -111,12 +111,12 @@ static const uint8_t test4_kbpk_raw[] = {
 	0x88, 0xE1, 0xAB, 0x2A, 0x2E, 0x3D, 0xD3, 0x8C, 0x1F, 0xA0, 0x39, 0xA5, 0x36, 0x50, 0x0C, 0xC8,
 	0xA8, 0x7A, 0xB9, 0xD6, 0x2D, 0xC9, 0x2C, 0x01, 0x05, 0x8F, 0xA7, 0x9F, 0x44, 0x65, 0x7D, 0xE6,
 };
-static const struct tr31_key_t test4_kbpk = {
+static struct tr31_key_t test4_kbpk = {
 	.usage = TR31_KEY_USAGE_TR31_KBPK,
 	.algorithm = TR31_KEY_ALGORITHM_AES,
 	.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC,
-	.length = sizeof(test4_kbpk_raw),
-	.data = (void*)test4_kbpk_raw,
+	.length = 0,
+	.data = NULL,
 };
 static const uint8_t test4_key_raw[] = { 0x3F, 0x41, 0x9E, 0x1C, 0xB7, 0x07, 0x94, 0x42, 0xAA, 0x37, 0x47, 0x4C, 0x2E, 0xFB, 0xF8, 0xB8 };
 static const struct tr31_key_t test4_key = {
@@ -161,6 +161,12 @@ int main(void)
 	}
 
 	print_buf("kbpk", test1_kbpk_raw, sizeof(test1_kbpk_raw));
+	r = tr31_key_set_data(&test1_kbpk, test1_kbpk_raw, sizeof(test1_kbpk_raw));
+	if (r) {
+		fprintf(stderr, "tr31_key_set_data() failed; r=%d\n", r);
+		goto exit;
+	}
+
 	r = tr31_export(&test_tr31, &test1_kbpk, key_block, sizeof(key_block));
 	if (r) {
 		fprintf(stderr, "tr31_export() failed; r=%d\n", r);
@@ -217,6 +223,12 @@ int main(void)
 	}
 
 	print_buf("kbpk", test2_kbpk_raw, sizeof(test2_kbpk_raw));
+	r = tr31_key_set_data(&test2_kbpk, test2_kbpk_raw, sizeof(test2_kbpk_raw));
+	if (r) {
+		fprintf(stderr, "tr31_key_set_data() failed; r=%d\n", r);
+		goto exit;
+	}
+
 	r = tr31_export(&test_tr31, &test2_kbpk, key_block, sizeof(key_block));
 	if (r) {
 		fprintf(stderr, "tr31_export() failed; r=%d\n", r);
@@ -273,6 +285,12 @@ int main(void)
 	}
 
 	print_buf("kbpk", test3_kbpk_raw, sizeof(test3_kbpk_raw));
+	r = tr31_key_set_data(&test3_kbpk, test3_kbpk_raw, sizeof(test3_kbpk_raw));
+	if (r) {
+		fprintf(stderr, "tr31_key_set_data() failed; r=%d\n", r);
+		goto exit;
+	}
+
 	r = tr31_export(&test_tr31, &test3_kbpk, key_block, sizeof(key_block));
 	if (r) {
 		fprintf(stderr, "tr31_export() failed; r=%d\n", r);
@@ -317,8 +335,24 @@ int main(void)
 		fprintf(stderr, "tr31_init() failed; r=%d\n", r);
 		goto exit;
 	}
+	r = tr31_opt_block_add_KC(&test_tr31);
+	if (r) {
+		fprintf(stderr, "tr31_opt_block_add_KC() failed; r=%d\n", r);
+		goto exit;
+	}
+	r = tr31_opt_block_add_KP(&test_tr31);
+	if (r) {
+		fprintf(stderr, "tr31_opt_block_add_KP() failed; r=%d\n", r);
+		goto exit;
+	}
 
 	print_buf("kbpk", test4_kbpk_raw, sizeof(test4_kbpk_raw));
+	r = tr31_key_set_data(&test4_kbpk, test4_kbpk_raw, sizeof(test4_kbpk_raw));
+	if (r) {
+		fprintf(stderr, "tr31_key_set_data() failed; r=%d\n", r);
+		goto exit;
+	}
+
 	r = tr31_export(&test_tr31, &test4_kbpk, key_block, sizeof(key_block));
 	if (r) {
 		fprintf(stderr, "tr31_export() failed; r=%d\n", r);
@@ -361,5 +395,9 @@ int main(void)
 
 exit:
 	tr31_release(&test_tr31);
+	tr31_key_release(&test1_kbpk);
+	tr31_key_release(&test2_kbpk);
+	tr31_key_release(&test3_kbpk);
+	tr31_key_release(&test4_kbpk);
 	return r;
 }
