@@ -895,8 +895,10 @@ int tr31_tdes_kcv(const void* key, size_t key_len, void* kcv)
 		return -2;
 	}
 
+	// see ANSI X9.24-1:2017, A.2 Legacy Approach
+
 	// zero KCV in case of error
-	memset(kcv, 0, 3);
+	memset(kcv, 0, TDES_KCV_SIZE);
 
 	// encrypt zero block with input key
 	memset(zero, 0, sizeof(zero));
@@ -907,7 +909,7 @@ int tr31_tdes_kcv(const void* key, size_t key_len, void* kcv)
 	}
 
 	// KCV is always first 3 bytes of ciphertext
-	memcpy(kcv, ciphertext, 3);
+	memcpy(kcv, ciphertext, TDES_KCV_SIZE);
 
 	tr31_cleanse(ciphertext, sizeof(ciphertext));
 
@@ -1208,8 +1210,10 @@ int tr31_aes_kcv(const void* key, size_t key_len, void* kcv)
 		return -2;
 	}
 
+	// see ANSI X9.24-1:2017, A.3 CMAC-based Check values
+
 	// zero KCV in case of error
-	memset(kcv, 0, 3);
+	memset(kcv, 0, AES_KCV_SIZE);
 
 	// use input block populated with 0x00
 	memset(input, 0x00, sizeof(input));
@@ -1221,8 +1225,8 @@ int tr31_aes_kcv(const void* key, size_t key_len, void* kcv)
 		return r;
 	}
 
-	// KCV is always first 3 bytes of ciphertext
-	memcpy(kcv, ciphertext, 3);
+	// KCV is always first 5 bytes of ciphertext
+	memcpy(kcv, ciphertext, AES_KCV_SIZE);
 
 	tr31_cleanse(ciphertext, sizeof(ciphertext));
 

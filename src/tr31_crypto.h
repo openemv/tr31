@@ -32,12 +32,14 @@ __BEGIN_DECLS
 #define TDES3_KEY_SIZE (DES_KEY_SIZE * 3) ///< Triple length triple DES key size in bytes
 #define DES_CIPHERTEXT_LENGTH(plen) (((plen) + DES_BLOCK_SIZE-1) & ~(DES_BLOCK_SIZE-1)) ///< DES ciphertext length at next block boundary
 #define DES_MAC_SIZE (DES_BLOCK_SIZE / 2)
+#define TDES_KCV_SIZE (3) ///< Legacy KCV size in bytes
 
 #define AES_BLOCK_SIZE (16) ///< AES block size in bytes
 #define AES128_KEY_SIZE (16) ///< AES-128 key size in bytes
 #define AES192_KEY_SIZE (24) ///< AES-192 key size in bytes
 #define AES256_KEY_SIZE (32) ///< AES-256 key size in bytes
 #define AES_CIPHERTEXT_LENGTH(plen) (((plen) + AES_BLOCK_SIZE-1) & ~(AES_BLOCK_SIZE-1)) ///< AES ciphertext length at next block boundary
+#define AES_KCV_SIZE (5) ///< CMAC-base KCV size in bytes
 
 #define TR31_DES_KEY_UNDER_DES_LENGTH DES_CIPHERTEXT_LENGTH(2 + DES_KEY_SIZE) ///< 2-byte length + DES key + DES padding, in bytes
 #define TR31_DES_KEY_UNDER_AES_LENGTH AES_CIPHERTEXT_LENGTH(2 + DES_KEY_SIZE) ///< 2-byte length + DES key + AES padding, in bytes
@@ -170,7 +172,7 @@ int tr31_tdes_kbpk_derive(const void* kbpk, size_t kbpk_len, void* kbek, void* k
  * Compute TDES Key Check Value (KCV)
  * @param key Key
  * @param key_len Length of key in bytes
- * @param kcv Key Check Value output of 3 bytes
+ * @param kcv Key Check Value output of length @ref TDES_KCV_SIZE
  * @return Zero for success. Less than zero for internal error.
  */
 int tr31_tdes_kcv(const void* key, size_t key_len, void* kcv);
@@ -259,7 +261,7 @@ int tr31_aes_kbpk_derive(const void* kbpk, size_t kbpk_len, void* kbek, void* kb
  * Compute AES Key Check Value (KCV)
  * @param key Key
  * @param key_len Length of key in bytes
- * @param kcv Key Check Value output of 3 bytes
+ * @param kcv Key Check Value output of length @ref AES_KCV_SIZE
  * @return Zero for success. Less than zero for internal error.
  */
 int tr31_aes_kcv(const void* key, size_t key_len, void* kcv);

@@ -152,7 +152,9 @@ struct tr31_key_t {
 
 	size_t length; ///< Key data length in bytes
 	void* data; ///< Key data
-	uint8_t kcv[3]; ///< Key Check Value (KCV)
+
+	size_t kcv_len; ///< Key Check Value (KCV) length in bytes
+	uint8_t kcv[5]; ///< Key Check Value (KCV)
 };
 
 /// TR-31 optional block context object
@@ -265,7 +267,8 @@ int tr31_key_copy(
 );
 
 /**
- * Populate key data in TR-31 key object
+ * Populate key data in TR-31 key object. This function will also populate the
+ * KCV in the TR-31 key object when possible.
  * @note This function requires a populated TR-31 key object
  *       (after @ref tr31_key_init(), @ref tr31_key_copy() or @ref tr31_export())
  *

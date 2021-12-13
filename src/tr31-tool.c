@@ -393,9 +393,12 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 			printf("Key length: %zu\n", tr31_ctx.key.length);
 			printf("Key value: ");
 			print_hex(tr31_ctx.key.data, tr31_ctx.key.length);
-			printf(" (KCV: ");
-			print_hex(tr31_ctx.key.kcv, sizeof(tr31_ctx.key.kcv));
-			printf(")\n");
+			if (tr31_ctx.key.kcv_len) {
+				printf(" (KCV: ");
+				print_hex(tr31_ctx.key.kcv, tr31_ctx.key.kcv_len);
+				printf(")");
+			}
+			printf("\n");
 		} else {
 			printf("Key decryption failed\n");
 		}

@@ -400,6 +400,8 @@ int tr31_key_copy(
 
 int tr31_key_set_data(struct tr31_key_t* key, const void* data, size_t length)
 {
+	int r;
+
 	if (!key || !data || !length) {
 		return 1;
 	}
@@ -410,6 +412,28 @@ int tr31_key_set_data(struct tr31_key_t* key, const void* data, size_t length)
 	key->length = length;
 	key->data = calloc(1, key->length);
 	memcpy(key->data, data, key->length);
+
+	// update KCV
+	key->kcv_len = 0;
+	memset(&key->kcv, 0, sizeof(key->kcv));
+	if (key->algorithm == TR31_KEY_ALGORITHM_TDES) {
+		// use legacy KCV for TDES key
+		r = tr31_tdes_kcv(key->data, key->length, key->kcv);
+		if (r) {
+			// return error value as-is
+			return r;
+		}
+		key->kcv_len = TDES_KCV_SIZE;
+
+	} else if (key->algorithm == TR31_KEY_ALGORITHM_AES) {
+		// use CMAC-based KCV for AES key
+		r = tr31_aes_kcv(key->data, key->length, key->kcv);
+		if (r) {
+			// return error value as-is
+			return r;
+		}
+		key->kcv_len = AES_KCV_SIZE;
+	}
 
 	return 0;
 }
@@ -751,13 +775,6 @@ int tr31_import(
 				goto error;
 			}
 
-			// populate KCV
-			r = tr31_tdes_kcv(ctx->key.data, ctx->key.length, ctx->key.kcv);
-			if (r) {
-				// return error value as-is
-				goto error;
-			}
-
 			break;
 		}
 
@@ -788,13 +805,6 @@ int tr31_import(
 				ctx->key.length != TDES3_KEY_SIZE
 			) {
 				r = TR31_ERROR_INVALID_KEY_LENGTH;
-				goto error;
-			}
-
-			// populate KCV
-			r = tr31_tdes_kcv(ctx->key.data, ctx->key.length, ctx->key.kcv);
-			if (r) {
-				// return error value as-is
 				goto error;
 			}
 
@@ -850,26 +860,6 @@ int tr31_import(
 				default:
 					// unsupported; continue
 					break;
-			}
-
-			// populate KCV
-			switch (ctx->key.algorithm) {
-				case TR31_KEY_ALGORITHM_TDES:
-					r = tr31_tdes_kcv(ctx->key.data, ctx->key.length, ctx->key.kcv);
-					break;
-
-				case TR31_KEY_ALGORITHM_AES:
-					r = tr31_aes_kcv(ctx->key.data, ctx->key.length, ctx->key.kcv);
-					break;
-
-				default:
-					// KCV is not available
-					memset(ctx->key.kcv, 0, sizeof(ctx->key.kcv));
-					r = 0;
-			}
-			if (r) {
-				// return error value as-is
-				goto error;
 			}
 
 			break;
