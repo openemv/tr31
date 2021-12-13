@@ -418,6 +418,7 @@ int tr31_key_set_data(struct tr31_key_t* key, const void* data, size_t length)
 	memset(&key->kcv, 0, sizeof(key->kcv));
 	if (key->algorithm == TR31_KEY_ALGORITHM_TDES) {
 		// use legacy KCV for TDES key
+		key->kcv_algorithm = TR31_OPT_BLOCK_KCV_LEGACY;
 		r = tr31_tdes_kcv(key->data, key->length, key->kcv);
 		if (r) {
 			// return error value as-is
@@ -427,6 +428,7 @@ int tr31_key_set_data(struct tr31_key_t* key, const void* data, size_t length)
 
 	} else if (key->algorithm == TR31_KEY_ALGORITHM_AES) {
 		// use CMAC-based KCV for AES key
+		key->kcv_algorithm = TR31_OPT_BLOCK_KCV_CMAC;
 		r = tr31_aes_kcv(key->data, key->length, key->kcv);
 		if (r) {
 			// return error value as-is
@@ -553,11 +555,28 @@ int tr31_opt_block_add(
 	// add optional block
 	opt_blk = &ctx->opt_blocks[ctx->opt_blocks_count - 1];
 	opt_blk->id = id;
-	opt_blk->data_length = length;
-	opt_blk->data = calloc(1, opt_blk->data_length);
-	memcpy(opt_blk->data, data, opt_blk->data_length);
+	if (data && length) {
+		opt_blk->data_length = length;
+		opt_blk->data = calloc(1, opt_blk->data_length);
+		memcpy(opt_blk->data, data, opt_blk->data_length);
+	} else {
+		opt_blk->data_length = 0;
+		opt_blk->data = NULL;
+	}
 
 	return 0;
+}
+
+int tr31_opt_block_add_KC(struct tr31_ctx_t* ctx)
+{
+	// add empty KC optional block to be finalised by tr31_export()
+	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_KC, NULL, 0);
+}
+
+int tr31_opt_block_add_KP(struct tr31_ctx_t* ctx)
+{
+	// add empty KP optional block to be finalised by tr31_export()
+	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_KP, NULL, 0);
 }
 
 int tr31_import(
@@ -894,6 +913,9 @@ int tr31_export(
 	if (!ctx || !kbpk || !key_block || !key_block_len) {
 		return -1;
 	}
+	if (!ctx->key.data || !ctx->key.length) {
+		return -2;
+	}
 
 	// ensure space for null-termination
 	--key_block_len;
@@ -948,14 +970,53 @@ int tr31_export(
 		return r;
 	}
 
-	// populate optional blocks
+	// populate optional block count
 	int_to_dec(ctx->opt_blocks_count, header->opt_blocks_count, sizeof(header->opt_blocks_count));
 	ptr = header + 1; // optional blocks, if any, are after the header
 	if (ctx->opt_blocks_count && !ctx->opt_blocks) {
 		// optional block count is non-zero but optional block data is missing
 		return TR31_ERROR_INVALID_NUMBER_OF_OPTIONAL_BLOCKS_FIELD;
 	}
-	for (int i = 0; i < ctx->opt_blocks_count; ++i) {
+
+	// build optional blocks that involve KCV computation
+	for (size_t i = 0; i < ctx->opt_blocks_count; ++i) {
+		// if optional block KC is present with no data
+		if (ctx->opt_blocks[i].id == TR31_OPT_BLOCK_KC &&
+			!ctx->opt_blocks[i].data_length &&
+			!ctx->opt_blocks[i].data
+		) {
+			if (!ctx->key.kcv_len) {
+				return TR31_ERROR_KCV_NOT_AVAILABLE;
+			}
+
+			// build optional block KC (KCV of wrapped key)
+			// see TR-31:2018, A.5.8 KCV Optional Block Format
+			ctx->opt_blocks[i].data_length = ctx->key.kcv_len + 1; // +1 for KCV algorithm
+			ctx->opt_blocks[i].data = calloc(1, ctx->opt_blocks[i].data_length);
+			memcpy(ctx->opt_blocks[i].data, &ctx->key.kcv_algorithm, 1);
+			memcpy(ctx->opt_blocks[i].data + 1, ctx->key.kcv, ctx->key.kcv_len);
+		}
+
+		// if optional block KP is present with no data
+		if (ctx->opt_blocks[i].id == TR31_OPT_BLOCK_KP &&
+			!ctx->opt_blocks[i].data_length &&
+			!ctx->opt_blocks[i].data
+		) {
+			if (!kbpk->kcv_len) {
+				return TR31_ERROR_KCV_NOT_AVAILABLE;
+			}
+
+			// build optional block KP (KCV of KBPK)
+			// see TR-31:2018, A.5.8 KCV Optional Block Format
+			ctx->opt_blocks[i].data_length = kbpk->kcv_len + 1; // +1 for KCV algorithm
+			ctx->opt_blocks[i].data = calloc(1, ctx->opt_blocks[i].data_length);
+			memcpy(ctx->opt_blocks[i].data, &kbpk->kcv_algorithm, 1);
+			memcpy(ctx->opt_blocks[i].data + 1, kbpk->kcv, kbpk->kcv_len);
+		}
+	}
+
+	// populate optional blocks
+	for (size_t i = 0; i < ctx->opt_blocks_count; ++i) {
 		// ensure that current pointer is valid for minimal optional block
 		if (ptr + sizeof(struct tr31_opt_blk_t) - (void*)header > key_block_len) {
 			return TR31_ERROR_INVALID_LENGTH;
@@ -1531,6 +1592,7 @@ const char* tr31_get_error_string(enum tr31_error_t error)
 		case TR31_ERROR_UNSUPPORTED_KBPK_LENGTH: return "Unsupported key block protection key length";
 		case TR31_ERROR_INVALID_KEY_LENGTH: return "Invalid key length";
 		case TR31_ERROR_KEY_BLOCK_VERIFICATION_FAILED: return "Key block verification failed";
+		case TR31_ERROR_KCV_NOT_AVAILABLE: return "Key check value not available";
 	}
 
 	return "Unknown error";

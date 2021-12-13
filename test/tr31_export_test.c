@@ -121,17 +121,17 @@ static struct tr31_key_t test4_kbpk = {
 static const uint8_t test4_key_raw[] = { 0x3F, 0x41, 0x9E, 0x1C, 0xB7, 0x07, 0x94, 0x42, 0xAA, 0x37, 0x47, 0x4C, 0x2E, 0xFB, 0xF8, 0xB8 };
 static const struct tr31_key_t test4_key = {
 	.usage = TR31_KEY_USAGE_PIN,
-	.algorithm = TR31_KEY_ALGORITHM_AES,
+	.algorithm = TR31_KEY_ALGORITHM_TDES,
 	.mode_of_use = TR31_KEY_MODE_OF_USE_ENC,
 	.key_version = TR31_KEY_VERSION_IS_UNUSED,
 	.exportability = TR31_KEY_EXPORT_TRUSTED,
 	.length = sizeof(test4_key_raw),
 	.data = (void*)test4_key_raw,
 };
-static const char test4_tr31_header_verify[] = "D0112P0AE00E0000";
+static const char test4_tr31_header_verify[] = "D0144P0TE00E0300KC0C0057C409KP10012331550BC9PB04";
 static const size_t test4_tr31_length_verify =
 	16 /* header */
-	+ 0 /* opt block */
+	+ 12 /* opt block KC */ + 16 /* opt block KP */ + 4 /* opt block PB */
 	+ (2 /* key length */ + 16 /* key */ + 14 /* padding */) * 2
 	+ (16 /* authenticator */) * 2;
 
@@ -343,6 +343,11 @@ int main(void)
 	r = tr31_opt_block_add_KP(&test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_opt_block_add_KP() failed; r=%d\n", r);
+		goto exit;
+	}
+	r = tr31_opt_block_add(&test_tr31, TR31_OPT_BLOCK_PB, NULL, 0); // 4 bytes of padding
+	if (r) {
+		fprintf(stderr, "tr31_opt_block_add() failed; r=%d\n", r);
 		goto exit;
 	}
 

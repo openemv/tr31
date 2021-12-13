@@ -153,6 +153,7 @@ struct tr31_key_t {
 	size_t length; ///< Key data length in bytes
 	void* data; ///< Key data
 
+	uint8_t kcv_algorithm; ///< KCV algorithm (@ref TR31_OPT_BLOCK_KCV_LEGACY or @ref TR31_OPT_BLOCK_KCV_CMAC)
 	size_t kcv_len; ///< Key Check Value (KCV) length in bytes
 	uint8_t kcv[5]; ///< Key Check Value (KCV)
 };
@@ -212,6 +213,7 @@ enum tr31_error_t {
 	TR31_ERROR_UNSUPPORTED_KBPK_LENGTH, ///< Unsupported key block protection key length
 	TR31_ERROR_INVALID_KEY_LENGTH, ///< Invalid key length; possibly incorrect key block protection key
 	TR31_ERROR_KEY_BLOCK_VERIFICATION_FAILED, ///< Key block verification failed; possibly incorrect key block protection key
+	TR31_ERROR_KCV_NOT_AVAILABLE, ///< Key Check Value (KCV) of either the wrapped key or Key Block Protection Key (KBPK) not available
 };
 
 /**
@@ -326,6 +328,28 @@ int tr31_opt_block_add(
 	const void* data,
 	size_t length
 );
+
+/**
+ * Add optional block 'KC' for Key Check Value (KCV) of wrapped key to TR-31
+ * context object. This function will not compute the KCV but cause it to be
+ * computed by @ref tr31_export().
+ * @note This function requires an initialised TR-31 context object to be provided.
+ *
+ * @param ctx TR-31 context object
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. @see #tr31_error_t
+ */
+int tr31_opt_block_add_KC(struct tr31_ctx_t* ctx);
+
+/**
+ * Add optional block 'KP' for Key Check Value (KCV) of Key Block Protection
+ * Key (KBPK) to TR-31 context object. This function will not compute the KCV
+ * but cause it to be computed by @ref tr31_export().
+ * @note This function requires an initialised TR-31 context object to be provided.
+ *
+ * @param ctx TR-31 context object
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. @see #tr31_error_t
+ */
+int tr31_opt_block_add_KP(struct tr31_ctx_t* ctx);
 
 /**
  * Import TR-31 key block. This function will also decrypt the key data if possible.
