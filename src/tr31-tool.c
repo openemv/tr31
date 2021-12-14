@@ -29,22 +29,8 @@
 #include <stdio.h>
 #include <argp.h>
 
+#include <ctype.h> // for isalnum and friends
 #include <arpa/inet.h> // for ntohs and friends
-
-// TR-31 header
-// see TR-31:2018, A.2, table 4
-// TODO: refactor this to use a helper function
-struct tr31_header_t {
-	uint8_t version_id;
-	char length[4];
-	uint16_t key_usage;
-	uint8_t algorithm;
-	uint8_t mode_of_use;
-	char key_version[2];
-	uint8_t exportability;
-	char opt_blocks_count[2];
-	char reserved[2];
-} __attribute__((packed));
 
 // command line options
 struct tr31_tool_options_t {
@@ -171,8 +157,10 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			if (strlen(arg) < 16) {
 				argp_error(state, "Export header must be at least 16 characters/bytes");
 			}
-			if (strlen(arg) % 8) {
-				argp_error(state, "Export header must be a multiple of 8 characters/bytes");
+			for (size_t i = 0; i < strlen(arg); ++i) {
+				if (!isalnum(arg[i])) {
+					argp_error(state, "Export header must consist of alphanumeric characters (invalid character '%c' is not allowed)", arg[i]);
+				}
 			}
 			options->export_header = arg;
 			return 0;
@@ -412,75 +400,106 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 	return 0;
 }
 
-// TR-31 key populating helper function
-static int populate_export_key(const struct tr31_tool_options_t* options, struct tr31_key_t* key)
+// TR-31 export template helper function
+static int populate_tr31_from_template(const struct tr31_tool_options_t* options, struct tr31_ctx_t* tr31_ctx)
 {
 	int r;
+	struct tr31_key_t key;
 
-	if (options->export_template) { // populate key from template
+	// populate key algorithm
+	if (strcmp(options->export_key_algorithm, "TDES") == 0) {
+		key.algorithm = TR31_KEY_ALGORITHM_TDES;
+	} else if (strcmp(options->export_key_algorithm, "AES") == 0) {
+		key.algorithm = TR31_KEY_ALGORITHM_AES;
+	} else {
+		fprintf(stderr, "%s\n", tr31_get_error_string(TR31_ERROR_UNSUPPORTED_ALGORITHM));
+		return 1;
+	}
 
-		// populate key algorithm
-		if (strcmp(options->export_key_algorithm, "TDES") == 0) {
-			key->algorithm = TR31_KEY_ALGORITHM_TDES;
-		} else if (strcmp(options->export_key_algorithm, "AES") == 0) {
-			key->algorithm = TR31_KEY_ALGORITHM_AES;
-		} else {
-			fprintf(stderr, "%s\n", tr31_get_error_string(TR31_ERROR_UNSUPPORTED_ALGORITHM));
-			return 1;
-		}
+	// populate key attributes from template
+	if (strcmp(options->export_template, "KEK") == 0) {
+		key.usage = TR31_KEY_USAGE_KEK;
+		key.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
+		key.key_version = TR31_KEY_VERSION_IS_UNUSED;
+		key.exportability = TR31_KEY_EXPORT_TRUSTED;
 
-		// populate key attributes from template
-		if (strcmp(options->export_template, "KEK") == 0) {
-			key->usage = TR31_KEY_USAGE_KEK;
-			key->mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
-			key->key_version = TR31_KEY_VERSION_IS_UNUSED;
-			key->exportability = TR31_KEY_EXPORT_TRUSTED;
+	} else if (strcmp(options->export_template, "BDK") == 0) {
+		key.usage = TR31_KEY_USAGE_BDK;
+		key.mode_of_use = TR31_KEY_MODE_OF_USE_DERIVE;
+		key.key_version = TR31_KEY_VERSION_IS_UNUSED;
+		key.exportability = TR31_KEY_EXPORT_TRUSTED;
 
-		} else if (strcmp(options->export_template, "BDK") == 0) {
-			key->usage = TR31_KEY_USAGE_BDK;
-			key->mode_of_use = TR31_KEY_MODE_OF_USE_DERIVE;
-			key->key_version = TR31_KEY_VERSION_IS_UNUSED;
-			key->exportability = TR31_KEY_EXPORT_TRUSTED;
-
-		} else if (strcmp(options->export_template, "IK") == 0 ||
-			strcmp(options->export_template, "IPEK") == 0
-		) {
-			// see ANSI X9.24-3:2017, 6.5.3 "Update Initial Key"
-			key->usage = TR31_KEY_USAGE_DUKPT_IPEK;
-			key->mode_of_use = TR31_KEY_MODE_OF_USE_DERIVE;
-			key->key_version = TR31_KEY_VERSION_IS_UNUSED;
-			key->exportability = TR31_KEY_EXPORT_NONE;
-			// TODO: IK (or legacy KS) optional block is required
-
-		} else {
-			fprintf(stderr, "Unsupported template \"%s\"\n", options->export_template);
-			return 1;
-		}
-
-	} else if (options->export_header) { // populate key from TR-31 header
-
-		const struct tr31_header_t* header = (const struct tr31_header_t*)options->export_header;
-		key->usage = ntohs(header->key_usage);
-		key->algorithm = header->algorithm;
-		key->mode_of_use = header->mode_of_use;
-
-		r = tr31_key_set_key_version(key, header->key_version);
-		if (r) {
-			fprintf(stderr, "Failed to extract key version field from TR-31 export header; error %d: %s\n", r, tr31_get_error_string(r));
-			return 1;
-		}
-
-		key->exportability = header->exportability;
+	} else if (strcmp(options->export_template, "IK") == 0 ||
+		strcmp(options->export_template, "IPEK") == 0
+	) {
+		// see ANSI X9.24-3:2017, 6.5.3 "Update Initial Key"
+		key.usage = TR31_KEY_USAGE_DUKPT_IPEK;
+		key.mode_of_use = TR31_KEY_MODE_OF_USE_DERIVE;
+		key.key_version = TR31_KEY_VERSION_IS_UNUSED;
+		key.exportability = TR31_KEY_EXPORT_NONE;
+		// TODO: IK (or legacy KS) optional block is required
 
 	} else {
-		// Internal error
-		fprintf(stderr, "%s\n", tr31_get_error_string(-1));
+		fprintf(stderr, "Unsupported template \"%s\"\n", options->export_template);
 		return 1;
 	}
 
 	// populate key data
-	key->length = options->export_key_buf_len;
-	key->data = (void*)options->export_key_buf;
+	// avoid tr31_key_set_data() here to avoid tr31_key_release() later
+	key.length = options->export_key_buf_len;
+	key.data = (void*)options->export_key_buf;
+
+	// populate TR-31 context object
+	r = tr31_init(options->export_format_version, &key, tr31_ctx);
+	if (r) {
+		fprintf(stderr, "tr31_init() failed; r=%d\n", r);
+		return 1;
+	}
+
+	return 0;
+}
+
+// TR-31 export header helper function
+static int populate_tr31_from_header(const struct tr31_tool_options_t* options, struct tr31_ctx_t* tr31_ctx)
+{
+	int r;
+
+	size_t export_header_len = strlen(options->export_header);
+	size_t tmp_key_block_len = export_header_len + 16 + 1;
+	if (tmp_key_block_len > 9999) {
+		fprintf(stderr, "Export header too large\n");
+		return 1;
+	}
+
+	// build fake key block to allow parsing of header
+	char tmp_keyblock[tmp_key_block_len];
+	memcpy(tmp_keyblock, options->export_header, export_header_len);
+	memset(tmp_keyblock + export_header_len, '0', sizeof(tmp_keyblock) - export_header_len - 1);
+	tmp_keyblock[sizeof(tmp_keyblock) - 1] = 0;
+
+	// fix length field to allow parsing of header
+	char tmp[5];
+	snprintf(tmp, sizeof(tmp), "%04zu", tmp_key_block_len - 1);
+	memcpy(tmp_keyblock + 1, tmp, 4);
+
+	// misuse TR-31 import function to parse header into TR-31 context object
+	r = tr31_import(tmp_keyblock, NULL, tr31_ctx);
+	// attempt to report only header parsing errors
+	if (r &&
+		r != TR31_ERROR_INVALID_LENGTH &&
+		r < TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA
+	) {
+		fprintf(stderr, "Error while parsing export header; error %d: %s\n", r, tr31_get_error_string(r));
+		return 1;
+	}
+
+	// populate key data
+	r = tr31_key_set_data(&tr31_ctx->key, options->export_key_buf, options->export_key_buf_len);
+	if (r) {
+		fprintf(stderr, "tr31_key_set_data() failed; r=%d\n", r);
+		return 1;
+	}
+
 	return 0;
 }
 
@@ -489,35 +508,38 @@ static int do_tr31_export(const struct tr31_tool_options_t* options)
 {
 	int r;
 	unsigned int export_format_version;
-	struct tr31_key_t kbpk;
-	struct tr31_key_t key;
 	struct tr31_ctx_t tr31_ctx;
+	struct tr31_key_t kbpk;
 	char key_block[1024];
 
-	// determine the TR-31 format version to use
-	if (options->export_header) {
-		export_format_version = options->export_header[0];
-	} else {
+	// populate TR-31 context object
+	if (options->export_template) {
+		// options determine the TR-31 format version to use
 		export_format_version = options->export_format_version;
+
+		// populate key from template
+		r = populate_tr31_from_template(options, &tr31_ctx);
+
+	} else if (options->export_header) {
+		// header determines the TR-31 format version to use
+		export_format_version = options->export_header[0];
+
+		// populate key from TR-31 header
+		r = populate_tr31_from_header(options, &tr31_ctx);
+
+	} else {
+		// Internal error
+		fprintf(stderr, "%s\n", tr31_get_error_string(-1));
+		return 1;
+	}
+	if (r) {
+		return r;
 	}
 
 	// populate key block protection key
 	r = populate_kbpk(options, export_format_version, &kbpk);
 	if (r) {
 		return r;
-	}
-
-	// populate key to be exported
-	r = populate_export_key(options, &key);
-	if (r) {
-		return 1;
-	}
-
-	// populate TR-31 context object
-	r = tr31_init(export_format_version, &key, &tr31_ctx);
-	if (r) {
-		fprintf(stderr, "tr31_init() failed; r=%d\n", r);
-		return 1;
 	}
 
 	// export TR-31 key block
