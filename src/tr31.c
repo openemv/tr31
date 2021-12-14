@@ -597,6 +597,7 @@ int tr31_import(
 	size_t key_block_len;
 	const struct tr31_header_t* header;
 	size_t opt_blk_len_total = 0;
+	unsigned int enc_block_size;
 	const void* ptr;
 
 	if (!key_block || !ctx) {
@@ -700,30 +701,43 @@ int tr31_import(
 		ptr += opt_blk_len;
 	}
 
-	// TR-31:2018, A.5.6 indicates that the total optional block length must
-	// be a multiple of 8
-	if (opt_blk_len_total & 0x7) {
-		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
-	}
-
-	// determine authenticator length based on format version
+	// validate key block format version
+	// set associated authenticator length
+	// set encryption block size for header length validation
 	switch (ctx->version) {
 		case TR31_VERSION_A:
 		case TR31_VERSION_C:
 			ctx->authenticator_length = 4; // 4 bytes; 8 ASCII hex digits
+			enc_block_size = DES_BLOCK_SIZE;
 			break;
 
 		case TR31_VERSION_B:
 			ctx->authenticator_length = 8; // 8 bytes; 16 ASCII hex digits
+			enc_block_size = DES_BLOCK_SIZE;
 			break;
 
 		case TR31_VERSION_D:
 			ctx->authenticator_length = 16; // 16 bytes; 32 ASCII hex digits
+			enc_block_size = AES_BLOCK_SIZE;
 			break;
 
 		default:
 			// invalid format version
 			return -1;
+	}
+
+	// TR-31:2018, A.2 (page 18) indicates that the total length of all
+	// optional blocks will be a must be a multiple of the encryption block
+	// size.
+	// TR-31:2018, A.5.6 indicates that the total optional block length must
+	// be a multiple of 8.
+	// TR-31:2018, A.5.6, table 11 indicates that optional block PB is used to
+	// bring the total length of all Optional Blocks in the key block to a
+	// multiple of the encryption block length.
+	// So we'll use the encryption block size which is determined by the TR-31
+	// format version
+	if (opt_blk_len_total & (enc_block_size-1)) {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 	}
 
 	// ensure that current pointer is valid for minimal payload and authenticator
@@ -916,6 +930,7 @@ int tr31_export(
 	int r;
 	struct tr31_header_t* header;
 	size_t opt_blk_len_total = 0;
+	unsigned int enc_block_size;
 	void* ptr;
 
 	if (!ctx || !kbpk || !key_block || !key_block_len) {
@@ -936,24 +951,28 @@ int tr31_export(
 
 	// validate key block format version
 	// set associated payload length and authenticator length
+	// set encryption block size for header padding
 	switch (ctx->version) {
 		case TR31_VERSION_A:
 		case TR31_VERSION_C:
 			// supported
 			ctx->payload_length = DES_CIPHERTEXT_LENGTH(sizeof(struct tr31_payload_t) + ctx->key.length);
 			ctx->authenticator_length = 4; // 4 bytes; 8 ASCII hex digits
+			enc_block_size = DES_BLOCK_SIZE;
 			break;
 
 		case TR31_VERSION_B:
 			// supported
 			ctx->payload_length = DES_CIPHERTEXT_LENGTH(sizeof(struct tr31_payload_t) + ctx->key.length);
 			ctx->authenticator_length = 8; // 8 bytes; 16 ASCII hex digits
+			enc_block_size = DES_BLOCK_SIZE;
 			break;
 
 		case TR31_VERSION_D:
 			// supported
 			ctx->payload_length = AES_CIPHERTEXT_LENGTH(sizeof(struct tr31_payload_t) + ctx->key.length);
 			ctx->authenticator_length = 16; // 16 bytes; 32 ASCII hex digits
+			enc_block_size = AES_BLOCK_SIZE;
 			break;
 
 		default:
@@ -1062,10 +1081,43 @@ int tr31_export(
 		ptr += opt_blk_len;
 	}
 
+	// TR-31:2018, A.2 (page 18) indicates that the total length of all
+	// optional blocks will be a must be a multiple of the encryption block
+	// size.
 	// TR-31:2018, A.5.6 indicates that the total optional block length must
-	// be a multiple of 8
-	if (opt_blk_len_total & 0x7) {
-		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	// be a multiple of 8.
+	// TR-31:2018, A.5.6, table 11 indicates that optional block PB is used to
+	// bring the total length of all Optional Blocks in the key block to a
+	// multiple of the encryption block length.
+	// So we'll use the encryption block size which is determined by the TR-31
+	// format version
+	if (opt_blk_len_total & (enc_block_size-1)) {
+		unsigned int pb_len = 4; // Minimum length of optional block PB
+
+		// compute required padding length
+		if ((opt_blk_len_total + pb_len) & (enc_block_size-1)) { // if further padding is required
+			pb_len = ((opt_blk_len_total + 4 + enc_block_size) & ~(enc_block_size-1)) - opt_blk_len_total;
+		}
+
+		if (ptr + pb_len - (void*)header > key_block_len) {
+			// optional block length exceeds total key block length
+			return TR31_ERROR_INVALID_LENGTH;
+		}
+
+		// populate optional block PB
+		struct tr31_opt_blk_t* opt_blk = ptr;
+		opt_blk->id = htons(TR31_OPT_BLOCK_PB);
+		int_to_hex(pb_len, opt_blk->length, sizeof(opt_blk->length));
+		memset(opt_blk->data, '0', pb_len - 4);
+
+		// update optional block count in header
+		int_to_dec(ctx->opt_blocks_count + 1, header->opt_blocks_count, sizeof(header->opt_blocks_count));
+
+		// update total block length
+		opt_blk_len_total += pb_len;
+
+		// advance current pointer
+		ptr += pb_len;
 	}
 
 	// determine final key block length

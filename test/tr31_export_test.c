@@ -376,11 +376,6 @@ int main(void)
 		fprintf(stderr, "tr31_opt_block_add_KP() failed; r=%d\n", r);
 		goto exit;
 	}
-	r = tr31_opt_block_add(&test_tr31, TR31_OPT_BLOCK_PB, NULL, 0); // 4 bytes of padding
-	if (r) {
-		fprintf(stderr, "tr31_opt_block_add() failed; r=%d\n", r);
-		goto exit;
-	}
 
 	print_buf("kbpk", test4_kbpk_raw, sizeof(test4_kbpk_raw));
 	r = tr31_key_set_data(&test4_kbpk, test4_kbpk_raw, sizeof(test4_kbpk_raw));
@@ -437,12 +432,6 @@ int main(void)
 	r = tr31_opt_block_add_HM(&test_tr31, TR31_OPT_BLOCK_HM_SHA256);
 	if (r) {
 		fprintf(stderr, "tr31_opt_block_add_HM() failed; r=%d\n", r);
-		goto exit;
-	}
-	const uint8_t test5_padding[] = { 0x00, 0x00, 0x00 };
-	r = tr31_opt_block_add(&test_tr31, TR31_OPT_BLOCK_PB, test5_padding, sizeof(test5_padding)); // 10 bytes of padding
-	if (r) {
-		fprintf(stderr, "tr31_opt_block_add() failed; r=%d\n", r);
 		goto exit;
 	}
 
