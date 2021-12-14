@@ -135,6 +135,37 @@ static const size_t test4_tr31_length_verify =
 	+ (2 /* key length */ + 16 /* key */ + 14 /* padding */) * 2
 	+ (16 /* authenticator */) * 2;
 
+// unfortunately no official TR-31:2018 HMAC test vectors are available
+// so here is a hand crafted one (which may be wrong)
+static const uint8_t test5_kbpk_raw[] = {
+	0x88, 0xE1, 0xAB, 0x2A, 0x2E, 0x3D, 0xD3, 0x8C, 0x1F, 0xA0, 0x39, 0xA5, 0x36, 0x50, 0x0C, 0xC8,
+	0xA8, 0x7A, 0xB9, 0xD6, 0x2D, 0xC9, 0x2C, 0x01, 0x05, 0x8F, 0xA7, 0x9F, 0x44, 0x65, 0x7D, 0xE6,
+};
+static struct tr31_key_t test5_kbpk = {
+	.usage = TR31_KEY_USAGE_TR31_KBPK,
+	.algorithm = TR31_KEY_ALGORITHM_AES,
+	.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC,
+	.length = 0,
+	.data = NULL,
+};
+static const uint8_t test5_key_raw[] = { 0x3F, 0x41, 0x9E, 0x1C, 0xB7, 0x07, 0x94, 0x42, 0xAA, 0x37, 0x47, 0x4C, 0x2E, 0xFB, 0xF8, 0xB8 };
+static const struct tr31_key_t test5_key = {
+	.usage = TR31_KEY_USAGE_HMAC,
+	.algorithm = TR31_KEY_ALGORITHM_HMAC,
+	.mode_of_use = TR31_KEY_MODE_OF_USE_MAC,
+	.key_version = TR31_KEY_VERSION_IS_VALID,
+	.key_version_value = 12,
+	.exportability = TR31_KEY_EXPORT_NONE,
+	.length = sizeof(test4_key_raw),
+	.data = (void*)test4_key_raw,
+};
+static const char test5_tr31_header_verify[] = "D0128M7HC12N0200HM0621PB0A000000";
+static const size_t test5_tr31_length_verify =
+	16 /* header */
+	+ 6 /* opt block HM */ + 10 /* opt block PB */
+	+ (2 /* key length */ + 16 /* key */ + 14 /* padding */) * 2
+	+ (16 /* authenticator */) * 2;
+
 static void print_buf(const char* buf_name, const void* buf, size_t length)
 {
 	const uint8_t* ptr = buf;
@@ -394,6 +425,70 @@ int main(void)
 	}
 	tr31_release(&test_tr31);
 
+	// unfortunately no official TR-31:2018 HMAC test vectors are available
+	// so here is a hand crafted one (which may be wrong)
+	printf("Test 5...\n");
+	print_buf("key", test5_key.data, test5_key.length);
+	r = tr31_init(TR31_VERSION_D, &test5_key, &test_tr31);
+	if (r) {
+		fprintf(stderr, "tr31_init() failed; r=%d\n", r);
+		goto exit;
+	}
+	r = tr31_opt_block_add_HM(&test_tr31, TR31_OPT_BLOCK_HM_SHA256);
+	if (r) {
+		fprintf(stderr, "tr31_opt_block_add_HM() failed; r=%d\n", r);
+		goto exit;
+	}
+	const uint8_t test5_padding[] = { 0x00, 0x00, 0x00 };
+	r = tr31_opt_block_add(&test_tr31, TR31_OPT_BLOCK_PB, test5_padding, sizeof(test5_padding)); // 10 bytes of padding
+	if (r) {
+		fprintf(stderr, "tr31_opt_block_add() failed; r=%d\n", r);
+		goto exit;
+	}
+
+	print_buf("kbpk", test5_kbpk_raw, sizeof(test5_kbpk_raw));
+	r = tr31_key_set_data(&test5_kbpk, test5_kbpk_raw, sizeof(test5_kbpk_raw));
+	if (r) {
+		fprintf(stderr, "tr31_key_set_data() failed; r=%d\n", r);
+		goto exit;
+	}
+
+	r = tr31_export(&test_tr31, &test5_kbpk, key_block, sizeof(key_block));
+	if (r) {
+		fprintf(stderr, "tr31_export() failed; r=%d\n", r);
+		goto exit;
+	}
+	printf("TR-31: %s\n", key_block);
+	if (strncmp(key_block, test5_tr31_header_verify, strlen(test5_tr31_header_verify)) != 0) {
+		fprintf(stderr, "TR-31 header encoding is incorrect\n");
+		fprintf(stderr, "%s\n%s\n", key_block, test5_tr31_header_verify);
+		r = 1;
+		goto exit;
+	}
+	if (strlen(key_block) != test5_tr31_length_verify) {
+		fprintf(stderr, "TR-31 length is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	tr31_release(&test_tr31);
+
+	// Verify and decrypt key block
+	r = tr31_import(key_block, &test5_kbpk, &test_tr31);
+	if (r) {
+		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		goto exit;
+	}
+	if (test_tr31.key.length != sizeof(test5_key_raw) ||
+		memcmp(test_tr31.key.data, test5_key_raw, sizeof(test5_key_raw)) != 0)
+	{
+		fprintf(stderr, "Key verification failed\n");
+		print_buf("key.data", test_tr31.key.data, test_tr31.key.length);
+		print_buf("expected", test5_key_raw, sizeof(test5_key_raw));
+		r = 1;
+		goto exit;
+	}
+	tr31_release(&test_tr31);
+
 	printf("All tests passed.\n");
 	r = 0;
 	goto exit;
@@ -404,5 +499,6 @@ exit:
 	tr31_key_release(&test2_kbpk);
 	tr31_key_release(&test3_kbpk);
 	tr31_key_release(&test4_kbpk);
+	tr31_key_release(&test5_kbpk);
 	return r;
 }

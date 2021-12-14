@@ -352,6 +352,20 @@ int tr31_opt_block_add_KC(struct tr31_ctx_t* ctx);
 int tr31_opt_block_add_KP(struct tr31_ctx_t* ctx);
 
 /**
+ * Add optional block 'HM' for HMAC hash algorithm of wrapped key to TR-31
+ * context object.
+ * @note This function requires an initialised TR-31 context object to be provided.
+ *
+ * @param ctx TR-31 context object
+ * @param hash_algorithm TR-31 HMAC hash algorithm (see TR-31:2018, A.5.9)
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. @see #tr31_error_t
+ */
+int tr31_opt_block_add_HM(
+	struct tr31_ctx_t* ctx,
+	uint8_t hash_algorithm
+);
+
+/**
  * Import TR-31 key block. This function will also decrypt the key data if possible.
  * @note This function will populate a new TR-31 context object.
  *       Use @ref tr31_release() to release internal resources when done.

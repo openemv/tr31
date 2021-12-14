@@ -579,6 +579,14 @@ int tr31_opt_block_add_KP(struct tr31_ctx_t* ctx)
 	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_KP, NULL, 0);
 }
 
+int tr31_opt_block_add_HM(
+	struct tr31_ctx_t* ctx,
+	uint8_t hash_algorithm
+)
+{
+	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_HM, &hash_algorithm, 1);
+}
+
 int tr31_import(
 	const char* key_block,
 	const struct tr31_key_t* kbpk,
