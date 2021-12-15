@@ -62,6 +62,11 @@ static int tr31_tdes_encrypt(const void* key, size_t key_len, const void* iv, co
 		return -1;
 	}
 
+	// only allow a single block for ECB block mode
+	if (!iv && plen != DES_BLOCK_SIZE) {
+		return -2;
+	}
+
 	mbedtls_des3_init(&ctx);
 
 	switch (key_len) {
@@ -74,11 +79,11 @@ static int tr31_tdes_encrypt(const void* key, size_t key_len, const void* iv, co
 			break;
 
 		default:
-			r = -2;
+			r = -3;
 			goto exit;
 	}
 	if (r) {
-		r = -3;
+		r = -4;
 		goto exit;
 	}
 
@@ -89,7 +94,7 @@ static int tr31_tdes_encrypt(const void* key, size_t key_len, const void* iv, co
 		r = mbedtls_des3_crypt_ecb(&ctx, plaintext, ciphertext);
 	}
 	if (r) {
-		r = -4;
+		r = -5;
 		goto exit;
 	}
 
@@ -113,6 +118,11 @@ static int tr31_tdes_decrypt(const void* key, size_t key_len, const void* iv, co
 		return -1;
 	}
 
+	// only allow a single block for ECB block mode
+	if (!iv && clen != DES_BLOCK_SIZE) {
+		return -2;
+	}
+
 	mbedtls_des3_init(&ctx);
 
 	switch (key_len) {
@@ -125,11 +135,11 @@ static int tr31_tdes_decrypt(const void* key, size_t key_len, const void* iv, co
 			break;
 
 		default:
-			r = -2;
+			r = -3;
 			goto exit;
 	}
 	if (r) {
-		r = -3;
+		r = -4;
 		goto exit;
 	}
 
@@ -140,7 +150,7 @@ static int tr31_tdes_decrypt(const void* key, size_t key_len, const void* iv, co
 		r = mbedtls_des3_crypt_ecb(&ctx, ciphertext, plaintext);
 	}
 	if (r) {
-		r = -4;
+		r = -5;
 		goto exit;
 	}
 
@@ -164,17 +174,22 @@ static int tr31_aes_encrypt(const void* key, size_t key_len, const void* iv, con
 		return -1;
 	}
 
+	// only allow a single block for ECB block mode
+	if (!iv && plen != AES_BLOCK_SIZE) {
+		return -2;
+	}
+
 	if (key_len != AES128_KEY_SIZE &&
 		key_len != AES192_KEY_SIZE &&
 		key_len != AES256_KEY_SIZE
 	) {
-		return -2;
+		return -3;
 	}
 
 	mbedtls_aes_init(&ctx);
 	r = mbedtls_aes_setkey_enc(&ctx, key, key_len * 8);
 	if (r) {
-		r = -3;
+		r = -4;
 		goto exit;
 	}
 
@@ -185,7 +200,7 @@ static int tr31_aes_encrypt(const void* key, size_t key_len, const void* iv, con
 		r = mbedtls_aes_crypt_ecb(&ctx, MBEDTLS_AES_ENCRYPT, plaintext, ciphertext);
 	}
 	if (r) {
-		r = -4;
+		r = -5;
 		goto exit;
 	}
 
@@ -209,17 +224,22 @@ static int tr31_aes_decrypt(const void* key, size_t key_len, const void* iv, con
 		return -1;
 	}
 
+	// only allow a single block for ECB block mode
+	if (!iv && clen != AES_BLOCK_SIZE) {
+		return -2;
+	}
+
 	if (key_len != AES128_KEY_SIZE &&
 		key_len != AES192_KEY_SIZE &&
 		key_len != AES256_KEY_SIZE
 	) {
-		return -2;
+		return -3;
 	}
 
 	mbedtls_aes_init(&ctx);
 	r = mbedtls_aes_setkey_dec(&ctx, key, key_len * 8);
 	if (r) {
-		r = -3;
+		r = -4;
 		goto exit;
 	}
 
@@ -230,7 +250,7 @@ static int tr31_aes_decrypt(const void* key, size_t key_len, const void* iv, con
 		r = mbedtls_aes_crypt_ecb(&ctx, MBEDTLS_AES_DECRYPT, ciphertext, plaintext);
 	}
 	if (r) {
-		r = -4;
+		r = -5;
 		goto exit;
 	}
 
@@ -271,6 +291,11 @@ static int tr31_tdes_encrypt(const void* key, size_t key_len, const void* iv, co
 		return -1;
 	}
 
+	// only allow a single block for ECB block mode
+	if (!iv && plen != DES_BLOCK_SIZE) {
+		return -2;
+	}
+
 	ctx = EVP_CIPHER_CTX_new();
 
 	switch (key_len) {
@@ -291,11 +316,11 @@ static int tr31_tdes_encrypt(const void* key, size_t key_len, const void* iv, co
 			break;
 
 		default:
-			r = -2;
+			r = -3;
 			goto exit;
 	}
 	if (!r) {
-		r = -3;
+		r = -4;
 		goto exit;
 	}
 
@@ -305,14 +330,14 @@ static int tr31_tdes_encrypt(const void* key, size_t key_len, const void* iv, co
 	clen = 0;
 	r = EVP_EncryptUpdate(ctx, ciphertext, &clen, plaintext, plen);
 	if (!r) {
-		r = -4;
+		r = -5;
 		goto exit;
 	}
 
 	clen2 = 0;
 	r = EVP_EncryptFinal_ex(ctx, ciphertext + clen, &clen2);
 	if (!r) {
-		r = -5;
+		r = -6;
 		goto exit;
 	}
 
@@ -336,6 +361,11 @@ static int tr31_tdes_decrypt(const void* key, size_t key_len, const void* iv, co
 		return -1;
 	}
 
+	// only allow a single block for ECB block mode
+	if (!iv && clen != DES_BLOCK_SIZE) {
+		return -2;
+	}
+
 	ctx = EVP_CIPHER_CTX_new();
 
 	switch (key_len) {
@@ -356,11 +386,11 @@ static int tr31_tdes_decrypt(const void* key, size_t key_len, const void* iv, co
 			break;
 
 		default:
-			r = -2;
+			r = -3;
 			goto exit;
 	}
 	if (!r) {
-		r = -3;
+		r = -4;
 		goto exit;
 	}
 
@@ -370,14 +400,14 @@ static int tr31_tdes_decrypt(const void* key, size_t key_len, const void* iv, co
 	plen = 0;
 	r = EVP_DecryptUpdate(ctx, plaintext, &plen, ciphertext, clen);
 	if (!r) {
-		r = -4;
+		r = -5;
 		goto exit;
 	}
 
 	plen2 = 0;
 	r = EVP_DecryptFinal_ex(ctx, plaintext + plen, &plen2);
 	if (!r) {
-		r = -5;
+		r = -6;
 		goto exit;
 	}
 
@@ -399,6 +429,11 @@ static int tr31_aes_encrypt(const void* key, size_t key_len, const void* iv, con
 	// ensure that plaintext length is a multiple of the AES block length
 	if ((plen & (AES_BLOCK_SIZE-1)) != 0) {
 		return -1;
+	}
+
+	// only allow a single block for ECB block mode
+	if (!iv && plen != AES_BLOCK_SIZE) {
+		return -2;
 	}
 
 	ctx = EVP_CIPHER_CTX_new();
@@ -429,11 +464,11 @@ static int tr31_aes_encrypt(const void* key, size_t key_len, const void* iv, con
 			break;
 
 		default:
-			r = -2;
+			r = -3;
 			goto exit;
 	}
 	if (!r) {
-		r = -3;
+		r = -4;
 		goto exit;
 	}
 
@@ -443,14 +478,14 @@ static int tr31_aes_encrypt(const void* key, size_t key_len, const void* iv, con
 	clen = 0;
 	r = EVP_EncryptUpdate(ctx, ciphertext, &clen, plaintext, plen);
 	if (!r) {
-		r = -4;
+		r = -5;
 		goto exit;
 	}
 
 	clen2 = 0;
 	r = EVP_EncryptFinal_ex(ctx, ciphertext + clen, &clen2);
 	if (!r) {
-		r = -5;
+		r = -6;
 		goto exit;
 	}
 
@@ -472,6 +507,11 @@ static int tr31_aes_decrypt(const void* key, size_t key_len, const void* iv, con
 	// ensure that ciphertext length is a multiple of the AES block length
 	if ((clen & (AES_BLOCK_SIZE-1)) != 0) {
 		return -1;
+	}
+
+	// only allow a single block for ECB block mode
+	if (!iv && clen != AES_BLOCK_SIZE) {
+		return -2;
 	}
 
 	ctx = EVP_CIPHER_CTX_new();
@@ -502,11 +542,11 @@ static int tr31_aes_decrypt(const void* key, size_t key_len, const void* iv, con
 			break;
 
 		default:
-			r = -2;
+			r = -3;
 			goto exit;
 	}
 	if (!r) {
-		r = -3;
+		r = -4;
 		goto exit;
 	}
 
@@ -516,14 +556,14 @@ static int tr31_aes_decrypt(const void* key, size_t key_len, const void* iv, con
 	plen = 0;
 	r = EVP_DecryptUpdate(ctx, plaintext, &plen, ciphertext, clen);
 	if (!r) {
-		r = -4;
+		r = -5;
 		goto exit;
 	}
 
 	plen2 = 0;
 	r = EVP_DecryptFinal_ex(ctx, plaintext + plen, &plen2);
 	if (!r) {
-		r = -5;
+		r = -6;
 		goto exit;
 	}
 
@@ -561,12 +601,12 @@ static int tr31_memcmp(const void* a, const void* b, size_t n)
 
 int tr31_tdes_encrypt_ecb(const void* key, size_t key_len, const void* plaintext, void* ciphertext)
 {
-	return tr31_tdes_encrypt(key, key_len, NULL, plaintext, DES_KEY_SIZE, ciphertext);
+	return tr31_tdes_encrypt(key, key_len, NULL, plaintext, DES_BLOCK_SIZE, ciphertext);
 }
 
 int tr31_tdes_decrypt_ecb(const void* key, size_t key_len, const void* ciphertext, void* plaintext)
 {
-	return tr31_tdes_decrypt(key, key_len, NULL, ciphertext, DES_KEY_SIZE, plaintext);
+	return tr31_tdes_decrypt(key, key_len, NULL, ciphertext, DES_BLOCK_SIZE, plaintext);
 }
 
 int tr31_tdes_encrypt_cbc(const void* key, size_t key_len, const void* iv, const void* plaintext, size_t plen, void* ciphertext)
