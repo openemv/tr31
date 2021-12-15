@@ -436,7 +436,16 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 				tr31_get_opt_block_id_ascii(tr31_ctx.opt_blocks[i].id, ascii_buf, sizeof(ascii_buf)),
 				tr31_get_opt_block_id_string(tr31_ctx.opt_blocks[i].id)
 			);
-			print_hex(tr31_ctx.opt_blocks[i].data, tr31_ctx.opt_blocks[i].data_length);
+			if ((tr31_ctx.opt_blocks[i].id == TR31_OPT_BLOCK_KC || tr31_ctx.opt_blocks[i].id == TR31_OPT_BLOCK_KP) &&
+				tr31_ctx.opt_blocks[i].data_length >= 1
+			) {
+				// for optional blocks involving KCVs, skip the first byte (KCV algorithm)
+				// the first byte will be decoded by tr31_get_opt_block_data_string()
+				print_hex(tr31_ctx.opt_blocks[i].data + 1, tr31_ctx.opt_blocks[i].data_length - 1);
+			} else {
+				// print all optional block data
+				print_hex(tr31_ctx.opt_blocks[i].data, tr31_ctx.opt_blocks[i].data_length);
+			}
 
 			opt_block_data_str = tr31_get_opt_block_data_string(&tr31_ctx.opt_blocks[i]);
 			if (opt_block_data_str) {
