@@ -186,7 +186,7 @@ struct tr31_ctx_t {
 	struct tr31_opt_ctx_t* opt_blocks; ///< TR-31 optional block context objects
 
 	size_t header_length; ///< TR-31 header data length in bytes, including optional blocks
-	void* header; ///< TR-31 header data, including optional blocks
+	const void* header; ///< TR-31 header data, including optional blocks
 
 	size_t payload_length; ///< TR-31 payload data length in bytes
 	void* payload; ///< TR-31 payload data

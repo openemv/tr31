@@ -746,10 +746,9 @@ int tr31_import(
 		goto error;
 	}
 
-	// add header data to context object
+	// update header data in context object
 	ctx->header_length = ptr - (void*)header;
-	ctx->header = calloc(1, ctx->header_length);
-	memcpy(ctx->header, header, ctx->header_length);
+	ctx->header = (void*)header;
 
 	// determine payload length
 	size_t key_block_payload_length = key_block_len - ctx->header_length - (ctx->authenticator_length * 2);
@@ -1120,10 +1119,14 @@ int tr31_export(
 		ptr += pb_len;
 	}
 
+	// update header data in context object
+	ctx->header_length = ptr - (void*)header;
+	ctx->header = (void*)header;
+
 	// determine final key block length
 	// this is required before authenticator can be generated
-	size_t final_key_block_len = sizeof(*header)
-		+ opt_blk_len_total
+	size_t final_key_block_len =
+		+ ctx->header_length
 		+ (ctx->payload_length * 2)
 		+ (ctx->authenticator_length * 2);
 	if (final_key_block_len > key_block_len) {
@@ -1133,11 +1136,6 @@ int tr31_export(
 	// update key block length in header
 	ctx->length = final_key_block_len;
 	int_to_dec(ctx->length, header->length, sizeof(header->length));
-
-	// add header data to context object
-	ctx->header_length = ptr - (void*)header;
-	ctx->header = calloc(1, ctx->header_length);
-	memcpy(ctx->header, header, ctx->header_length);
 
 	switch (ctx->version) {
 		case TR31_VERSION_A:
@@ -1615,10 +1613,6 @@ void tr31_release(struct tr31_ctx_t* ctx)
 		ctx->opt_blocks = NULL;
 	}
 
-	if (ctx->header) {
-		free(ctx->header);
-		ctx->header = NULL;
-	}
 	if (ctx->payload) {
 		free(ctx->payload);
 		ctx->payload = NULL;
