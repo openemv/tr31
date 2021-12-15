@@ -64,7 +64,12 @@ install(FILES
 install(EXPORT tr31Targets
 	FILE tr31Targets.cmake
 	DESTINATION "${TR31_INSTALL_CMAKEDIR}"
+	NAMESPACE tr31::
 	COMPONENT tr31_development
+)
+export(EXPORT tr31Targets
+	FILE "${CMAKE_CURRENT_BINARY_DIR}/cmake/tr31Targets.cmake"
+	NAMESPACE tr31::
 )
 
 # generate and install pkgconfig file

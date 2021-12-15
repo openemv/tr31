@@ -43,7 +43,7 @@ set_target_properties(tr31
 	PROPERTIES
 		PUBLIC_HEADER tr31.h
 		VERSION ${CMAKE_PROJECT_VERSION}
-		SOVERSION ${CMAKE_PROJECT_VERSION_MAJOR}
+		SOVERSION ${CMAKE_PROJECT_VERSION_MAJOR}.${CMAKE_PROJECT_VERSION_MINOR}
 )
 target_include_directories(tr31 PRIVATE ${CMAKE_CURRENT_BINARY_DIR}) # for generated config file
 target_include_directories(tr31 INTERFACE
