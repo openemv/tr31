@@ -29,9 +29,9 @@ __BEGIN_DECLS
 
 /// TR-31 format versions
 enum tr31_version_t {
-	TR31_VERSION_A = 'A', ///< TR-31 format version A as defined in TR-31:2005; uses Key Variant Binding Method
-	TR31_VERSION_B = 'B', ///< TR-31 format version B as defined in TR-31:2010; uses Key Derivation Binding Method
-	TR31_VERSION_C = 'C', ///< TR-31 format version C as defined in TR-31:2010; uses Key Variant Binding Method
+	TR31_VERSION_A = 'A', ///< TR-31 format version A as defined in TR-31:2005; uses TDES Key Variant Binding Method
+	TR31_VERSION_B = 'B', ///< TR-31 format version B as defined in TR-31:2010; uses TDES Key Derivation Binding Method
+	TR31_VERSION_C = 'C', ///< TR-31 format version C as defined in TR-31:2010; uses TDES Key Variant Binding Method
 	TR31_VERSION_D = 'D', ///< TR-31 format version D as defined in TR-31:2018; uses AES Key Derivation Binding Method
 };
 
@@ -186,13 +186,13 @@ struct tr31_ctx_t {
 	struct tr31_opt_ctx_t* opt_blocks; ///< TR-31 optional block context objects
 
 	size_t header_length; ///< TR-31 header data length in bytes, including optional blocks
-	const void* header; ///< TR-31 header data, including optional blocks
+	const void* header; ///< Pointer to TR-31 header data for internal use only. @warning For internal use only!
 
 	size_t payload_length; ///< TR-31 payload data length in bytes
-	void* payload; ///< TR-31 payload data
+	void* payload; ///< Decoded TR-31 payload data for internal use only. @warning For internal use only!
 
 	size_t authenticator_length; ///< TR-31 authenticator data length in bytes
-	void* authenticator; ///< TR-31 authenticator data
+	void* authenticator; ///< Decoded TR-31 authenticator data for internal use only. @warning For internal use only!
 };
 
 /// TR-31 library errors
