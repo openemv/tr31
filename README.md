@@ -128,7 +128,6 @@ tr31-tool --kbpk AB2E09DB3EF0BA71E0CE6CD755C23A3B --export BF82DAC6A33DF92CE66E1
 Roadmap
 =======
 
-* Implement authoring of optional blocks using TR-31 tool
 * Implement authoring of key blocks for HMAC keys using TR-31 tool
 * Implement key block translation
 * Implement key block component combination

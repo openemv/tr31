@@ -122,7 +122,7 @@ if(BUILD_TESTING)
 	)
 	set_tests_properties(tr31_tool_test6
 		PROPERTIES
-			PASS_REGULAR_EXPRESSION "^B0080B1TX00N0000"
+			WILL_FAIL TRUE # because --export-opt-block-KS is absent
 	)
 
 	add_test(NAME tr31_tool_test7
@@ -163,5 +163,53 @@ if(BUILD_TESTING)
 	set_tests_properties(tr31_tool_test11
 		PROPERTIES
 			PASS_REGULAR_EXPRESSION "^D0112K0AB00E0000"
+	)
+
+	add_test(NAME tr31_tool_test12
+		COMMAND tr31-tool --kbpk 1D22BF32387C600AD97F9B97A51311AC --export E8BC63E5479455E26577F715D587FE68 --export-key-algorithm TDES --export-format-version B --export-template IK --export-opt-block-KS FFFF00A0200001E00000
+	)
+	set_tests_properties(tr31_tool_test12
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^B0104B1TX00N0100KS18FFFF00A0200001E00000"
+	)
+
+	add_test(NAME tr31_tool_test13
+		COMMAND tr31-tool --kbpk 1D22BF32387C600AD97F9B97A51311AC --export E8BC63E5479455E26577F715D587FE68 --export-header B0000B1TX00N0000 --export-opt-block-KS FFFF00A0200001E00000
+	)
+	set_tests_properties(tr31_tool_test13
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^B0104B1TX00N0100KS18FFFF00A0200001E00000"
+	)
+
+	add_test(NAME tr31_tool_test14
+		COMMAND tr31-tool --kbpk B8ED59E0A279A295E9F5ED7944FD06B9 --export EDB380DD340BC2620247D445F5B8D678 --export-key-algorithm TDES --export-format-version C --export-template BDK --export-opt-block-KC --export-opt-block-KP
+	)
+	set_tests_properties(tr31_tool_test14
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^C0096B0TX00E0200KC0C00F4B08DKP0C002F0EEA"
+	)
+
+	add_test(NAME tr31_tool_test15
+		COMMAND tr31-tool --kbpk 88E1AB2A2E3DD38C1FA039A536500CC8A87AB9D62DC92C01058FA79F44657DE6 --export 3F419E1CB7079442AA37474C2EFBF8B8 --export-key-algorithm AES --export-format-version D --export-template KEK --export-opt-block-KC --export-opt-block-KP
+	)
+	set_tests_properties(tr31_tool_test15
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^D0144K0AB00E0200KC100108793E25ABKP10012331550BC9"
+	)
+
+	add_test(NAME tr31_tool_test16
+		COMMAND tr31-tool --kbpk 4141414141414141414141414141414141414141414141414141414141414141 --export 1273671EA26AC29AFA4D1084127652A1 --export-key-algorithm AES --export-format-version D --export-template IK --export-opt-block-IK 1234567890123456
+	)
+	set_tests_properties(tr31_tool_test16
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^D0144B1AX00N0200IK141234567890123456PB0C00000000"
+	)
+
+	add_test(NAME tr31_tool_test17
+		COMMAND tr31-tool --kbpk 4141414141414141414141414141414141414141414141414141414141414141 --export 1273671EA26AC29AFA4D1084127652A1 --export-header D0000B1AX00N0000 --export-opt-block-IK 1234567890123456
+	)
+	set_tests_properties(tr31_tool_test17
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^D0144B1AX00N0200IK141234567890123456PB0C00000000"
 	)
 endif()
