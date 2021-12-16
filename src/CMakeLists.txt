@@ -36,6 +36,17 @@ else()
 	set(TR31_PKGCONFIG_LIBS_PRIV "-lcrypto" PARENT_SCOPE)
 endif()
 
+include(CheckFunctionExists)
+check_function_exists("argp_parse" argp_FOUND)
+option(FETCH_ARGP "Download and build argp-standalone")
+if(NOT argp_FOUND)
+	if(FETCH_ARGP)
+		include(FetchArgpStandalone)
+	else()
+		message(FATAL_ERROR "Could NOT find argp on target system. Enable FETCH_ARGP to download and build argp-standalone.")
+	endif()
+endif()
+
 include(GNUInstallDirs) # provides CMAKE_INSTALL_* variables and good defaults for install()
 
 # generate config file for internal use only
@@ -78,6 +89,9 @@ install(TARGETS tr31
 
 add_executable(tr31-tool tr31-tool.c)
 target_link_libraries(tr31-tool tr31)
+if(TARGET argp::argp)
+	target_link_libraries(tr31-tool argp::argp)
+endif()
 install(TARGETS tr31-tool
 	RUNTIME
 		COMPONENT tr31_runtime
