@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE pkgmetadata SYSTEM "http://www.gentoo.org/dtd/metadata.dtd">
+<pkgmetadata>
+	<maintainer type="person">
+		<email>leon@onoconnect.com</email>
+		<name>Leon Lynch</name>
+	</maintainer>
+
+	<use>
+		<flag name="mbedtls">Use MbedTLS as the crypto library</flag>
+		<flag name="openssl">Use OpenSSL as the crypto library</flag>
+	</use>
+</pkgmetadata>
