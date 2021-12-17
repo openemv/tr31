@@ -14,6 +14,10 @@
 # This module also provides the following imported targets:
 # - argp::argp (library)
 
+# This module will use ARGP_OSX_ARCHITECTURES to set the binary architectures
+# for the build. ARGP_OSX_ARCHITECTURES has the same format as
+# CMAKE_OSX_ARCHITECTURES
+
 include(FetchContent)
 
 message(CHECK_START "Downloading argp-standalone...")
@@ -57,8 +61,12 @@ if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
 	)
 elseif(CMAKE_C_COMPILER_ID STREQUAL "AppleClang")
 	# The GCC flavour of AppleClang is required to build argp-standalone
+	# Also pass the appropriate -arch flags
+	foreach(arch IN LISTS ARGP_OSX_ARCHITECTURES)
+		string(APPEND argp_CFLAGS " -arch ${arch}")
+	endforeach()
 	execute_process(
-		COMMAND ./configure CC=/usr/bin/gcc
+		COMMAND ./configure CC=/usr/bin/gcc CFLAGS=${argp_CFLAGS}
 		WORKING_DIRECTORY ${argp_SOURCE_DIR}
 	)
 else()
@@ -97,6 +105,7 @@ set(argp_INCLUDE_DIRS "${argp_INCLUDE_DIR}")
 set(argp_LIBRARIES "${argp_LIBRARY}")
 
 mark_as_advanced(
+	argp_CFLAGS
 	argp_INCLUDE_DIR
 	argp_LIBRARY
 )
