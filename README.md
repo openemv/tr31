@@ -12,6 +12,14 @@ Currently this library implements parsing/decryption and encoding/encryption
 of TR-31 format version A, B, C, and D. Various helper functions are also
 available to stringify TR-31 header attributes.
 
+Dependencies
+============
+
+* C11 compiler such as GCC or Clang
+* CMake
+* TR-31 library requires MbedTLS (preferred), or OpenSSL
+* TR-31 tool requires argp (either via Glibc or a standalone implementation)
+
 Build
 =====
 
@@ -94,6 +102,24 @@ rm -Rf build &&
 cmake -B build -DCMAKE_BUILD_TYPE="RelWithDebInfo" -DCMAKE_INSTALL_PREFIX=/usr -DBUILD_SHARED_LIBS=YES -DBUILD_DOCS=YES -DCPACK_COMPONENTS_GROUPING=ALL_COMPONENTS_IN_ONE &&
 cmake --build build &&
 cmake --build build --target package
+```
+
+MacOS / Windows
+===============
+
+On platforms such as MacOS or Windows where static linking is desirable and
+dependencies such as MbedTLS or argp may be unavailable, the `FETCH_MBEDTLS`
+and `FETCH_ARGP` options can be specified when generating the build system.
+
+In addition, MacOS universal binaries can be built by specifying the desired
+architectures using the `CMAKE_OSX_ARCHITECTURES` option.
+
+This is an example of how a self-contained, static, universal binary can be
+built from scratch for MacOS:
+```
+rm -Rf build &&
+cmake -B build -DCMAKE_BUILD_TYPE="RelWithDebInfo" -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" -DFETCH_MBEDTLS=YES -DFETCH_ARGP=YES &&
+cmake --build build
 ```
 
 Usage:
