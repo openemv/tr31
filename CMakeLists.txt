@@ -22,7 +22,7 @@ if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
 	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -ggdb")
 endif()
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/")
 
 include(CTest)
 
@@ -102,8 +102,8 @@ if(BASH_COMPLETION_FOUND)
 endif()
 
 # generate and install doxygen documentation
-find_package(Doxygen) # optional for generating doxygen files
 option(BUILD_DOCS "Build documentation")
+find_package(Doxygen) # optional for generating doxygen files
 if(Doxygen_FOUND)
 	# use doxygen to generate HTML
 	set(DOXYGEN_GENERATE_HTML YES)

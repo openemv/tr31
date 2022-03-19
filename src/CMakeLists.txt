@@ -57,6 +57,7 @@ configure_file(
 	tr31_config.h
 )
 
+# TR-31 library
 add_library(tr31 tr31.c tr31_crypto.c)
 set_target_properties(tr31
 	PROPERTIES
@@ -70,11 +71,22 @@ target_include_directories(tr31 INTERFACE
 	$<INSTALL_INTERFACE:include/${PROJECT_NAME}>
 )
 if(MbedTLS_FOUND)
-	target_link_libraries(tr31 MbedTLS::mbedcrypto)
+	target_link_libraries(tr31 PRIVATE MbedTLS::mbedcrypto)
 elseif(OpenSSL_FOUND)
-	target_link_libraries(tr31 OpenSSL::Crypto)
+	target_link_libraries(tr31 PRIVATE OpenSSL::Crypto)
 endif()
-install(TARGETS tr31
+
+# TR-31 command line tool
+add_executable(tr31-tool tr31-tool.c)
+target_link_libraries(tr31-tool PRIVATE tr31)
+if(TARGET argp::argp)
+	target_link_libraries(tr31-tool PRIVATE argp::argp)
+endif()
+
+install(
+	TARGETS
+		tr31
+		tr31-tool
 	EXPORT tr31Targets # for use by install(EXPORT) command
 	PUBLIC_HEADER
 		DESTINATION "include/${PROJECT_NAME}"
@@ -86,16 +98,6 @@ install(TARGETS tr31
 		NAMELINK_COMPONENT tr31_development
 	ARCHIVE
 		COMPONENT tr31_development
-)
-
-add_executable(tr31-tool tr31-tool.c)
-target_link_libraries(tr31-tool tr31)
-if(TARGET argp::argp)
-	target_link_libraries(tr31-tool argp::argp)
-endif()
-install(TARGETS tr31-tool
-	RUNTIME
-		COMPONENT tr31_runtime
 )
 
 if(BUILD_TESTING)

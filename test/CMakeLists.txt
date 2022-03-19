@@ -7,7 +7,7 @@
 
 cmake_minimum_required(VERSION 3.16)
 
-if (BUILD_TESTING)
+if(BUILD_TESTING)
 	add_executable(tr31_decode_test tr31_decode_test.c)
 	target_link_libraries(tr31_decode_test tr31)
 	add_test(tr31_decode_test tr31_decode_test)
