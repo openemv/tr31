@@ -71,7 +71,7 @@ static void print_hex(const void* buf, size_t length);
 
 // argp option keys
 enum tr31_tool_option_keys_t {
-	TR31_TOOL_OPTION_IMPORT,
+	TR31_TOOL_OPTION_IMPORT = 1,
 	TR31_TOOL_OPTION_EXPORT,
 	TR31_TOOL_OPTION_EXPORT_KEY_ALGORITHM,
 	TR31_TOOL_OPTION_EXPORT_FORMAT_VERSION,
