@@ -6,14 +6,14 @@ most uses of this standard involve dedicated security hardware, this
 implementation is mostly for validation and debugging purposes.
 
 Features
-========
+--------
 
 Currently this library implements parsing/decryption and encoding/encryption
 of TR-31 format version A, B, C, and D. Various helper functions are also
 available to stringify TR-31 header attributes.
 
 Dependencies
-============
+------------
 
 * C11 compiler such as GCC or Clang
 * CMake
@@ -21,7 +21,7 @@ Dependencies
 * TR-31 tool requires argp (either via Glibc or a standalone implementation)
 
 Build
-=====
+-----
 
 This project uses CMake and can be built using the usual CMake steps.
 
@@ -39,7 +39,7 @@ Consult the CMake documentation regarding additional options that can be
 specified in the above steps.
 
 Testing
-=======
+-------
 
 The tests can be run using the `test` target of the generated build system.
 
@@ -56,7 +56,7 @@ make test
 ```
 
 Documentation
-=============
+-------------
 
 If Doxygen was found by CMake, then HTML documentation can be generated using
 the `docs` target of the generated build system.
@@ -77,7 +77,7 @@ Alternatively, the `BUILD_DOCS` option can be specified when generating the
 build system by adding `-DBUILD_DOCS=ON`.
 
 Packaging
-=========
+---------
 
 If the required packaging tools were found (`dpkg` and/or `rpmbuild` on Linux)
 by CMake, packages can be created using the `package` target of the generated
@@ -105,7 +105,7 @@ cmake --build build --target package
 ```
 
 MacOS / Windows
-===============
+---------------
 
 On platforms such as MacOS or Windows where static linking is desirable and
 dependencies such as MbedTLS or argp may be unavailable, the `FETCH_MBEDTLS`
@@ -122,8 +122,8 @@ cmake -B build -DCMAKE_BUILD_TYPE="RelWithDebInfo" -DCMAKE_OSX_ARCHITECTURES="x8
 cmake --build build
 ```
 
-Usage:
-======
+Usage
+-----
 
 The available command line options of the `tr31-tool` application can be
 displayed using:
@@ -152,7 +152,7 @@ tr31-tool --kbpk AB2E09DB3EF0BA71E0CE6CD755C23A3B --export BF82DAC6A33DF92CE66E1
 ```
 
 Roadmap
-=======
+-------
 
 * Implement authoring of key blocks for HMAC keys using TR-31 tool
 * Implement key block translation
@@ -162,7 +162,7 @@ Roadmap
 * Support for ISO 20038:2017 format version E
 
 License
-=======
+-------
 
 Copyright (c) 2020, 2021 ono//connect.
 
