@@ -23,6 +23,7 @@
 #include "tr31.h"
 
 #include "crypto_tdes.h"
+#include "crypto_aes.h"
 
 #include <string.h>
 
@@ -54,109 +55,8 @@ static int crypto_tdes_encrypt_ecb(const void* key, size_t key_len, const void* 
 }
 
 #if defined(USE_MBEDTLS)
-#include <mbedtls/aes.h>
 #include <mbedtls/entropy.h>
 #include <mbedtls/ctr_drbg.h>
-
-static int tr31_aes_encrypt(const void* key, size_t key_len, const void* iv, const void* plaintext, size_t plen, void* ciphertext)
-{
-	int r;
-	mbedtls_aes_context ctx;
-	uint8_t iv_buf[AES_BLOCK_SIZE];
-
-	// ensure that plaintext length is a multiple of the AES block length
-	if ((plen & (AES_BLOCK_SIZE-1)) != 0) {
-		return -1;
-	}
-
-	// only allow a single block for ECB block mode
-	if (!iv && plen != AES_BLOCK_SIZE) {
-		return -2;
-	}
-
-	if (key_len != AES128_KEY_SIZE &&
-		key_len != AES192_KEY_SIZE &&
-		key_len != AES256_KEY_SIZE
-	) {
-		return -3;
-	}
-
-	mbedtls_aes_init(&ctx);
-	r = mbedtls_aes_setkey_enc(&ctx, key, key_len * 8);
-	if (r) {
-		r = -4;
-		goto exit;
-	}
-
-	if (iv) { // IV implies CBC block mode
-		memcpy(iv_buf, iv, AES_BLOCK_SIZE);
-		r = mbedtls_aes_crypt_cbc(&ctx, MBEDTLS_AES_ENCRYPT, plen, iv_buf, plaintext, ciphertext);
-	} else {
-		r = mbedtls_aes_crypt_ecb(&ctx, MBEDTLS_AES_ENCRYPT, plaintext, ciphertext);
-	}
-	if (r) {
-		r = -5;
-		goto exit;
-	}
-
-	r = 0;
-	goto exit;
-
-exit:
-	mbedtls_aes_free(&ctx);
-
-	return r;
-}
-
-static int tr31_aes_decrypt(const void* key, size_t key_len, const void* iv, const void* ciphertext, size_t clen, void* plaintext)
-{
-	int r;
-	mbedtls_aes_context ctx;
-	uint8_t iv_buf[AES_BLOCK_SIZE];
-
-	// ensure that ciphertext length is a multiple of the AES block length
-	if ((clen & (AES_BLOCK_SIZE-1)) != 0) {
-		return -1;
-	}
-
-	// only allow a single block for ECB block mode
-	if (!iv && clen != AES_BLOCK_SIZE) {
-		return -2;
-	}
-
-	if (key_len != AES128_KEY_SIZE &&
-		key_len != AES192_KEY_SIZE &&
-		key_len != AES256_KEY_SIZE
-	) {
-		return -3;
-	}
-
-	mbedtls_aes_init(&ctx);
-	r = mbedtls_aes_setkey_dec(&ctx, key, key_len * 8);
-	if (r) {
-		r = -4;
-		goto exit;
-	}
-
-	if (iv) { // IV implies CBC block mode
-		memcpy(iv_buf, iv, AES_BLOCK_SIZE);
-		r = mbedtls_aes_crypt_cbc(&ctx, MBEDTLS_AES_DECRYPT, clen, iv_buf, ciphertext, plaintext);
-	} else {
-		r = mbedtls_aes_crypt_ecb(&ctx, MBEDTLS_AES_DECRYPT, ciphertext, plaintext);
-	}
-	if (r) {
-		r = -5;
-		goto exit;
-	}
-
-	r = 0;
-	goto exit;
-
-exit:
-	mbedtls_aes_free(&ctx);
-
-	return r;
-}
 
 static void tr31_rand_impl(void* buf, size_t len)
 {
@@ -171,164 +71,7 @@ static void tr31_rand_impl(void* buf, size_t len)
 }
 
 #elif defined(USE_OPENSSL)
-#include <openssl/evp.h>
 #include <openssl/rand.h>
-
-static int tr31_aes_encrypt(const void* key, size_t key_len, const void* iv, const void* plaintext, size_t plen, void* ciphertext)
-{
-	int r;
-	EVP_CIPHER_CTX* ctx;
-	int clen;
-	int clen2;
-
-	// ensure that plaintext length is a multiple of the AES block length
-	if ((plen & (AES_BLOCK_SIZE-1)) != 0) {
-		return -1;
-	}
-
-	// only allow a single block for ECB block mode
-	if (!iv && plen != AES_BLOCK_SIZE) {
-		return -2;
-	}
-
-	ctx = EVP_CIPHER_CTX_new();
-
-	switch (key_len) {
-		case AES128_KEY_SIZE:
-			if (iv) { // IV implies CBC block mode
-				r = EVP_EncryptInit_ex(ctx, EVP_aes_128_cbc(), NULL, key, iv);
-			} else { // no IV implies ECB block mode
-				r = EVP_EncryptInit_ex(ctx, EVP_aes_128_ecb(), NULL, key, NULL);
-			}
-			break;
-
-		case AES192_KEY_SIZE:
-			if (iv) { // IV implies CBC block mode
-				r = EVP_EncryptInit_ex(ctx, EVP_aes_192_cbc(), NULL, key, iv);
-			} else { // no IV implies ECB block mode
-				r = EVP_EncryptInit_ex(ctx, EVP_aes_192_ecb(), NULL, key, NULL);
-			}
-			break;
-
-		case AES256_KEY_SIZE:
-			if (iv) { // IV implies CBC block mode
-				r = EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv);
-			} else { // no IV implies ECB block mode
-				r = EVP_EncryptInit_ex(ctx, EVP_aes_256_ecb(), NULL, key, NULL);
-			}
-			break;
-
-		default:
-			r = -3;
-			goto exit;
-	}
-	if (!r) {
-		r = -4;
-		goto exit;
-	}
-
-	// disable padding
-	EVP_CIPHER_CTX_set_padding(ctx, 0);
-
-	clen = 0;
-	r = EVP_EncryptUpdate(ctx, ciphertext, &clen, plaintext, plen);
-	if (!r) {
-		r = -5;
-		goto exit;
-	}
-
-	clen2 = 0;
-	r = EVP_EncryptFinal_ex(ctx, ciphertext + clen, &clen2);
-	if (!r) {
-		r = -6;
-		goto exit;
-	}
-
-	r = 0;
-	goto exit;
-
-exit:
-	EVP_CIPHER_CTX_free(ctx);
-	return r;
-}
-
-static int tr31_aes_decrypt(const void* key, size_t key_len, const void* iv, const void* ciphertext, size_t clen, void* plaintext)
-{
-	int r;
-	EVP_CIPHER_CTX* ctx;
-	int plen;
-	int plen2;
-
-	// ensure that ciphertext length is a multiple of the AES block length
-	if ((clen & (AES_BLOCK_SIZE-1)) != 0) {
-		return -1;
-	}
-
-	// only allow a single block for ECB block mode
-	if (!iv && clen != AES_BLOCK_SIZE) {
-		return -2;
-	}
-
-	ctx = EVP_CIPHER_CTX_new();
-
-	switch (key_len) {
-		case AES128_KEY_SIZE:
-			if (iv) { // IV implies CBC block mode
-				r = EVP_DecryptInit_ex(ctx, EVP_aes_128_cbc(), NULL, key, iv);
-			} else { // no IV implies ECB block mode
-				r = EVP_DecryptInit_ex(ctx, EVP_aes_128_ecb(), NULL, key, NULL);
-			}
-			break;
-
-		case AES192_KEY_SIZE:
-			if (iv) { // IV implies CBC block mode
-				r = EVP_DecryptInit_ex(ctx, EVP_aes_192_cbc(), NULL, key, iv);
-			} else { // no IV implies ECB block mode
-				r = EVP_DecryptInit_ex(ctx, EVP_aes_192_ecb(), NULL, key, NULL);
-			}
-			break;
-
-		case AES256_KEY_SIZE:
-			if (iv) { // IV implies CBC block mode
-				r = EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv);
-			} else { // no IV implies ECB block mode
-				r = EVP_DecryptInit_ex(ctx, EVP_aes_256_ecb(), NULL, key, NULL);
-			}
-			break;
-
-		default:
-			r = -3;
-			goto exit;
-	}
-	if (!r) {
-		r = -4;
-		goto exit;
-	}
-
-	// disable padding
-	EVP_CIPHER_CTX_set_padding(ctx, 0);
-
-	plen = 0;
-	r = EVP_DecryptUpdate(ctx, plaintext, &plen, ciphertext, clen);
-	if (!r) {
-		r = -5;
-		goto exit;
-	}
-
-	plen2 = 0;
-	r = EVP_DecryptFinal_ex(ctx, plaintext + plen, &plen2);
-	if (!r) {
-		r = -6;
-		goto exit;
-	}
-
-	r = 0;
-	goto exit;
-
-exit:
-	EVP_CIPHER_CTX_free(ctx);
-	return r;
-}
 
 static void tr31_rand_impl(void* buf, size_t len)
 {
@@ -691,26 +434,6 @@ int tr31_tdes_kcv(const void* key, size_t key_len, void* kcv)
 	return 0;
 }
 
-int tr31_aes_encrypt_ecb(const void* key, size_t key_len, const void* plaintext, void* ciphertext)
-{
-	return tr31_aes_encrypt(key, key_len, NULL, plaintext, AES_BLOCK_SIZE, ciphertext);
-}
-
-int tr31_aes_decrypt_ecb(const void* key, size_t key_len, const void* ciphertext, void* plaintext)
-{
-	return tr31_aes_decrypt(key, key_len, NULL, ciphertext, AES_BLOCK_SIZE, plaintext);
-}
-
-int tr31_aes_encrypt_cbc(const void* key, size_t key_len, const void* iv, const void* plaintext, size_t plen, void* ciphertext)
-{
-	return tr31_aes_encrypt(key, key_len, iv, plaintext, plen, ciphertext);
-}
-
-int tr31_aes_decrypt_cbc(const void* key, size_t key_len, const void* iv, const void* ciphertext, size_t clen, void* plaintext)
-{
-	return tr31_aes_decrypt(key, key_len, iv, ciphertext, clen, plaintext);
-}
-
 static int tr31_aes_derive_subkeys(const void* key, size_t key_len, void* k1, void* k2)
 {
 	int r;
@@ -721,7 +444,7 @@ static int tr31_aes_derive_subkeys(const void* key, size_t key_len, void* k1, vo
 
 	// encrypt zero block with input key
 	memset(zero, 0, sizeof(zero));
-	r = tr31_aes_encrypt_ecb(key, key_len, zero, l_buf);
+	r = crypto_aes_encrypt_ecb(key, key_len, zero, l_buf);
 	if (r) {
 		// internal error
 		return r;
@@ -793,7 +516,7 @@ int tr31_aes_cmac(const void* key, size_t key_len, const void* buf, size_t len, 
 	if (len > AES_BLOCK_SIZE) {
 		// for all blocks except the last block
 		for (size_t i = 0; i < len - AES_BLOCK_SIZE; i += AES_BLOCK_SIZE) {
-			r = tr31_aes_encrypt_cbc(key, key_len, iv, ptr, AES_BLOCK_SIZE, iv);
+			r = crypto_aes_encrypt(key, key_len, iv, ptr, AES_BLOCK_SIZE, iv);
 			if (r) {
 				// internal error
 				return r;
@@ -827,7 +550,7 @@ int tr31_aes_cmac(const void* key, size_t key_len, const void* buf, size_t len, 
 	}
 
 	// process last block
-	r = tr31_aes_encrypt_cbc(key, key_len, iv, ptr, AES_BLOCK_SIZE, cmac);
+	r = crypto_aes_encrypt(key, key_len, iv, ptr, AES_BLOCK_SIZE, cmac);
 	if (r) {
 		// internal error
 		return r;

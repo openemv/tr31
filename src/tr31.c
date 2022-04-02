@@ -23,6 +23,7 @@
 #include "tr31_crypto.h"
 
 #include "crypto_tdes.h"
+#include "crypto_aes.h"
 
 #include <stdint.h>
 #include <string.h>
@@ -1495,7 +1496,7 @@ static int tr31_aes_decrypt_verify_derivation_binding(struct tr31_ctx_t* ctx, co
 	}
 
 	// decrypt key payload; note that the authenticator is used as the IV
-	r = tr31_aes_decrypt_cbc(kbek, kbpk->length, ctx->authenticator, ctx->payload, ctx->payload_length, decrypted_payload);
+	r = crypto_aes_decrypt(kbek, kbpk->length, ctx->authenticator, ctx->payload, ctx->payload_length, decrypted_payload);
 	if (r) {
 		// return error value as-is
 		goto error;
@@ -1577,7 +1578,7 @@ static int tr31_aes_encrypt_sign_derivation_binding(struct tr31_ctx_t* ctx, cons
 	}
 
 	// encrypt key payload; note that the authenticator is used as the IV
-	r = tr31_aes_encrypt_cbc(kbek, kbpk->length, ctx->authenticator, decrypted_payload, ctx->payload_length, ctx->payload);
+	r = crypto_aes_encrypt(kbek, kbpk->length, ctx->authenticator, decrypted_payload, ctx->payload_length, ctx->payload);
 	if (r) {
 		// return error value as-is
 		goto error;
