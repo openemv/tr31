@@ -25,6 +25,7 @@
 #include "crypto_tdes.h"
 #include "crypto_aes.h"
 #include "crypto_mem.h"
+#include "crypto_rand.h"
 
 #include <stdint.h>
 #include <string.h>
@@ -1312,7 +1313,7 @@ static int tr31_tdes_encrypt_sign_variant_binding(struct tr31_ctx_t* ctx, const 
 	// populate payload key
 	decrypted_payload->length = htons(ctx->key.length * 8); // payload length is big endian and in bits, not bytes
 	memcpy(decrypted_payload->data, ctx->key.data, ctx->key.length);
-	tr31_rand(
+	crypto_rand(
 		decrypted_payload->data + ctx->key.length,
 		ctx->payload_length - sizeof(struct tr31_payload_t) - ctx->key.length
 	);
@@ -1437,7 +1438,7 @@ static int tr31_tdes_encrypt_sign_derivation_binding(struct tr31_ctx_t* ctx, con
 	// populate payload key
 	decrypted_payload->length = htons(ctx->key.length * 8); // payload length is big endian and in bits, not bytes
 	memcpy(decrypted_payload->data, ctx->key.data, ctx->key.length);
-	tr31_rand(
+	crypto_rand(
 		decrypted_payload->data + ctx->key.length,
 		ctx->payload_length - sizeof(struct tr31_payload_t) - ctx->key.length
 	);
@@ -1559,7 +1560,7 @@ static int tr31_aes_encrypt_sign_derivation_binding(struct tr31_ctx_t* ctx, cons
 	// populate payload key
 	decrypted_payload->length = htons(ctx->key.length * 8); // payload length is big endian and in bits, not bytes
 	memcpy(decrypted_payload->data, ctx->key.data, ctx->key.length);
-	tr31_rand(
+	crypto_rand(
 		decrypted_payload->data + ctx->key.length,
 		ctx->payload_length - sizeof(struct tr31_payload_t) - ctx->key.length
 	);

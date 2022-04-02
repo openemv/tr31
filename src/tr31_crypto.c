@@ -55,32 +55,6 @@ static int crypto_tdes_encrypt_ecb(const void* key, size_t key_len, const void* 
 	return crypto_tdes_encrypt(key, key_len, NULL, plaintext, DES_BLOCK_SIZE, ciphertext);
 }
 
-#if defined(USE_MBEDTLS)
-#include <mbedtls/entropy.h>
-#include <mbedtls/ctr_drbg.h>
-
-static void tr31_rand_impl(void* buf, size_t len)
-{
-	mbedtls_entropy_context entropy;
-	mbedtls_ctr_drbg_context ctr_drbg;
-
-	mbedtls_entropy_init(&entropy);
-	mbedtls_ctr_drbg_init(&ctr_drbg);
-	mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy, NULL, 0);
-	mbedtls_ctr_drbg_random(&ctr_drbg, buf, len);
-	mbedtls_ctr_drbg_free(&ctr_drbg);
-}
-
-#elif defined(USE_OPENSSL)
-#include <openssl/rand.h>
-
-static void tr31_rand_impl(void* buf, size_t len)
-{
-	RAND_bytes(buf, len);
-}
-
-#endif
-
 int tr31_tdes_cbcmac(const void* key, size_t key_len, const void* buf, size_t len, void* mac)
 {
 	int r;
@@ -713,9 +687,4 @@ int tr31_aes_kcv(const void* key, size_t key_len, void* kcv)
 	crypto_cleanse(ciphertext, sizeof(ciphertext));
 
 	return 0;
-}
-
-void tr31_rand(void* buf, size_t len)
-{
-	tr31_rand_impl(buf, len);
 }
