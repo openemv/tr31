@@ -24,6 +24,7 @@
 
 #include "crypto_tdes.h"
 #include "crypto_aes.h"
+#include "crypto_mem.h"
 
 #include <string.h>
 
@@ -80,23 +81,6 @@ static void tr31_rand_impl(void* buf, size_t len)
 
 #endif
 
-static int tr31_memcmp(const void* a, const void* b, size_t n)
-{
-	int r = 0;
-	const uint8_t* ptr_a = a;
-	const uint8_t* ptr_b = b;
-
-	while (n) {
-		r |= *ptr_a ^ *ptr_b;
-		++ptr_a;
-		++ptr_b;
-		--n;
-	}
-
-	// not-not is to sanitise result
-	return !!r;
-}
-
 int tr31_tdes_cbcmac(const void* key, size_t key_len, const void* buf, size_t len, void* mac)
 {
 	int r;
@@ -133,7 +117,7 @@ int tr31_tdes_verify_cbcmac(const void* key, size_t key_len, const void* buf, si
 		return r;
 	}
 
-	return tr31_memcmp(mac, mac_verify, sizeof(mac));
+	return crypto_memcmp_s(mac, mac_verify, sizeof(mac));
 }
 
 static int tr31_lshift(uint8_t* x, size_t len)
@@ -197,7 +181,7 @@ static int tr31_tdes_derive_subkeys(const void* key, size_t key_len, void* k1, v
 	}
 
 	// cleanup
-	tr31_cleanse(l_buf, sizeof(l_buf));
+	crypto_cleanse(l_buf, sizeof(l_buf));
 
 	return 0;
 }
@@ -284,10 +268,10 @@ int tr31_tdes_cmac(const void* key, size_t key_len, const void* buf, size_t len,
 	}
 
 	// cleanup
-	tr31_cleanse(k1, sizeof(k1));
-	tr31_cleanse(k2, sizeof(k2));
-	tr31_cleanse(iv, sizeof(iv));
-	tr31_cleanse(last_block, sizeof(last_block));
+	crypto_cleanse(k1, sizeof(k1));
+	crypto_cleanse(k2, sizeof(k2));
+	crypto_cleanse(iv, sizeof(iv));
+	crypto_cleanse(last_block, sizeof(last_block));
 
 	return 0;
 }
@@ -302,7 +286,7 @@ int tr31_tdes_verify_cmac(const void* key, size_t key_len, const void* buf, size
 		return r;
 	}
 
-	return tr31_memcmp(cmac, cmac_verify, sizeof(cmac));
+	return crypto_memcmp_s(cmac, cmac_verify, sizeof(cmac));
 }
 
 int tr31_tdes_kbpk_variant(const void* kbpk, size_t kbpk_len, void* kbek, void* kbak)
@@ -429,7 +413,7 @@ int tr31_tdes_kcv(const void* key, size_t key_len, void* kcv)
 	// KCV is always first 3 bytes of ciphertext
 	memcpy(kcv, ciphertext, TDES_KCV_SIZE);
 
-	tr31_cleanse(ciphertext, sizeof(ciphertext));
+	crypto_cleanse(ciphertext, sizeof(ciphertext));
 
 	return 0;
 }
@@ -467,7 +451,7 @@ static int tr31_aes_derive_subkeys(const void* key, size_t key_len, void* k1, vo
 	}
 
 	// cleanup
-	tr31_cleanse(l_buf, sizeof(l_buf));
+	crypto_cleanse(l_buf, sizeof(l_buf));
 
 	return 0;
 }
@@ -569,7 +553,7 @@ int tr31_aes_verify_cmac(const void* key, size_t key_len, const void* buf, size_
 		return r;
 	}
 
-	return tr31_memcmp(cmac, cmac_verify, sizeof(cmac));
+	return crypto_memcmp_s(cmac, cmac_verify, sizeof(cmac));
 }
 
 int tr31_aes_kbpk_derive(const void* kbpk, size_t kbpk_len, void* kbek, void* kbak)
@@ -628,7 +612,7 @@ int tr31_aes_kbpk_derive(const void* kbpk, size_t kbpk_len, void* kbek, void* kb
 			}
 
 			memcpy(kbek + kbek_len, cmac, kbpk_len - kbek_len);
-			tr31_cleanse(cmac, sizeof(cmac));
+			crypto_cleanse(cmac, sizeof(cmac));
 		} else {
 			r = tr31_aes_cmac(kbpk, kbpk_len, kbxk_input, sizeof(kbxk_input), kbek + kbek_len);
 			if (r) {
@@ -676,7 +660,7 @@ int tr31_aes_kbpk_derive(const void* kbpk, size_t kbpk_len, void* kbek, void* kb
 			}
 
 			memcpy(kbak + kbak_len, cmac, kbpk_len - kbak_len);
-			tr31_cleanse(cmac, sizeof(cmac));
+			crypto_cleanse(cmac, sizeof(cmac));
 		} else {
 			r = tr31_aes_cmac(kbpk, kbpk_len, kbxk_input, sizeof(kbxk_input), kbak + kbak_len);
 			if (r) {
@@ -726,21 +710,9 @@ int tr31_aes_kcv(const void* key, size_t key_len, void* kcv)
 	// KCV is always first 5 bytes of ciphertext
 	memcpy(kcv, ciphertext, AES_KCV_SIZE);
 
-	tr31_cleanse(ciphertext, sizeof(ciphertext));
+	crypto_cleanse(ciphertext, sizeof(ciphertext));
 
 	return 0;
-}
-
-void tr31_cleanse(void* buf, size_t len)
-{
-	memset(buf, 0, len);
-
-	// From GCC documentation:
-	// If the function does not have side effects, there are optimizations
-	// other than inlining that cause function calls to be optimized away,
-	// although the function call is live. To keep such calls from being
-	// optimized away, put...
-	__asm__ ("");
 }
 
 void tr31_rand(void* buf, size_t len)

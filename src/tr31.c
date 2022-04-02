@@ -24,6 +24,7 @@
 
 #include "crypto_tdes.h"
 #include "crypto_aes.h"
+#include "crypto_mem.h"
 
 #include <stdint.h>
 #include <string.h>
@@ -365,7 +366,7 @@ int tr31_key_init(
 void tr31_key_release(struct tr31_key_t* key)
 {
 	if (key->data) {
-		tr31_cleanse(key->data, key->length);
+		crypto_cleanse(key->data, key->length);
 		free(key->data);
 		key->data = NULL;
 	}
@@ -1281,10 +1282,10 @@ static int tr31_tdes_decrypt_verify_variant_binding(struct tr31_ctx_t* ctx, cons
 error:
 exit:
 	// cleanse sensitive buffers
-	tr31_cleanse(kbek, sizeof(kbek));
-	tr31_cleanse(kbak, sizeof(kbak));
-	tr31_cleanse(decrypted_payload_buf, sizeof(decrypted_payload_buf));
-	tr31_cleanse(mac_input, sizeof(mac_input));
+	crypto_cleanse(kbek, sizeof(kbek));
+	crypto_cleanse(kbak, sizeof(kbak));
+	crypto_cleanse(decrypted_payload_buf, sizeof(decrypted_payload_buf));
+	crypto_cleanse(mac_input, sizeof(mac_input));
 
 	return r;
 }
@@ -1346,10 +1347,10 @@ static int tr31_tdes_encrypt_sign_variant_binding(struct tr31_ctx_t* ctx, const 
 error:
 exit:
 	// cleanse sensitive buffers
-	tr31_cleanse(kbek, sizeof(kbek));
-	tr31_cleanse(kbak, sizeof(kbak));
-	tr31_cleanse(decrypted_payload_buf, sizeof(decrypted_payload_buf));
-	tr31_cleanse(mac_input, sizeof(mac_input));
+	crypto_cleanse(kbek, sizeof(kbek));
+	crypto_cleanse(kbak, sizeof(kbak));
+	crypto_cleanse(decrypted_payload_buf, sizeof(decrypted_payload_buf));
+	crypto_cleanse(mac_input, sizeof(mac_input));
 
 	return r;
 }
@@ -1409,9 +1410,9 @@ static int tr31_tdes_decrypt_verify_derivation_binding(struct tr31_ctx_t* ctx, c
 error:
 exit:
 	// cleanse sensitive buffers
-	tr31_cleanse(kbek, sizeof(kbek));
-	tr31_cleanse(kbak, sizeof(kbak));
-	tr31_cleanse(decrypted_key_block, sizeof(decrypted_key_block));
+	crypto_cleanse(kbek, sizeof(kbek));
+	crypto_cleanse(kbak, sizeof(kbak));
+	crypto_cleanse(decrypted_key_block, sizeof(decrypted_key_block));
 
 	return r;
 }
@@ -1469,9 +1470,9 @@ static int tr31_tdes_encrypt_sign_derivation_binding(struct tr31_ctx_t* ctx, con
 error:
 exit:
 	// cleanse sensitive buffers
-	tr31_cleanse(kbek, sizeof(kbek));
-	tr31_cleanse(kbak, sizeof(kbak));
-	tr31_cleanse(decrypted_key_block, sizeof(decrypted_key_block));
+	crypto_cleanse(kbek, sizeof(kbek));
+	crypto_cleanse(kbak, sizeof(kbak));
+	crypto_cleanse(decrypted_key_block, sizeof(decrypted_key_block));
 
 	return r;
 }
@@ -1531,9 +1532,9 @@ static int tr31_aes_decrypt_verify_derivation_binding(struct tr31_ctx_t* ctx, co
 error:
 exit:
 	// cleanse sensitive buffers
-	tr31_cleanse(kbek, sizeof(kbek));
-	tr31_cleanse(kbak, sizeof(kbak));
-	tr31_cleanse(decrypted_key_block, sizeof(decrypted_key_block));
+	crypto_cleanse(kbek, sizeof(kbek));
+	crypto_cleanse(kbak, sizeof(kbak));
+	crypto_cleanse(decrypted_key_block, sizeof(decrypted_key_block));
 
 	return r;
 }
@@ -1591,9 +1592,9 @@ static int tr31_aes_encrypt_sign_derivation_binding(struct tr31_ctx_t* ctx, cons
 error:
 exit:
 	// cleanse sensitive buffers
-	tr31_cleanse(kbek, sizeof(kbek));
-	tr31_cleanse(kbak, sizeof(kbak));
-	tr31_cleanse(decrypted_key_block, sizeof(decrypted_key_block));
+	crypto_cleanse(kbek, sizeof(kbek));
+	crypto_cleanse(kbak, sizeof(kbak));
+	crypto_cleanse(decrypted_key_block, sizeof(decrypted_key_block));
 
 	return r;
 }
