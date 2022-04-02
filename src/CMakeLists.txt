@@ -70,6 +70,7 @@ target_include_directories(tr31 INTERFACE
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 	$<INSTALL_INTERFACE:include/${PROJECT_NAME}>
 )
+target_link_libraries(tr31 PRIVATE crypto_tdes)
 if(MbedTLS_FOUND)
 	target_link_libraries(tr31 PRIVATE MbedTLS::mbedcrypto)
 elseif(OpenSSL_FOUND)
@@ -85,6 +86,7 @@ endif()
 
 install(
 	TARGETS
+		crypto_tdes
 		tr31
 		tr31-tool
 	EXPORT tr31Targets # for use by install(EXPORT) command

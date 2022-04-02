@@ -55,50 +55,6 @@ __BEGIN_DECLS
 #define TR31_AES256_KEY_UNDER_AES_LENGTH AES_CIPHERTEXT_LENGTH(2 + AES256_KEY_SIZE) ///< 2-byte length + AES-256 key + AES padding, in bytes
 
 /**
- * Encrypt using TDES ECB
- * @param key Key
- * @param key_len Length of key in bytes
- * @param plaintext Plaintext of length @ref DES_BLOCK_SIZE to encrypt
- * @param ciphertext Encrypted output
- * @return Zero for success. Less than zero for internal error.
- */
-int tr31_tdes_encrypt_ecb(const void* key, size_t key_len, const void* plaintext, void* ciphertext);
-
-/**
- * Decrypt using TDES ECB
- * @param key Key
- * @param key_len Length of key in bytes
- * @param ciphertext Ciphertext of length @ref DES_BLOCK_SIZE to decrypt
- * @param plaintext Decrypted output
- * @return Zero for success. Less than zero for internal error.
- */
-int tr31_tdes_decrypt_ecb(const void* key, size_t key_len, const void* ciphertext, void* plaintext);
-
-/**
- * Encrypt using TDES CBC
- * @param key Key
- * @param key_len Length of key in bytes
- * @param iv Initialization vector
- * @param plaintext Plaintext to encrypt
- * @param plen Length of plaintext in bytes. Must be a multiple of @ref DES_BLOCK_SIZE.
- * @param ciphertext Encrypted output
- * @return Zero for success. Less than zero for internal error.
- */
-int tr31_tdes_encrypt_cbc(const void* key, size_t key_len, const void* iv, const void* plaintext, size_t plen, void* ciphertext);
-
-/**
- * Decrypt using TDES CBC
- * @param key Key
- * @param key_len Length of key in bytes
- * @param iv Initialization vector
- * @param ciphertext Ciphertext to decrypt
- * @param clen Length of ciphertext in bytes. Must be a multiple of @ref DES_BLOCK_SIZE.
- * @param plaintext Decrypted output
- * @return Zero for success. Less than zero for internal error.
- */
-int tr31_tdes_decrypt_cbc(const void* key, size_t key_len, const void* iv, const void* ciphertext, size_t clen, void* plaintext);
-
-/**
  * Compute TDES CBC-MAC
  * @see ISO 9797-1:2011 MAC algorithm 1
  * @param key Key

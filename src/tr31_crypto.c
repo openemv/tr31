@@ -22,6 +22,8 @@
 #include "tr31_config.h"
 #include "tr31.h"
 
+#include "crypto_tdes.h"
+
 #include <string.h>
 
 #define TR31_KBEK_VARIANT_XOR (0x45)
@@ -45,123 +47,16 @@ static const uint8_t tr31_derive_kbak_aes128_input[] = { 0x01, 0x00, 0x01, 0x00,
 static const uint8_t tr31_derive_kbak_aes192_input[] = { 0x01, 0x00, 0x01, 0x00, 0x00, 0x03, 0x00, 0xC0 };
 static const uint8_t tr31_derive_kbak_aes256_input[] = { 0x01, 0x00, 0x01, 0x00, 0x00, 0x04, 0x01, 0x00 };
 
+// TODO: move this to crypto submodule
+static int crypto_tdes_encrypt_ecb(const void* key, size_t key_len, const void* plaintext, void* ciphertext)
+{
+	return crypto_tdes_encrypt(key, key_len, NULL, plaintext, DES_BLOCK_SIZE, ciphertext);
+}
+
 #if defined(USE_MBEDTLS)
-#include <mbedtls/des.h>
 #include <mbedtls/aes.h>
 #include <mbedtls/entropy.h>
 #include <mbedtls/ctr_drbg.h>
-
-static int tr31_tdes_encrypt(const void* key, size_t key_len, const void* iv, const void* plaintext, size_t plen, void* ciphertext)
-{
-	int r;
-	mbedtls_des3_context ctx;
-	uint8_t iv_buf[DES_BLOCK_SIZE];
-
-	// ensure that plaintext length is a multiple of the DES block length
-	if ((plen & (DES_BLOCK_SIZE-1)) != 0) {
-		return -1;
-	}
-
-	// only allow a single block for ECB block mode
-	if (!iv && plen != DES_BLOCK_SIZE) {
-		return -2;
-	}
-
-	mbedtls_des3_init(&ctx);
-
-	switch (key_len) {
-		case TDES2_KEY_SIZE: // double length 3DES key
-			r = mbedtls_des3_set2key_enc(&ctx, key);
-			break;
-
-		case TDES3_KEY_SIZE: // triple length 3DES key
-			r = mbedtls_des3_set3key_enc(&ctx, key);
-			break;
-
-		default:
-			r = -3;
-			goto exit;
-	}
-	if (r) {
-		r = -4;
-		goto exit;
-	}
-
-	if (iv) { // IV implies CBC block mode
-		memcpy(iv_buf, iv, DES_BLOCK_SIZE);
-		r = mbedtls_des3_crypt_cbc(&ctx, MBEDTLS_DES_ENCRYPT, plen, iv_buf, plaintext, ciphertext);
-	} else {
-		r = mbedtls_des3_crypt_ecb(&ctx, plaintext, ciphertext);
-	}
-	if (r) {
-		r = -5;
-		goto exit;
-	}
-
-	r = 0;
-	goto exit;
-
-exit:
-	mbedtls_des3_free(&ctx);
-
-	return r;
-}
-
-static int tr31_tdes_decrypt(const void* key, size_t key_len, const void* iv, const void* ciphertext, size_t clen, void* plaintext)
-{
-	int r;
-	mbedtls_des3_context ctx;
-	uint8_t iv_buf[DES_BLOCK_SIZE];
-
-	// ensure that ciphertext length is a multiple of the DES block length
-	if ((clen & (DES_BLOCK_SIZE-1)) != 0) {
-		return -1;
-	}
-
-	// only allow a single block for ECB block mode
-	if (!iv && clen != DES_BLOCK_SIZE) {
-		return -2;
-	}
-
-	mbedtls_des3_init(&ctx);
-
-	switch (key_len) {
-		case TDES2_KEY_SIZE: // double length 3DES key
-			r = mbedtls_des3_set2key_dec(&ctx, key);
-			break;
-
-		case TDES3_KEY_SIZE: // triple length 3DES key
-			r = mbedtls_des3_set3key_dec(&ctx, key);
-			break;
-
-		default:
-			r = -3;
-			goto exit;
-	}
-	if (r) {
-		r = -4;
-		goto exit;
-	}
-
-	if (iv) { // IV implies CBC block mode
-		memcpy(iv_buf, iv, DES_BLOCK_SIZE);
-		r = mbedtls_des3_crypt_cbc(&ctx, MBEDTLS_DES_DECRYPT, clen, iv_buf, ciphertext, plaintext);
-	} else {
-		r = mbedtls_des3_crypt_ecb(&ctx, ciphertext, plaintext);
-	}
-	if (r) {
-		r = -5;
-		goto exit;
-	}
-
-	r = 0;
-	goto exit;
-
-exit:
-	mbedtls_des3_free(&ctx);
-
-	return r;
-}
 
 static int tr31_aes_encrypt(const void* key, size_t key_len, const void* iv, const void* plaintext, size_t plen, void* ciphertext)
 {
@@ -278,146 +173,6 @@ static void tr31_rand_impl(void* buf, size_t len)
 #elif defined(USE_OPENSSL)
 #include <openssl/evp.h>
 #include <openssl/rand.h>
-
-static int tr31_tdes_encrypt(const void* key, size_t key_len, const void* iv, const void* plaintext, size_t plen, void* ciphertext)
-{
-	int r;
-	EVP_CIPHER_CTX* ctx;
-	int clen;
-	int clen2;
-
-	// ensure that plaintext length is a multiple of the DES block length
-	if ((plen & (DES_BLOCK_SIZE-1)) != 0) {
-		return -1;
-	}
-
-	// only allow a single block for ECB block mode
-	if (!iv && plen != DES_BLOCK_SIZE) {
-		return -2;
-	}
-
-	ctx = EVP_CIPHER_CTX_new();
-
-	switch (key_len) {
-		case TDES2_KEY_SIZE: // double length 3DES key
-			if (iv) { // IV implies CBC block mode
-				r = EVP_EncryptInit_ex(ctx, EVP_des_ede_cbc(), NULL, key, iv);
-			} else { // no IV implies ECB block mode
-				r = EVP_EncryptInit_ex(ctx, EVP_des_ede_ecb(), NULL, key, NULL);
-			}
-			break;
-
-		case TDES3_KEY_SIZE: // triple length 3DES key
-			if (iv) { // IV implies CBC block mode
-				r = EVP_EncryptInit_ex(ctx, EVP_des_ede3_cbc(), NULL, key, iv);
-			} else { // no IV implies ECB block mode
-				r = EVP_EncryptInit_ex(ctx, EVP_des_ede3_ecb(), NULL, key, NULL);
-			}
-			break;
-
-		default:
-			r = -3;
-			goto exit;
-	}
-	if (!r) {
-		r = -4;
-		goto exit;
-	}
-
-	// disable padding
-	EVP_CIPHER_CTX_set_padding(ctx, 0);
-
-	clen = 0;
-	r = EVP_EncryptUpdate(ctx, ciphertext, &clen, plaintext, plen);
-	if (!r) {
-		r = -5;
-		goto exit;
-	}
-
-	clen2 = 0;
-	r = EVP_EncryptFinal_ex(ctx, ciphertext + clen, &clen2);
-	if (!r) {
-		r = -6;
-		goto exit;
-	}
-
-	r = 0;
-	goto exit;
-
-exit:
-	EVP_CIPHER_CTX_free(ctx);
-	return r;
-}
-
-static int tr31_tdes_decrypt(const void* key, size_t key_len, const void* iv, const void* ciphertext, size_t clen, void* plaintext)
-{
-	int r;
-	EVP_CIPHER_CTX* ctx;
-	int plen;
-	int plen2;
-
-	// ensure that ciphertext length is a multiple of the DES block length
-	if ((clen & (DES_BLOCK_SIZE-1)) != 0) {
-		return -1;
-	}
-
-	// only allow a single block for ECB block mode
-	if (!iv && clen != DES_BLOCK_SIZE) {
-		return -2;
-	}
-
-	ctx = EVP_CIPHER_CTX_new();
-
-	switch (key_len) {
-		case TDES2_KEY_SIZE: // double length 3DES key
-			if (iv) { // IV implies CBC block mode
-				r = EVP_DecryptInit_ex(ctx, EVP_des_ede_cbc(), NULL, key, iv);
-			} else { // no IV implies ECB block mode
-				r = EVP_DecryptInit_ex(ctx, EVP_des_ede_ecb(), NULL, key, NULL);
-			}
-			break;
-
-		case TDES3_KEY_SIZE: // triple length 3DES key
-			if (iv) { // IV implies CBC block mode
-				r = EVP_DecryptInit_ex(ctx, EVP_des_ede3_cbc(), NULL, key, iv);
-			} else { // no IV implies ECB block mode
-				r = EVP_DecryptInit_ex(ctx, EVP_des_ede3_ecb(), NULL, key, NULL);
-			}
-			break;
-
-		default:
-			r = -3;
-			goto exit;
-	}
-	if (!r) {
-		r = -4;
-		goto exit;
-	}
-
-	// disable padding
-	EVP_CIPHER_CTX_set_padding(ctx, 0);
-
-	plen = 0;
-	r = EVP_DecryptUpdate(ctx, plaintext, &plen, ciphertext, clen);
-	if (!r) {
-		r = -5;
-		goto exit;
-	}
-
-	plen2 = 0;
-	r = EVP_DecryptFinal_ex(ctx, plaintext + plen, &plen2);
-	if (!r) {
-		r = -6;
-		goto exit;
-	}
-
-	r = 0;
-	goto exit;
-
-exit:
-	EVP_CIPHER_CTX_free(ctx);
-	return r;
-}
 
 static int tr31_aes_encrypt(const void* key, size_t key_len, const void* iv, const void* plaintext, size_t plen, void* ciphertext)
 {
@@ -599,26 +354,6 @@ static int tr31_memcmp(const void* a, const void* b, size_t n)
 	return !!r;
 }
 
-int tr31_tdes_encrypt_ecb(const void* key, size_t key_len, const void* plaintext, void* ciphertext)
-{
-	return tr31_tdes_encrypt(key, key_len, NULL, plaintext, DES_BLOCK_SIZE, ciphertext);
-}
-
-int tr31_tdes_decrypt_ecb(const void* key, size_t key_len, const void* ciphertext, void* plaintext)
-{
-	return tr31_tdes_decrypt(key, key_len, NULL, ciphertext, DES_BLOCK_SIZE, plaintext);
-}
-
-int tr31_tdes_encrypt_cbc(const void* key, size_t key_len, const void* iv, const void* plaintext, size_t plen, void* ciphertext)
-{
-	return tr31_tdes_encrypt(key, key_len, iv, plaintext, plen, ciphertext);
-}
-
-int tr31_tdes_decrypt_cbc(const void* key, size_t key_len, const void* iv, const void* ciphertext, size_t clen, void* plaintext)
-{
-	return tr31_tdes_decrypt(key, key_len, iv, ciphertext, clen, plaintext);
-}
-
 int tr31_tdes_cbcmac(const void* key, size_t key_len, const void* buf, size_t len, void* mac)
 {
 	int r;
@@ -630,7 +365,7 @@ int tr31_tdes_cbcmac(const void* key, size_t key_len, const void* buf, size_t le
 	// compute CBC-MAC
 	memset(iv, 0, sizeof(iv)); // start with zero IV
 	for (size_t i = 0; i < len; i += DES_BLOCK_SIZE) {
-		r = tr31_tdes_encrypt_cbc(key, key_len, iv, ptr, DES_BLOCK_SIZE, iv);
+		r = crypto_tdes_encrypt(key, key_len, iv, ptr, DES_BLOCK_SIZE, iv);
 		if (r) {
 			// internal error
 			return r;
@@ -696,7 +431,7 @@ static int tr31_tdes_derive_subkeys(const void* key, size_t key_len, void* k1, v
 
 	// encrypt zero block with input key
 	memset(zero, 0, sizeof(zero));
-	r = tr31_tdes_encrypt_ecb(key, key_len, zero, l_buf);
+	r = crypto_tdes_encrypt_ecb(key, key_len, zero, l_buf);
 	if (r) {
 		// internal error
 		return r;
@@ -765,7 +500,7 @@ int tr31_tdes_cmac(const void* key, size_t key_len, const void* buf, size_t len,
 	if (len > DES_BLOCK_SIZE) {
 		// for all blocks except the last block
 		for (size_t i = 0; i < len - DES_BLOCK_SIZE; i += DES_BLOCK_SIZE) {
-			r = tr31_tdes_encrypt_cbc(key, key_len, iv, ptr, DES_BLOCK_SIZE, iv);
+			r = crypto_tdes_encrypt(key, key_len, iv, ptr, DES_BLOCK_SIZE, iv);
 			if (r) {
 				// internal error
 				return r;
@@ -799,7 +534,7 @@ int tr31_tdes_cmac(const void* key, size_t key_len, const void* buf, size_t len,
 	}
 
 	// process last block
-	r = tr31_tdes_encrypt_cbc(key, key_len, iv, ptr, DES_BLOCK_SIZE, cmac);
+	r = crypto_tdes_encrypt(key, key_len, iv, ptr, DES_BLOCK_SIZE, cmac);
 	if (r) {
 		// internal error
 		return r;
@@ -942,7 +677,7 @@ int tr31_tdes_kcv(const void* key, size_t key_len, void* kcv)
 
 	// encrypt zero block with input key
 	memset(zero, 0, sizeof(zero));
-	r = tr31_tdes_encrypt_ecb(key, key_len, zero, ciphertext);
+	r = crypto_tdes_encrypt_ecb(key, key_len, zero, ciphertext);
 	if (r) {
 		// internal error
 		return r;
