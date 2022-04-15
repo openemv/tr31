@@ -7,35 +7,6 @@
 
 cmake_minimum_required(VERSION 3.16)
 
-find_package(MbedTLS 2.16) # Latest version available on Ubuntu 20.04 and Fedora 34
-option(FETCH_MBEDTLS "Download and build MbedTLS")
-if(NOT MbedTLS_FOUND AND FETCH_MBEDTLS)
-	include(FetchMbedTLS)
-endif()
-
-find_package(OpenSSL 1.1 COMPONENTS Crypto)
-
-# choose crypto implementation and inform parent scope
-if(NOT MbedTLS_FOUND AND NOT OpenSSL_FOUND)
-	message(FATAL_ERROR "Either MbedTLS or OpenSSL is required")
-endif()
-if(MbedTLS_FOUND)
-	# prefer MbedTLS
-	message(STATUS "Using MbedTLS")
-	set(USE_MBEDTLS TRUE)
-	list(APPEND TR31_PACKAGE_DEPENDENCIES "MbedTLS 2.16")
-	set(TR31_PACKAGE_DEPENDENCIES ${TR31_PACKAGE_DEPENDENCIES} PARENT_SCOPE)
-	# NOTE: MbedTLS has no pkgconfig file so TR31_PKGCONFIG_REQ_PRIV cannot be set
-	set(TR31_PKGCONFIG_LIBS_PRIV "-lmbedcrypto" PARENT_SCOPE)
-else()
-	message(STATUS "Using OpenSSL")
-	set(USE_OPENSSL TRUE)
-	list(APPEND TR31_PACKAGE_DEPENDENCIES "OpenSSL 1.1 COMPONENTS Crypto")
-	set(TR31_PACKAGE_DEPENDENCIES ${TR31_PACKAGE_DEPENDENCIES} PARENT_SCOPE)
-	set(TR31_PKGCONFIG_REQ_PRIV "libcrypto" PARENT_SCOPE)
-	set(TR31_PKGCONFIG_LIBS_PRIV "-lcrypto" PARENT_SCOPE)
-endif()
-
 include(CheckFunctionExists)
 check_function_exists("argp_parse" argp_FOUND)
 option(FETCH_ARGP "Download and build argp-standalone")
@@ -71,11 +42,6 @@ target_include_directories(tr31 INTERFACE
 	$<INSTALL_INTERFACE:include/${PROJECT_NAME}>
 )
 target_link_libraries(tr31 PRIVATE crypto_tdes crypto_aes crypto_mem crypto_rand)
-if(MbedTLS_FOUND)
-	target_link_libraries(tr31 PRIVATE MbedTLS::mbedcrypto)
-elseif(OpenSSL_FOUND)
-	target_link_libraries(tr31 PRIVATE OpenSSL::Crypto)
-endif()
 
 # TR-31 command line tool
 add_executable(tr31-tool tr31-tool.c)

@@ -19,13 +19,13 @@
  */
 
 #include "tr31_crypto.h"
-#include "tr31_config.h"
 #include "tr31.h"
 
 #include "crypto_tdes.h"
 #include "crypto_aes.h"
 #include "crypto_mem.h"
 
+#include <stdint.h>
 #include <string.h>
 
 #define TR31_KBEK_VARIANT_XOR (0x45)
