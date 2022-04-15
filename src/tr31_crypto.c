@@ -49,12 +49,6 @@ static const uint8_t tr31_derive_kbak_aes128_input[] = { 0x01, 0x00, 0x01, 0x00,
 static const uint8_t tr31_derive_kbak_aes192_input[] = { 0x01, 0x00, 0x01, 0x00, 0x00, 0x03, 0x00, 0xC0 };
 static const uint8_t tr31_derive_kbak_aes256_input[] = { 0x01, 0x00, 0x01, 0x00, 0x00, 0x04, 0x01, 0x00 };
 
-// TODO: move this to crypto submodule
-static int crypto_tdes_encrypt_ecb(const void* key, size_t key_len, const void* plaintext, void* ciphertext)
-{
-	return crypto_tdes_encrypt(key, key_len, NULL, plaintext, DES_BLOCK_SIZE, ciphertext);
-}
-
 int tr31_tdes_cbcmac(const void* key, size_t key_len, const void* buf, size_t len, void* mac)
 {
 	int r;
