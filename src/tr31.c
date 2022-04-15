@@ -1248,7 +1248,7 @@ static int tr31_tdes_decrypt_verify_variant_binding(struct tr31_ctx_t* ctx, cons
 	}
 
 	// verify authenticator
-	r = tr31_tdes_verify_cbcmac(kbak, kbpk->length, mac_input, sizeof(mac_input), ctx->authenticator);
+	r = tr31_tdes_verify_cbcmac(kbak, kbpk->length, mac_input, sizeof(mac_input), ctx->authenticator, ctx->authenticator_length);
 	if (r) {
 		r = TR31_ERROR_KEY_BLOCK_VERIFICATION_FAILED;
 		goto error;
@@ -1333,13 +1333,15 @@ static int tr31_tdes_encrypt_sign_variant_binding(struct tr31_ctx_t* ctx, const 
 	}
 
 	// generate authenticator
+	uint8_t mac[DES_CBCMAC_SIZE];
 	memcpy(mac_input, ctx->header, ctx->header_length);
 	memcpy(mac_input + ctx->header_length, ctx->payload, ctx->payload_length);
-	r = tr31_tdes_cbcmac(kbak, kbpk->length, mac_input, sizeof(mac_input), ctx->authenticator);
+	r = crypto_tdes_cbcmac(kbak, kbpk->length, mac_input, sizeof(mac_input), mac);
 	if (r) {
 		// return error value as-is
 		goto error;
 	}
+	memcpy(ctx->authenticator, mac, ctx->authenticator_length);
 
 	// success
 	r = 0;
@@ -1352,6 +1354,7 @@ exit:
 	crypto_cleanse(kbak, sizeof(kbak));
 	crypto_cleanse(decrypted_payload_buf, sizeof(decrypted_payload_buf));
 	crypto_cleanse(mac_input, sizeof(mac_input));
+	crypto_cleanse(mac, sizeof(mac));
 
 	return r;
 }

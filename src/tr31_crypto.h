@@ -31,7 +31,6 @@ __BEGIN_DECLS
 #define TDES2_KEY_SIZE (DES_KEY_SIZE * 2) ///< Double length triple DES key size in bytes
 #define TDES3_KEY_SIZE (DES_KEY_SIZE * 3) ///< Triple length triple DES key size in bytes
 #define DES_CIPHERTEXT_LENGTH(plen) (((plen) + DES_BLOCK_SIZE-1) & ~(DES_BLOCK_SIZE-1)) ///< DES ciphertext length at next block boundary
-#define DES_MAC_SIZE (DES_BLOCK_SIZE / 2)
 #define TDES_KCV_SIZE (3) ///< Legacy KCV size in bytes
 
 #define AES_BLOCK_SIZE (16) ///< AES block size in bytes
@@ -55,28 +54,26 @@ __BEGIN_DECLS
 #define TR31_AES256_KEY_UNDER_AES_LENGTH AES_CIPHERTEXT_LENGTH(2 + AES256_KEY_SIZE) ///< 2-byte length + AES-256 key + AES padding, in bytes
 
 /**
- * Compute TDES CBC-MAC
- * @see ISO 9797-1:2011 MAC algorithm 1
- * @param key Key
- * @param key_len Length of key in bytes
- * @param buf Input buffer
- * @param len Length of input buffer in bytes
- * @param mac CBC-MAC output of length @ref DES_MAC_SIZE
- * @return Zero for success. Non-zero for error.
- */
-int tr31_tdes_cbcmac(const void* key, size_t key_len, const void* buf, size_t len, void* mac);
-
-/**
  * Verify using TDES CBC-MAC
- * @see ISO 9797-1:2011 MAC algorithm 1
+ *
+ * @remark See ISO 9797-1:2011 MAC algorithm 1
+ *
  * @param key Key
  * @param key_len Length of key in bytes
  * @param buf Input buffer
- * @param len Length of input buffer in bytes
- * @param mac_verify CBC-MAC of length @ref DES_MAC_SIZE to verify
+ * @param buf_len Length of input buffer in bytes
+ * @param mac_verify CBC-MAC to verify
+ * @param mac_verify_len Length of CBC-MAC in bytes
  * @return Zero for success. Non-zero for verification failure.
  */
-int tr31_tdes_verify_cbcmac(const void* key, size_t key_len, const void* buf, size_t len, const void* mac_verify);
+int tr31_tdes_verify_cbcmac(
+	const void* key,
+	size_t key_len,
+	const void* buf,
+	size_t buf_len,
+	const void* mac_verify,
+	size_t mac_verify_len
+);
 
 /**
  * Compute TDES CMAC

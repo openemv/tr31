@@ -49,43 +49,31 @@ static const uint8_t tr31_derive_kbak_aes128_input[] = { 0x01, 0x00, 0x01, 0x00,
 static const uint8_t tr31_derive_kbak_aes192_input[] = { 0x01, 0x00, 0x01, 0x00, 0x00, 0x03, 0x00, 0xC0 };
 static const uint8_t tr31_derive_kbak_aes256_input[] = { 0x01, 0x00, 0x01, 0x00, 0x00, 0x04, 0x01, 0x00 };
 
-int tr31_tdes_cbcmac(const void* key, size_t key_len, const void* buf, size_t len, void* mac)
+int tr31_tdes_verify_cbcmac(
+	const void* key,
+	size_t key_len,
+	const void* buf,
+	size_t buf_len,
+	const void* mac_verify,
+	size_t mac_verify_len
+)
 {
 	int r;
-	uint8_t iv[DES_BLOCK_SIZE];
-	const void* ptr = buf;
+	uint8_t mac[DES_CBCMAC_SIZE];
 
-	// see ISO 9797-1:2011 MAC algorithm 1
-
-	// compute CBC-MAC
-	memset(iv, 0, sizeof(iv)); // start with zero IV
-	for (size_t i = 0; i < len; i += DES_BLOCK_SIZE) {
-		r = crypto_tdes_encrypt(key, key_len, iv, ptr, DES_BLOCK_SIZE, iv);
-		if (r) {
-			// internal error
-			return r;
-		}
-
-		ptr += DES_BLOCK_SIZE;
+	if (mac_verify_len > sizeof(mac)) {
+		return 1;
 	}
 
-	// copy MAC output
-	memcpy(mac, iv, DES_MAC_SIZE);
-
-	return 0;
-}
-
-int tr31_tdes_verify_cbcmac(const void* key, size_t key_len, const void* buf, size_t len, const void* mac_verify)
-{
-	int r;
-	uint8_t mac[DES_MAC_SIZE];
-
-	r = tr31_tdes_cbcmac(key, key_len, buf, len, mac);
+	r = crypto_tdes_cbcmac(key, key_len, buf, buf_len, mac);
 	if (r) {
 		return r;
 	}
 
-	return crypto_memcmp_s(mac, mac_verify, sizeof(mac));
+	r = crypto_memcmp_s(mac, mac_verify, mac_verify_len);
+
+	crypto_cleanse(mac, sizeof(mac));
+	return r;
 }
 
 static int tr31_lshift(uint8_t* x, size_t len)
