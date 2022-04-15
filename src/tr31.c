@@ -423,18 +423,20 @@ int tr31_key_set_data(struct tr31_key_t* key, const void* data, size_t length)
 	memset(&key->kcv, 0, sizeof(key->kcv));
 	if (key->algorithm == TR31_KEY_ALGORITHM_TDES) {
 		// use legacy KCV for TDES key
+		// see ANSI X9.24-1:2017, 7.7.2
 		key->kcv_algorithm = TR31_OPT_BLOCK_KCV_LEGACY;
-		r = tr31_tdes_kcv(key->data, key->length, key->kcv);
+		r = crypto_tdes_kcv_legacy(key->data, key->length, key->kcv);
 		if (r) {
 			// return error value as-is
 			return r;
 		}
-		key->kcv_len = TDES_KCV_SIZE;
+		key->kcv_len = DES_KCV_SIZE_LEGACY;
 
 	} else if (key->algorithm == TR31_KEY_ALGORITHM_AES) {
 		// use CMAC-based KCV for AES key
+		// see ANSI X9.24-1:2017, 7.7.2
 		key->kcv_algorithm = TR31_OPT_BLOCK_KCV_CMAC;
-		r = tr31_aes_kcv(key->data, key->length, key->kcv);
+		r = crypto_aes_kcv(key->data, key->length, key->kcv);
 		if (r) {
 			// return error value as-is
 			return r;

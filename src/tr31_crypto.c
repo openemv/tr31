@@ -190,40 +190,6 @@ int tr31_tdes_kbpk_derive(const void* kbpk, size_t kbpk_len, void* kbek, void* k
 	return 0;
 }
 
-int tr31_tdes_kcv(const void* key, size_t key_len, void* kcv)
-{
-	int r;
-	uint8_t zero[DES_BLOCK_SIZE];
-	uint8_t ciphertext[DES_BLOCK_SIZE];
-
-	if (!key || !kcv) {
-		return -1;
-	}
-	if (key_len != TDES2_KEY_SIZE && key_len != TDES3_KEY_SIZE) {
-		return -2;
-	}
-
-	// see ANSI X9.24-1:2017, A.2 Legacy Approach
-
-	// zero KCV in case of error
-	memset(kcv, 0, TDES_KCV_SIZE);
-
-	// encrypt zero block with input key
-	memset(zero, 0, sizeof(zero));
-	r = crypto_tdes_encrypt_ecb(key, key_len, zero, ciphertext);
-	if (r) {
-		// internal error
-		return r;
-	}
-
-	// KCV is always first 3 bytes of ciphertext
-	memcpy(kcv, ciphertext, TDES_KCV_SIZE);
-
-	crypto_cleanse(ciphertext, sizeof(ciphertext));
-
-	return 0;
-}
-
 int tr31_aes_verify_cmac(
 	const void* key,
 	size_t key_len,
@@ -363,45 +329,6 @@ int tr31_aes_kbpk_derive(const void* kbpk, size_t kbpk_len, void* kbek, void* kb
 		// increment key derivation input counter
 		kbxk_input[0]++;
 	}
-
-	return 0;
-}
-
-int tr31_aes_kcv(const void* key, size_t key_len, void* kcv)
-{
-	int r;
-	uint8_t input[AES_BLOCK_SIZE];
-	uint8_t ciphertext[AES_BLOCK_SIZE];
-
-	if (!key || !kcv) {
-		return -1;
-	}
-	if (key_len != AES128_KEY_SIZE &&
-		key_len != AES192_KEY_SIZE &&
-		key_len != AES256_KEY_SIZE
-	) {
-		return -2;
-	}
-
-	// see ANSI X9.24-1:2017, A.3 CMAC-based Check values
-
-	// zero KCV in case of error
-	memset(kcv, 0, AES_KCV_SIZE);
-
-	// use input block populated with 0x00
-	memset(input, 0x00, sizeof(input));
-
-	// Compute CMAC of input block using input key
-	r = crypto_aes_cmac(key, key_len, input, sizeof(input), ciphertext);
-	if (r) {
-		// internal error
-		return r;
-	}
-
-	// KCV is always first 5 bytes of ciphertext
-	memcpy(kcv, ciphertext, AES_KCV_SIZE);
-
-	crypto_cleanse(ciphertext, sizeof(ciphertext));
 
 	return 0;
 }
