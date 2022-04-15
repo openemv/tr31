@@ -128,30 +128,27 @@ int tr31_tdes_kbpk_derive(const void* kbpk, size_t kbpk_len, void* kbek, void* k
 int tr31_tdes_kcv(const void* key, size_t key_len, void* kcv);
 
 /**
- * Compute AES CMAC
- * @remark See NIST SP 800-38B, section 6.2
- * @remark See ISO 9797-1:2011 MAC algorithm 5
- * @param key Key
- * @param key_len Length of key in bytes
- * @param buf Input buffer
- * @param len Length of input buffer in bytes
- * @param cmac CMAC output of length @ref AES_BLOCK_SIZE
- * @return Zero for success. Non-zero for error.
- */
-int tr31_aes_cmac(const void* key, size_t key_len, const void* buf, size_t len, void* cmac);
-
-/**
  * Verify using AES CMAC
+ *
  * @remark See NIST SP 800-38B, section 6.3
  * @remark See ISO 9797-1:2011 MAC algorithm 5
+ *
  * @param key Key
  * @param key_len Length of key in bytes
  * @param buf Input buffer to verify
- * @param len Length of input buffer in bytes
- * @param cmac_verify CMAC of length @ref AES_BLOCK_SIZE to verify
+ * @param buf_len Length of input buffer in bytes
+ * @param cmac_verify CMAC to verify
+ * @param cmac_verify_len Length of CMAC in bytes
  * @return Zero for success. Non-zero for verification failure.
  */
-int tr31_aes_verify_cmac(const void* key, size_t key_len, const void* buf, size_t len, const void* cmac_verify);
+int tr31_aes_verify_cmac(
+	const void* key,
+	size_t key_len,
+	const void* buf,
+	size_t buf_len,
+	const void* cmac_verify,
+	size_t cmac_verify_len
+);
 
 /**
  * Derive AES key block encryption key (KBEK) and key block authentication key (KBAK) from key block protection key (KBPK)
