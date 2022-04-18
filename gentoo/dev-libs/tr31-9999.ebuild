@@ -6,13 +6,13 @@ EAPI=8
 inherit cmake
 
 DESCRIPTION="TR-31 library and tools"
-HOMEPAGE="https://github.com/ono-connect/tr31"
+HOMEPAGE="https://github.com/openemv/tr31"
 if [[ "${PV}" == *9999 ]] ; then
 	inherit git-r3
-	EGIT_REPO_URI="https://github.com/ono-connect/tr31.git"
+	EGIT_REPO_URI="https://github.com/openemv/tr31.git"
 	EGIT_BRANCH="master"
 else
-	SRC_URI="https://github.com/ono-connect/tr31/archive/${PV}.tar.gz -> ${P}.tar.gz"
+	SRC_URI="https://github.com/openemv/tr31/archive/${PV}.tar.gz -> ${P}.tar.gz"
 fi
 
 LICENSE="LGPL-2.1"

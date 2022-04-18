@@ -10,7 +10,7 @@ cmake_minimum_required(VERSION 3.16)
 project(tr31
 	VERSION 0.3.0
 	DESCRIPTION "TR-31 library and tools"
-	HOMEPAGE_URL "https://github.com/ono-connect/tr31"
+	HOMEPAGE_URL "https://github.com/openemv/tr31"
 	LANGUAGES C
 )
 
@@ -157,8 +157,8 @@ endif()
 
 # configure CPack to generate .tgz package
 set(CPACK_GENERATOR "TGZ")
-set(CPACK_PACKAGE_VENDOR "ono//connect")
-set(CPACK_PACKAGE_CONTACT "leon@onoconnect.com")
+set(CPACK_PACKAGE_VENDOR "OpenEMV")
+set(CPACK_PACKAGE_CONTACT "lynch.leon@gmail.com")
 set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
 set(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
