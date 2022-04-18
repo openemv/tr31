@@ -28,22 +28,34 @@
 #include <stdint.h>
 #include <string.h>
 
+#include <arpa/inet.h> // for htons and friends
+
 #define TR31_KBEK_VARIANT_XOR (0x45)
 #define TR31_KBAK_VARIANT_XOR (0x4D)
 
-// see TR-31:2018, section 5.3.2.1
-static const uint8_t tr31_derive_kbek_tdes2_input[] = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80 };
-static const uint8_t tr31_derive_kbek_tdes3_input[] = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0xC0 };
-static const uint8_t tr31_derive_kbak_tdes2_input[] = { 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x80 };
-static const uint8_t tr31_derive_kbak_tdes3_input[] = { 0x01, 0x00, 0x01, 0x00, 0x00, 0x01, 0x00, 0xC0 };
+// key derivation input data
+// see TR-31:2018, section 5.3.2.1, table 1
+// see TR-31:2018, section 5.3.2.3, table 2
+struct tr31_derivation_data_t {
+	uint8_t counter; // Counter that is incremented for each block of keying material
+	uint16_t key_usage; // Usage of derived key (not TR-31 key usage)
+	uint8_t separator; // Separator; must be zero
+	uint16_t algorithm; // Algorithm of derived key (not TR-31 key algorithm)
+	uint16_t length; // Length of derived key in bits
+} __attribute__((packed));
 
-// see TR-31:2018, section 5.3.2.3
-static const uint8_t tr31_derive_kbek_aes128_input[] = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x80 };
-static const uint8_t tr31_derive_kbek_aes192_input[] = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0xC0 };
-static const uint8_t tr31_derive_kbek_aes256_input[] = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x04, 0x01, 0x00 };
-static const uint8_t tr31_derive_kbak_aes128_input[] = { 0x01, 0x00, 0x01, 0x00, 0x00, 0x02, 0x00, 0x80 };
-static const uint8_t tr31_derive_kbak_aes192_input[] = { 0x01, 0x00, 0x01, 0x00, 0x00, 0x03, 0x00, 0xC0 };
-static const uint8_t tr31_derive_kbak_aes256_input[] = { 0x01, 0x00, 0x01, 0x00, 0x00, 0x04, 0x01, 0x00 };
+enum tr31_derivation_key_usage_t {
+	TR31_DERIVATION_KEY_USAGE_ENCRYPTION = 0x0000,
+	TR31_DERIVATION_KEY_USAGE_MAC = 0x0001,
+};
+
+enum tr31_derivation_algorithm_t {
+	TR31_DERIVATION_ALGORITHM_2TDEA = 0x0000,
+	TR31_DERIVATION_ALGORITHM_3TDEA = 0x0001,
+	TR31_DERIVATION_ALGORITHM_AES128 = 0x0002,
+	TR31_DERIVATION_ALGORITHM_AES192 = 0x0003,
+	TR31_DERIVATION_ALGORITHM_AES256 = 0x0004,
+};
 
 int tr31_tdes_verify_cbcmac(
 	const void* key,
@@ -119,7 +131,7 @@ int tr31_tdes_kbpk_variant(const void* kbpk, size_t kbpk_len, void* kbek, void* 
 int tr31_tdes_kbpk_derive(const void* kbpk, size_t kbpk_len, void* kbek, void* kbak)
 {
 	int r;
-	uint8_t kbxk_input[8];
+	struct tr31_derivation_data_t kbxk_input;
 
 	if (!kbpk || !kbek || !kbak) {
 		return -1;
@@ -134,57 +146,43 @@ int tr31_tdes_kbpk_derive(const void* kbpk, size_t kbpk_len, void* kbek, void* k
 	// Message input is as described in TR-31:2018, section 5.3.2.1, table 1
 
 	// populate key block encryption key derivation input
-	switch (kbpk_len) {
-		case TDES2_KEY_SIZE:
-			memcpy(kbxk_input, tr31_derive_kbek_tdes2_input, sizeof(tr31_derive_kbek_tdes2_input));
-			break;
-
-		case TDES3_KEY_SIZE:
-			memcpy(kbxk_input, tr31_derive_kbek_tdes3_input, sizeof(tr31_derive_kbek_tdes3_input));
-			break;
-
-		default:
-			return -2;
-	}
+	memset(&kbxk_input, 0, sizeof(kbxk_input));
+	kbxk_input.counter = 1;
+	kbxk_input.key_usage = htons(TR31_DERIVATION_KEY_USAGE_ENCRYPTION);
+	kbxk_input.algorithm = htons(kbpk_len / 24); // this happens to correspond with tr31_derivation_algorithm_t
+	kbxk_input.length = htons(kbpk_len * 8);
 
 	// derive key block encryption key
 	for (size_t kbek_len = 0; kbek_len < kbpk_len; kbek_len += DES_BLOCK_SIZE) {
 		// TDES CMAC creates key material of size DES_BLOCK_SIZE
-		r = crypto_tdes_cmac(kbpk, kbpk_len, kbxk_input, sizeof(kbxk_input), kbek + kbek_len);
+		r = crypto_tdes_cmac(kbpk, kbpk_len, &kbxk_input, sizeof(kbxk_input), kbek + kbek_len);
 		if (r) {
 			// internal error
 			return r;
 		}
 
 		// increment key derivation input counter
-		kbxk_input[0]++;
+		kbxk_input.counter++;
 	}
 
 	// populate key block authentication key derivation input
-	switch (kbpk_len) {
-		case TDES2_KEY_SIZE:
-			memcpy(kbxk_input, tr31_derive_kbak_tdes2_input, sizeof(tr31_derive_kbak_tdes2_input));
-			break;
-
-		case TDES3_KEY_SIZE:
-			memcpy(kbxk_input, tr31_derive_kbak_tdes3_input, sizeof(tr31_derive_kbak_tdes3_input));
-			break;
-
-		default:
-			return -3;
-	}
+	memset(&kbxk_input, 0, sizeof(kbxk_input));
+	kbxk_input.counter = 1;
+	kbxk_input.key_usage = htons(TR31_DERIVATION_KEY_USAGE_MAC);
+	kbxk_input.algorithm = htons(kbpk_len / 24); // this happens to correspond with tr31_derivation_algorithm_t
+	kbxk_input.length = htons(kbpk_len * 8);
 
 	// derive key block authentication key
 	for (size_t kbak_len = 0; kbak_len < kbpk_len; kbak_len += DES_BLOCK_SIZE) {
 		// TDES CMAC creates key material of size DES_BLOCK_SIZE
-		r = crypto_tdes_cmac(kbpk, kbpk_len, kbxk_input, sizeof(kbxk_input), kbak + kbak_len);
+		r = crypto_tdes_cmac(kbpk, kbpk_len, &kbxk_input, sizeof(kbxk_input), kbak + kbak_len);
 		if (r) {
 			// internal error
 			return r;
 		}
 
 		// increment key derivation input counter
-		kbxk_input[0]++;
+		kbxk_input.counter++;
 	}
 
 	return 0;
@@ -216,7 +214,7 @@ int tr31_aes_verify_cmac(
 int tr31_aes_kbpk_derive(const void* kbpk, size_t kbpk_len, void* kbek, void* kbak)
 {
 	int r;
-	uint8_t kbxk_input[8];
+	struct tr31_derivation_data_t kbxk_input;
 
 	if (!kbpk || !kbek || !kbak) {
 		return -1;
@@ -234,23 +232,11 @@ int tr31_aes_kbpk_derive(const void* kbpk, size_t kbpk_len, void* kbek, void* kb
 	// Message input is as described in TR-31:2018, section 5.3.2.3, table 2
 
 	// populate key block encryption key derivation input
-	memset(kbxk_input, 0, sizeof(kbxk_input));
-	switch (kbpk_len) {
-		case AES128_KEY_SIZE:
-			memcpy(kbxk_input, tr31_derive_kbek_aes128_input, sizeof(tr31_derive_kbek_aes128_input));
-			break;
-
-		case AES192_KEY_SIZE:
-			memcpy(kbxk_input, tr31_derive_kbek_aes192_input, sizeof(tr31_derive_kbek_aes192_input));
-			break;
-
-		case AES256_KEY_SIZE:
-			memcpy(kbxk_input, tr31_derive_kbek_aes256_input, sizeof(tr31_derive_kbek_aes256_input));
-			break;
-
-		default:
-			return -2;
-	}
+	memset(&kbxk_input, 0, sizeof(kbxk_input));
+	kbxk_input.counter = 1;
+	kbxk_input.key_usage = htons(TR31_DERIVATION_KEY_USAGE_ENCRYPTION);
+	kbxk_input.algorithm = htons(kbpk_len / 8); // this happens to correspond with tr31_derivation_algorithm_t
+	kbxk_input.length = htons(kbpk_len * 8);
 
 	// derive key block encryption key
 	for (size_t kbek_len = 0; kbek_len < kbpk_len; kbek_len += AES_BLOCK_SIZE) {
@@ -262,7 +248,7 @@ int tr31_aes_kbpk_derive(const void* kbpk, size_t kbpk_len, void* kbek, void* kb
 		if (kbpk_len - kbek_len < AES_BLOCK_SIZE) {
 			uint8_t cmac[AES_BLOCK_SIZE];
 
-			r = crypto_aes_cmac(kbpk, kbpk_len, kbxk_input, sizeof(kbxk_input), cmac);
+			r = crypto_aes_cmac(kbpk, kbpk_len, &kbxk_input, sizeof(kbxk_input), cmac);
 			if (r) {
 				// internal error
 				return r;
@@ -271,7 +257,7 @@ int tr31_aes_kbpk_derive(const void* kbpk, size_t kbpk_len, void* kbek, void* kb
 			memcpy(kbek + kbek_len, cmac, kbpk_len - kbek_len);
 			crypto_cleanse(cmac, sizeof(cmac));
 		} else {
-			r = crypto_aes_cmac(kbpk, kbpk_len, kbxk_input, sizeof(kbxk_input), kbek + kbek_len);
+			r = crypto_aes_cmac(kbpk, kbpk_len, &kbxk_input, sizeof(kbxk_input), kbek + kbek_len);
 			if (r) {
 				// internal error
 				return r;
@@ -279,26 +265,15 @@ int tr31_aes_kbpk_derive(const void* kbpk, size_t kbpk_len, void* kbek, void* kb
 		}
 
 		// increment key derivation input counter
-		kbxk_input[0]++;
+		kbxk_input.counter++;
 	}
 
 	// populate key block authentication key derivation input
-	switch (kbpk_len) {
-		case AES128_KEY_SIZE:
-			memcpy(kbxk_input, tr31_derive_kbak_aes128_input, sizeof(tr31_derive_kbak_aes128_input));
-			break;
-
-		case AES192_KEY_SIZE:
-			memcpy(kbxk_input, tr31_derive_kbak_aes192_input, sizeof(tr31_derive_kbak_aes192_input));
-			break;
-
-		case AES256_KEY_SIZE:
-			memcpy(kbxk_input, tr31_derive_kbak_aes256_input, sizeof(tr31_derive_kbak_aes256_input));
-			break;
-
-		default:
-			return -3;
-	}
+	memset(&kbxk_input, 0, sizeof(kbxk_input));
+	kbxk_input.counter = 1;
+	kbxk_input.key_usage = htons(TR31_DERIVATION_KEY_USAGE_MAC);
+	kbxk_input.algorithm = htons(kbpk_len / 8); // this happens to correspond with tr31_derivation_algorithm_t
+	kbxk_input.length = htons(kbpk_len * 8);
 
 	// derive key block authentication key
 	for (size_t kbak_len = 0; kbak_len < kbpk_len; kbak_len += AES_BLOCK_SIZE) {
@@ -310,7 +285,7 @@ int tr31_aes_kbpk_derive(const void* kbpk, size_t kbpk_len, void* kbek, void* kb
 		if (kbpk_len - kbak_len < AES_BLOCK_SIZE) {
 			uint8_t cmac[AES_BLOCK_SIZE];
 
-			r = crypto_aes_cmac(kbpk, kbpk_len, kbxk_input, sizeof(kbxk_input), cmac);
+			r = crypto_aes_cmac(kbpk, kbpk_len, &kbxk_input, sizeof(kbxk_input), cmac);
 			if (r) {
 				// internal error
 				return r;
@@ -319,7 +294,7 @@ int tr31_aes_kbpk_derive(const void* kbpk, size_t kbpk_len, void* kbek, void* kb
 			memcpy(kbak + kbak_len, cmac, kbpk_len - kbak_len);
 			crypto_cleanse(cmac, sizeof(cmac));
 		} else {
-			r = crypto_aes_cmac(kbpk, kbpk_len, kbxk_input, sizeof(kbxk_input), kbak + kbak_len);
+			r = crypto_aes_cmac(kbpk, kbpk_len, &kbxk_input, sizeof(kbxk_input), kbak + kbak_len);
 			if (r) {
 				// internal error
 				return r;
@@ -327,7 +302,7 @@ int tr31_aes_kbpk_derive(const void* kbpk, size_t kbpk_len, void* kbek, void* kb
 		}
 
 		// increment key derivation input counter
-		kbxk_input[0]++;
+		kbxk_input.counter++;
 	}
 
 	return 0;
