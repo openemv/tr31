@@ -14,6 +14,17 @@ project(tr31
 	LANGUAGES C
 )
 
+# Determine whether this project is the top-level project
+if(${CMAKE_VERSION} VERSION_LESS "3.21")
+	get_directory_property(TR31_HAS_PARENT PARENT_DIRECTORY)
+	if(NOT TR31_HAS_PARENT)
+		set(TR31_IS_TOP_LEVEL True)
+	endif()
+else()
+	# CMake >=3.21 provides <PROJECT-NAME>_IS_TOP_LEVEL
+	set(TR31_IS_TOP_LEVEL ${tr31_IS_TOP_LEVEL})
+endif()
+
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_EXTENSIONS OFF)
 if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
@@ -25,6 +36,17 @@ endif()
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/")
 
 include(CTest)
+
+# Allow parent scope to provide crypto targets when not building shared libs
+if(TR31_IS_TOP_LEVEL OR BUILD_SHARED_LIBS)
+	add_subdirectory(crypto EXCLUDE_FROM_ALL)
+	add_subdirectory(crypto/test)
+elseif (NOT TARGET crypto_tdes OR
+	NOT TARGET crypto_aes OR
+	NOT TARGET crypto_mem OR
+	NOT TARGET crypto_rand)
+	message(FATAL_ERROR "Parent project must provide crypto libraries for static builds")
+endif()
 
 add_subdirectory(src)
 add_subdirectory(test)
@@ -41,7 +63,8 @@ install(FILES
 
 # generate and install basic CMake config files
 include(CMakePackageConfigHelpers) # provides CMake config generator macros
-foreach(pkg IN LISTS TR31_PACKAGE_DEPENDENCIES)
+# NOTE: crypto subdirectory provides CRYPTO_PACKAGE_DEPENDENCIES
+foreach(pkg IN LISTS CRYPTO_PACKAGE_DEPENDENCIES)
 	# build dependency string for use in CMake config file
 	string(APPEND TR31_CONFIG_PACKAGE_DEPENDENCIES "find_dependency(${pkg})\n")
 endforeach()
@@ -76,7 +99,9 @@ export(EXPORT tr31Targets
 set(TR31_INSTALL_PKGCONFIG_DIR ${CMAKE_INSTALL_LIBDIR}/pkgconfig CACHE STRING "Installation location for tr31 pkgconfig files")
 message(STATUS "Using pkgconfig install location \"${TR31_INSTALL_PKGCONFIG_DIR}\"")
 set(TR31_PKGCONFIG_LIB_NAME ${CMAKE_PROJECT_NAME})
-# NOTE: subdirectories will provide TR31_PKGCONFIG_REQ_PRIV and TR31_PKGCONFIG_LIBS_PRIV
+# NOTE: crypto subdirectory provides CRYPTO_PKGCONFIG_REQ_PRIV and CRYPTO_PKGCONFIG_LIBS_PRIV
+set(TR31_PKGCONFIG_REQ_PRIV ${CRYPTO_PKGCONFIG_REQ_PRIV})
+set(TR31_PKGCONFIG_LIBS_PRIV ${CRYPTO_PKGCONFIG_LIBS_PRIV})
 configure_file(pkgconfig/libtr31.pc.in
 	"${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/libtr31.pc"
 	@ONLY

@@ -22,6 +22,11 @@
 #include "tr31_config.h"
 #include "tr31_crypto.h"
 
+#include "crypto_tdes.h"
+#include "crypto_aes.h"
+#include "crypto_mem.h"
+#include "crypto_rand.h"
+
 #include <stdint.h>
 #include <string.h>
 #include <ctype.h>
@@ -362,7 +367,7 @@ int tr31_key_init(
 void tr31_key_release(struct tr31_key_t* key)
 {
 	if (key->data) {
-		tr31_cleanse(key->data, key->length);
+		crypto_cleanse(key->data, key->length);
 		free(key->data);
 		key->data = NULL;
 	}
@@ -418,18 +423,20 @@ int tr31_key_set_data(struct tr31_key_t* key, const void* data, size_t length)
 	memset(&key->kcv, 0, sizeof(key->kcv));
 	if (key->algorithm == TR31_KEY_ALGORITHM_TDES) {
 		// use legacy KCV for TDES key
+		// see ANSI X9.24-1:2017, 7.7.2
 		key->kcv_algorithm = TR31_OPT_BLOCK_KCV_LEGACY;
-		r = tr31_tdes_kcv(key->data, key->length, key->kcv);
+		r = crypto_tdes_kcv_legacy(key->data, key->length, key->kcv);
 		if (r) {
 			// return error value as-is
 			return r;
 		}
-		key->kcv_len = TDES_KCV_SIZE;
+		key->kcv_len = DES_KCV_SIZE_LEGACY;
 
 	} else if (key->algorithm == TR31_KEY_ALGORITHM_AES) {
 		// use CMAC-based KCV for AES key
+		// see ANSI X9.24-1:2017, 7.7.2
 		key->kcv_algorithm = TR31_OPT_BLOCK_KCV_CMAC;
-		r = tr31_aes_kcv(key->data, key->length, key->kcv);
+		r = crypto_aes_kcv(key->data, key->length, key->kcv);
 		if (r) {
 			// return error value as-is
 			return r;
@@ -1243,14 +1250,14 @@ static int tr31_tdes_decrypt_verify_variant_binding(struct tr31_ctx_t* ctx, cons
 	}
 
 	// verify authenticator
-	r = tr31_tdes_verify_cbcmac(kbak, kbpk->length, mac_input, sizeof(mac_input), ctx->authenticator);
+	r = tr31_tdes_verify_cbcmac(kbak, kbpk->length, mac_input, sizeof(mac_input), ctx->authenticator, ctx->authenticator_length);
 	if (r) {
 		r = TR31_ERROR_KEY_BLOCK_VERIFICATION_FAILED;
 		goto error;
 	}
 
 	// decrypt key payload; note that the TR-31 header is used as the IV
-	r = tr31_tdes_decrypt_cbc(kbek, kbpk->length, ctx->header, ctx->payload, ctx->payload_length, decrypted_payload);
+	r = crypto_tdes_decrypt(kbek, kbpk->length, ctx->header, ctx->payload, ctx->payload_length, decrypted_payload);
 	if (r) {
 		// return error value as-is
 		goto error;
@@ -1278,10 +1285,10 @@ static int tr31_tdes_decrypt_verify_variant_binding(struct tr31_ctx_t* ctx, cons
 error:
 exit:
 	// cleanse sensitive buffers
-	tr31_cleanse(kbek, sizeof(kbek));
-	tr31_cleanse(kbak, sizeof(kbak));
-	tr31_cleanse(decrypted_payload_buf, sizeof(decrypted_payload_buf));
-	tr31_cleanse(mac_input, sizeof(mac_input));
+	crypto_cleanse(kbek, sizeof(kbek));
+	crypto_cleanse(kbak, sizeof(kbak));
+	crypto_cleanse(decrypted_payload_buf, sizeof(decrypted_payload_buf));
+	crypto_cleanse(mac_input, sizeof(mac_input));
 
 	return r;
 }
@@ -1308,7 +1315,7 @@ static int tr31_tdes_encrypt_sign_variant_binding(struct tr31_ctx_t* ctx, const 
 	// populate payload key
 	decrypted_payload->length = htons(ctx->key.length * 8); // payload length is big endian and in bits, not bytes
 	memcpy(decrypted_payload->data, ctx->key.data, ctx->key.length);
-	tr31_rand(
+	crypto_rand(
 		decrypted_payload->data + ctx->key.length,
 		ctx->payload_length - sizeof(struct tr31_payload_t) - ctx->key.length
 	);
@@ -1321,20 +1328,22 @@ static int tr31_tdes_encrypt_sign_variant_binding(struct tr31_ctx_t* ctx, const 
 	}
 
 	// encrypt key payload; note that the TR-31 header is used as the IV
-	r = tr31_tdes_encrypt_cbc(kbek, kbpk->length, ctx->header, decrypted_payload, ctx->payload_length, ctx->payload);
+	r = crypto_tdes_encrypt(kbek, kbpk->length, ctx->header, decrypted_payload, ctx->payload_length, ctx->payload);
 	if (r) {
 		// return error value as-is
 		goto error;
 	}
 
 	// generate authenticator
+	uint8_t mac[DES_CBCMAC_SIZE];
 	memcpy(mac_input, ctx->header, ctx->header_length);
 	memcpy(mac_input + ctx->header_length, ctx->payload, ctx->payload_length);
-	r = tr31_tdes_cbcmac(kbak, kbpk->length, mac_input, sizeof(mac_input), ctx->authenticator);
+	r = crypto_tdes_cbcmac(kbak, kbpk->length, mac_input, sizeof(mac_input), mac);
 	if (r) {
 		// return error value as-is
 		goto error;
 	}
+	memcpy(ctx->authenticator, mac, ctx->authenticator_length);
 
 	// success
 	r = 0;
@@ -1343,10 +1352,11 @@ static int tr31_tdes_encrypt_sign_variant_binding(struct tr31_ctx_t* ctx, const 
 error:
 exit:
 	// cleanse sensitive buffers
-	tr31_cleanse(kbek, sizeof(kbek));
-	tr31_cleanse(kbak, sizeof(kbak));
-	tr31_cleanse(decrypted_payload_buf, sizeof(decrypted_payload_buf));
-	tr31_cleanse(mac_input, sizeof(mac_input));
+	crypto_cleanse(kbek, sizeof(kbek));
+	crypto_cleanse(kbak, sizeof(kbak));
+	crypto_cleanse(decrypted_payload_buf, sizeof(decrypted_payload_buf));
+	crypto_cleanse(mac_input, sizeof(mac_input));
+	crypto_cleanse(mac, sizeof(mac));
 
 	return r;
 }
@@ -1371,7 +1381,7 @@ static int tr31_tdes_decrypt_verify_derivation_binding(struct tr31_ctx_t* ctx, c
 	}
 
 	// decrypt key payload; note that the authenticator is used as the IV
-	r = tr31_tdes_decrypt_cbc(kbek, kbpk->length, ctx->authenticator, ctx->payload, ctx->payload_length, decrypted_payload);
+	r = crypto_tdes_decrypt(kbek, kbpk->length, ctx->authenticator, ctx->payload, ctx->payload_length, decrypted_payload);
 	if (r) {
 		// return error value as-is
 		goto error;
@@ -1386,7 +1396,7 @@ static int tr31_tdes_decrypt_verify_derivation_binding(struct tr31_ctx_t* ctx, c
 	}
 
 	// verify authenticator
-	r = tr31_tdes_verify_cmac(kbak, kbpk->length, decrypted_key_block, sizeof(decrypted_key_block), ctx->authenticator);
+	r = tr31_tdes_verify_cmac(kbak, kbpk->length, decrypted_key_block, sizeof(decrypted_key_block), ctx->authenticator, ctx->authenticator_length);
 	if (r) {
 		r = TR31_ERROR_KEY_BLOCK_VERIFICATION_FAILED;
 		goto error;
@@ -1406,9 +1416,9 @@ static int tr31_tdes_decrypt_verify_derivation_binding(struct tr31_ctx_t* ctx, c
 error:
 exit:
 	// cleanse sensitive buffers
-	tr31_cleanse(kbek, sizeof(kbek));
-	tr31_cleanse(kbak, sizeof(kbak));
-	tr31_cleanse(decrypted_key_block, sizeof(decrypted_key_block));
+	crypto_cleanse(kbek, sizeof(kbek));
+	crypto_cleanse(kbak, sizeof(kbak));
+	crypto_cleanse(decrypted_key_block, sizeof(decrypted_key_block));
 
 	return r;
 }
@@ -1433,7 +1443,7 @@ static int tr31_tdes_encrypt_sign_derivation_binding(struct tr31_ctx_t* ctx, con
 	// populate payload key
 	decrypted_payload->length = htons(ctx->key.length * 8); // payload length is big endian and in bits, not bytes
 	memcpy(decrypted_payload->data, ctx->key.data, ctx->key.length);
-	tr31_rand(
+	crypto_rand(
 		decrypted_payload->data + ctx->key.length,
 		ctx->payload_length - sizeof(struct tr31_payload_t) - ctx->key.length
 	);
@@ -1446,14 +1456,16 @@ static int tr31_tdes_encrypt_sign_derivation_binding(struct tr31_ctx_t* ctx, con
 	}
 
 	// generate authenticator
-	r = tr31_tdes_cmac(kbak, kbpk->length, decrypted_key_block, sizeof(decrypted_key_block), ctx->authenticator);
+	uint8_t cmac[DES_CMAC_SIZE];
+	r = crypto_tdes_cmac(kbak, kbpk->length, decrypted_key_block, sizeof(decrypted_key_block), cmac);
 	if (r) {
 		// return error value as-is
 		goto error;
 	}
+	memcpy(ctx->authenticator, cmac, ctx->authenticator_length);
 
 	// encrypt key payload; note that the authenticator is used as the IV
-	r = tr31_tdes_encrypt_cbc(kbek, kbpk->length, ctx->authenticator, decrypted_payload, ctx->payload_length, ctx->payload);
+	r = crypto_tdes_encrypt(kbek, kbpk->length, ctx->authenticator, decrypted_payload, ctx->payload_length, ctx->payload);
 	if (r) {
 		// return error value as-is
 		goto error;
@@ -1466,9 +1478,10 @@ static int tr31_tdes_encrypt_sign_derivation_binding(struct tr31_ctx_t* ctx, con
 error:
 exit:
 	// cleanse sensitive buffers
-	tr31_cleanse(kbek, sizeof(kbek));
-	tr31_cleanse(kbak, sizeof(kbak));
-	tr31_cleanse(decrypted_key_block, sizeof(decrypted_key_block));
+	crypto_cleanse(kbek, sizeof(kbek));
+	crypto_cleanse(kbak, sizeof(kbak));
+	crypto_cleanse(decrypted_key_block, sizeof(decrypted_key_block));
+	crypto_cleanse(cmac, sizeof(cmac));
 
 	return r;
 }
@@ -1493,7 +1506,7 @@ static int tr31_aes_decrypt_verify_derivation_binding(struct tr31_ctx_t* ctx, co
 	}
 
 	// decrypt key payload; note that the authenticator is used as the IV
-	r = tr31_aes_decrypt_cbc(kbek, kbpk->length, ctx->authenticator, ctx->payload, ctx->payload_length, decrypted_payload);
+	r = crypto_aes_decrypt(kbek, kbpk->length, ctx->authenticator, ctx->payload, ctx->payload_length, decrypted_payload);
 	if (r) {
 		// return error value as-is
 		goto error;
@@ -1508,7 +1521,7 @@ static int tr31_aes_decrypt_verify_derivation_binding(struct tr31_ctx_t* ctx, co
 	}
 
 	// verify authenticator
-	r = tr31_aes_verify_cmac(kbak, kbpk->length, decrypted_key_block, sizeof(decrypted_key_block), ctx->authenticator);
+	r = tr31_aes_verify_cmac(kbak, kbpk->length, decrypted_key_block, sizeof(decrypted_key_block), ctx->authenticator, ctx->authenticator_length);
 	if (r) {
 		r = TR31_ERROR_KEY_BLOCK_VERIFICATION_FAILED;
 		goto error;
@@ -1528,9 +1541,9 @@ static int tr31_aes_decrypt_verify_derivation_binding(struct tr31_ctx_t* ctx, co
 error:
 exit:
 	// cleanse sensitive buffers
-	tr31_cleanse(kbek, sizeof(kbek));
-	tr31_cleanse(kbak, sizeof(kbak));
-	tr31_cleanse(decrypted_key_block, sizeof(decrypted_key_block));
+	crypto_cleanse(kbek, sizeof(kbek));
+	crypto_cleanse(kbak, sizeof(kbak));
+	crypto_cleanse(decrypted_key_block, sizeof(decrypted_key_block));
 
 	return r;
 }
@@ -1555,7 +1568,7 @@ static int tr31_aes_encrypt_sign_derivation_binding(struct tr31_ctx_t* ctx, cons
 	// populate payload key
 	decrypted_payload->length = htons(ctx->key.length * 8); // payload length is big endian and in bits, not bytes
 	memcpy(decrypted_payload->data, ctx->key.data, ctx->key.length);
-	tr31_rand(
+	crypto_rand(
 		decrypted_payload->data + ctx->key.length,
 		ctx->payload_length - sizeof(struct tr31_payload_t) - ctx->key.length
 	);
@@ -1568,14 +1581,16 @@ static int tr31_aes_encrypt_sign_derivation_binding(struct tr31_ctx_t* ctx, cons
 	}
 
 	// generate authenticator
-	r = tr31_aes_cmac(kbak, kbpk->length, decrypted_key_block, sizeof(decrypted_key_block), ctx->authenticator);
+	uint8_t cmac[AES_CMAC_SIZE];
+	r = crypto_aes_cmac(kbak, kbpk->length, decrypted_key_block, sizeof(decrypted_key_block), cmac);
 	if (r) {
 		// return error value as-is
 		goto error;
 	}
+	memcpy(ctx->authenticator, cmac, ctx->authenticator_length);
 
 	// encrypt key payload; note that the authenticator is used as the IV
-	r = tr31_aes_encrypt_cbc(kbek, kbpk->length, ctx->authenticator, decrypted_payload, ctx->payload_length, ctx->payload);
+	r = crypto_aes_encrypt(kbek, kbpk->length, ctx->authenticator, decrypted_payload, ctx->payload_length, ctx->payload);
 	if (r) {
 		// return error value as-is
 		goto error;
@@ -1588,9 +1603,10 @@ static int tr31_aes_encrypt_sign_derivation_binding(struct tr31_ctx_t* ctx, cons
 error:
 exit:
 	// cleanse sensitive buffers
-	tr31_cleanse(kbek, sizeof(kbek));
-	tr31_cleanse(kbak, sizeof(kbak));
-	tr31_cleanse(decrypted_key_block, sizeof(decrypted_key_block));
+	crypto_cleanse(kbek, sizeof(kbek));
+	crypto_cleanse(kbak, sizeof(kbak));
+	crypto_cleanse(decrypted_key_block, sizeof(decrypted_key_block));
+	crypto_cleanse(cmac, sizeof(cmac));
 
 	return r;
 }
