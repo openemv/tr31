@@ -1,7 +1,7 @@
 /**
  * @file tr31-tool.c
  *
- * Copyright (c) 2020, 2021 ono//connect
+ * Copyright (c) 2020, 2021, 2022 Leon Lynch
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
