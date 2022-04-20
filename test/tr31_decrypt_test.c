@@ -88,6 +88,32 @@ static const uint8_t test8_tr31_key_verify[] = {
 };
 static const uint8_t test8_tr31_kcv_verify[] = { 0x0A, 0x00, 0xE3 };
 
+// ISO 20038:2017, B.2
+static const uint8_t test9_kbpk[] = {
+	0x32, 0x35, 0x36, 0x2D, 0x62, 0x69, 0x74, 0x20, 0x41, 0x45, 0x53, 0x20, 0x77, 0x72, 0x61, 0x70,
+	0x70, 0x69, 0x6E, 0x67, 0x20, 0x28, 0x49, 0x53, 0x4F, 0x20, 0x32, 0x30, 0x30, 0x33, 0x38, 0x29,
+};
+static const char test9_tr31_ascii[] = "E0084B0TV16N0000B2AE5E26BBA7F246E84D5EA24167E208A6B66EF2E27E55A52DB52F0AEACB94C57547";
+static const uint8_t test9_tr31_key_verify[] = {
+	0x77, 0x72, 0x61, 0x70, 0x70, 0x65, 0x64, 0x20, 0x33, 0x44, 0x45, 0x53, 0x20, 0x6B, 0x65, 0x79,
+};
+static const uint8_t test9_tr31_kcv_verify[] = { 0xB2, 0x9D, 0x42 };
+
+// ISO 20038:2017, B.3
+static const uint8_t test10_kbpk[] = {
+	0x32, 0x35, 0x36, 0x2D, 0x62, 0x69, 0x74, 0x20, 0x41, 0x45, 0x53, 0x20, 0x77, 0x72, 0x61, 0x70,
+	0x70, 0x69, 0x6E, 0x67, 0x20, 0x28, 0x49, 0x53, 0x4F, 0x20, 0x32, 0x30, 0x30, 0x33, 0x38, 0x29,
+};
+static const char test10_tr31_ascii[] = "D0112M3TV16N000018462FA5903B8D2B82FEE26B29713C0BE7ED81601087F12252093D06FC0A012C1CF769AD0E3E9E4877166AB013FC22B4";
+static const uint8_t test10_tr31_key_verify[] = {
+	// ISO 20038:2017, B.3 provides this is the wrapped key, but it doesn't match the input data...
+	//0x76, 0x72, 0x61, 0x70, 0x70, 0x65, 0x64, 0x20, 0x33, 0x44, 0x45, 0x53, 0x20, 0x6B, 0x65, 0x79,
+
+	// ISO 20038:2017, B.3 MAC input data shows that this is the wrapped key...
+	0x76, 0x73, 0x61, 0x70, 0x70, 0x64, 0x64, 0x20, 0x32, 0x45, 0x45, 0x52, 0x20, 0x6B, 0x64, 0x79,
+};
+static const uint8_t test10_tr31_kcv_verify[] = { 0xB2, 0x9D, 0x42 };
+
 int main(void)
 {
 	int r;
@@ -536,6 +562,96 @@ int main(void)
 		goto exit;
 	}
 	if (memcmp(test_tr31.key.kcv, test8_tr31_kcv_verify, sizeof(test8_tr31_kcv_verify)) != 0) {
+		fprintf(stderr, "TR-31 key data KCV is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	tr31_release(&test_tr31);
+
+	// test key block decryption for format version E containing TDES key
+	memset(&test_kbpk, 0, sizeof(test_kbpk));
+	test_kbpk.usage = TR31_KEY_USAGE_KEK;
+	test_kbpk.algorithm = TR31_KEY_ALGORITHM_AES;
+	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
+	test_kbpk.length = sizeof(test9_kbpk);
+	test_kbpk.data = (void*)test9_kbpk;
+	r = tr31_import(test9_tr31_ascii, &test_kbpk, &test_tr31);
+	if (r) {
+		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		goto exit;
+	}
+	if (test_tr31.version != TR31_VERSION_E ||
+		test_tr31.length != 84 ||
+		test_tr31.key.usage != TR31_KEY_USAGE_BDK ||
+		test_tr31.key.algorithm != TR31_KEY_ALGORITHM_TDES ||
+		test_tr31.key.mode_of_use != TR31_KEY_MODE_OF_USE_MAC_VERIFY ||
+		test_tr31.key.key_version != TR31_KEY_VERSION_IS_VALID ||
+		test_tr31.key.key_version_value != 16 ||
+		test_tr31.key.exportability != TR31_KEY_EXPORT_NONE ||
+		test_tr31.key.length != sizeof(test9_tr31_key_verify) ||
+		test_tr31.key.data == NULL ||
+		test_tr31.opt_blocks_count != 0 ||
+		test_tr31.opt_blocks != NULL ||
+		test_tr31.payload_length != 18 ||
+		test_tr31.payload == NULL ||
+		test_tr31.authenticator_length != 16 ||
+		test_tr31.authenticator == NULL
+	) {
+		fprintf(stderr, "TR-31 context is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	if (memcmp(test_tr31.key.data, test9_tr31_key_verify, sizeof(test9_tr31_key_verify)) != 0) {
+		fprintf(stderr, "TR-31 key data is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	if (memcmp(test_tr31.key.kcv, test9_tr31_kcv_verify, sizeof(test9_tr31_kcv_verify)) != 0) {
+		fprintf(stderr, "TR-31 key data KCV is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	tr31_release(&test_tr31);
+
+	// test key block decryption for format version D containing TDES key
+	memset(&test_kbpk, 0, sizeof(test_kbpk));
+	test_kbpk.usage = TR31_KEY_USAGE_KEK;
+	test_kbpk.algorithm = TR31_KEY_ALGORITHM_AES;
+	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
+	test_kbpk.length = sizeof(test10_kbpk);
+	test_kbpk.data = (void*)test10_kbpk;
+	r = tr31_import(test10_tr31_ascii, &test_kbpk, &test_tr31);
+	if (r) {
+		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		goto exit;
+	}
+	if (test_tr31.version != TR31_VERSION_D ||
+		test_tr31.length != 112 ||
+		test_tr31.key.usage != TR31_KEY_USAGE_ISO9797_1_MAC_3 ||
+		test_tr31.key.algorithm != TR31_KEY_ALGORITHM_TDES ||
+		test_tr31.key.mode_of_use != TR31_KEY_MODE_OF_USE_MAC_VERIFY ||
+		test_tr31.key.key_version != TR31_KEY_VERSION_IS_VALID ||
+		test_tr31.key.key_version_value != 16 ||
+		test_tr31.key.exportability != TR31_KEY_EXPORT_NONE ||
+		test_tr31.key.length != sizeof(test10_tr31_key_verify) ||
+		test_tr31.key.data == NULL ||
+		test_tr31.opt_blocks_count != 0 ||
+		test_tr31.opt_blocks != NULL ||
+		test_tr31.payload_length != 32 ||
+		test_tr31.payload == NULL ||
+		test_tr31.authenticator_length != 16 ||
+		test_tr31.authenticator == NULL
+	) {
+		fprintf(stderr, "TR-31 context is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	if (memcmp(test_tr31.key.data, test10_tr31_key_verify, sizeof(test10_tr31_key_verify)) != 0) {
+		fprintf(stderr, "TR-31 key data is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	if (memcmp(test_tr31.key.kcv, test10_tr31_kcv_verify, sizeof(test10_tr31_kcv_verify)) != 0) {
 		fprintf(stderr, "TR-31 key data KCV is incorrect\n");
 		r = 1;
 		goto exit;

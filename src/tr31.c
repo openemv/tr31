@@ -523,6 +523,7 @@ int tr31_init(
 		case TR31_VERSION_B:
 		case TR31_VERSION_C:
 		case TR31_VERSION_D:
+		case TR31_VERSION_E:
 			// supported
 			break;
 
@@ -728,21 +729,28 @@ int tr31_import(
 			enc_block_size = AES_BLOCK_SIZE;
 			break;
 
+		case TR31_VERSION_E:
+			ctx->authenticator_length = 16; // 16 bytes; 32 ASCII hex digits
+			enc_block_size = AES_BLOCK_SIZE;
+			break;
+
 		default:
 			// invalid format version
 			return -1;
 	}
 
 	// TR-31:2018, A.2 (page 18) indicates that the total length of all
-	// optional blocks will be a must be a multiple of the encryption block
-	// size.
+	// optional blocks must be a multiple of the encryption block size.
 	// TR-31:2018, A.5.6 indicates that the total optional block length must
 	// be a multiple of 8.
 	// TR-31:2018, A.5.6, table 11 indicates that optional block PB is used to
 	// bring the total length of all Optional Blocks in the key block to a
 	// multiple of the encryption block length.
+	// ISO 20038:2017, A.2.1 (page 10) indicates that the total length of all
+	// optional blocks must be a multiple of the encryption block size and
+	// does not make an exception for format version E.
 	// So we'll use the encryption block size which is determined by the TR-31
-	// format version
+	// format version.
 	if (opt_blk_len_total & (enc_block_size-1)) {
 		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 	}
@@ -873,6 +881,49 @@ int tr31_import(
 				ctx->payload_length != TR31_AES256_KEY_UNDER_AES_LENGTH
 			) {
 				r = TR31_ERROR_INVALID_KEY_LENGTH;
+				goto error;
+			}
+
+			// decrypt and verify payload
+			r = tr31_aes_decrypt_verify_derivation_binding(ctx, kbpk);
+			if (r) {
+				// return error value as-is
+				goto error;
+			}
+
+			// validate payload length field
+			switch (ctx->key.algorithm) {
+				case TR31_KEY_ALGORITHM_TDES:
+					if (ctx->key.length != TDES2_KEY_SIZE &&
+						ctx->key.length != TDES3_KEY_SIZE
+					) {
+						r = TR31_ERROR_INVALID_KEY_LENGTH;
+						goto error;
+					}
+					break;
+
+				case TR31_KEY_ALGORITHM_AES:
+					if (ctx->key.length != AES128_KEY_SIZE &&
+						ctx->key.length != AES192_KEY_SIZE &&
+						ctx->key.length != AES256_KEY_SIZE
+					) {
+						r = TR31_ERROR_INVALID_KEY_LENGTH;
+						goto error;
+					}
+					break;
+
+				default:
+					// unsupported; continue
+					break;
+			}
+
+			break;
+		}
+
+		case TR31_VERSION_E: {
+			// only allow AES key block protection keys
+			if (kbpk->algorithm != TR31_KEY_ALGORITHM_AES) {
+				r = TR31_ERROR_UNSUPPORTED_KBPK_ALGORITHM;
 				goto error;
 			}
 
@@ -1498,18 +1549,41 @@ static int tr31_aes_decrypt_verify_derivation_binding(struct tr31_ctx_t* ctx, co
 	memcpy(decrypted_key_block, ctx->header, ctx->header_length);
 	struct tr31_payload_t* decrypted_payload = (struct tr31_payload_t*)(decrypted_key_block + ctx->header_length);
 
-	// derive key block encryption key and key block authentication key from key block protection key
-	r = tr31_aes_kbpk_derive(kbpk->data, kbpk->length, TR31_AES_MODE_CBC, kbek, kbak);
-	if (r) {
-		// return error value as-is
-		goto error;
-	}
+	if (ctx->version == TR31_VERSION_D) {
+		// derive key block encryption key and key block authentication key from key block protection key
+		// format version D uses CBC block mode
+		r = tr31_aes_kbpk_derive(kbpk->data, kbpk->length, TR31_AES_MODE_CBC, kbek, kbak);
+		if (r) {
+			// return error value as-is
+			goto error;
+		}
 
-	// decrypt key payload; note that the authenticator is used as the IV
-	r = crypto_aes_decrypt(kbek, kbpk->length, ctx->authenticator, ctx->payload, ctx->payload_length, decrypted_payload);
-	if (r) {
-		// return error value as-is
-		goto error;
+		// decrypt key payload; note that the authenticator is used as the IV
+		r = crypto_aes_decrypt(kbek, kbpk->length, ctx->authenticator, ctx->payload, ctx->payload_length, decrypted_payload);
+		if (r) {
+			// return error value as-is
+			goto error;
+		}
+
+	} else if (ctx->version == TR31_VERSION_E) {
+		// derive key block encryption key and key block authentication key from key block protection key
+		// format version E uses CTR block mode
+		r = tr31_aes_kbpk_derive(kbpk->data, kbpk->length, TR31_AES_MODE_CTR, kbek, kbak);
+		if (r) {
+			// return error value as-is
+			goto error;
+		}
+
+		// decrypt key payload; note that the authenticator is used as the IV/nonce
+		r = crypto_aes_decrypt_ctr(kbek, kbpk->length, ctx->authenticator, ctx->payload, ctx->payload_length, decrypted_payload);
+		if (r) {
+			// return error value as-is
+			goto error;
+		}
+
+	} else {
+		// invalid format version
+		return -1;
 	}
 
 	// extract payload length field

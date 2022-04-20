@@ -32,7 +32,8 @@ enum tr31_version_t {
 	TR31_VERSION_A = 'A', ///< TR-31 format version A as defined in TR-31:2005; uses TDES Key Variant Binding Method
 	TR31_VERSION_B = 'B', ///< TR-31 format version B as defined in TR-31:2010; uses TDES Key Derivation Binding Method
 	TR31_VERSION_C = 'C', ///< TR-31 format version C as defined in TR-31:2010; uses TDES Key Variant Binding Method
-	TR31_VERSION_D = 'D', ///< TR-31 format version D as defined in TR-31:2018; uses AES Key Derivation Binding Method
+	TR31_VERSION_D = 'D', ///< TR-31 format version D as defined in TR-31:2018 and ISO 20038:2017; uses AES Key Derivation Binding Method
+	TR31_VERSION_E = 'E', ///< TR-31 format version E as defined in ISO 20038:2017; uses AES Key Derivation Binding Method
 };
 
 // TR-31 key usage (see TR-31:2018, A.5.1, table 6)
