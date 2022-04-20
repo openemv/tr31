@@ -1499,7 +1499,7 @@ static int tr31_aes_decrypt_verify_derivation_binding(struct tr31_ctx_t* ctx, co
 	struct tr31_payload_t* decrypted_payload = (struct tr31_payload_t*)(decrypted_key_block + ctx->header_length);
 
 	// derive key block encryption key and key block authentication key from key block protection key
-	r = tr31_aes_kbpk_derive(kbpk->data, kbpk->length, kbek, kbak);
+	r = tr31_aes_kbpk_derive(kbpk->data, kbpk->length, TR31_AES_MODE_CBC, kbek, kbak);
 	if (r) {
 		// return error value as-is
 		goto error;
@@ -1574,7 +1574,7 @@ static int tr31_aes_encrypt_sign_derivation_binding(struct tr31_ctx_t* ctx, cons
 	);
 
 	// derive key block encryption key and key block authentication key from key block protection key
-	r = tr31_aes_kbpk_derive(kbpk->data, kbpk->length, kbek, kbak);
+	r = tr31_aes_kbpk_derive(kbpk->data, kbpk->length, TR31_AES_MODE_CBC, kbek, kbak);
 	if (r) {
 		// return error value as-is
 		goto error;

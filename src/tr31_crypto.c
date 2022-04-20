@@ -36,6 +36,7 @@
 // key derivation input data
 // see TR-31:2018, section 5.3.2.1, table 1
 // see TR-31:2018, section 5.3.2.3, table 2
+// see ISO 20038:2017, section 6.3, table 1
 struct tr31_derivation_data_t {
 	uint8_t counter; // Counter that is incremented for each block of keying material
 	uint16_t key_usage; // Usage of derived key (not TR-31 key usage)
@@ -45,8 +46,9 @@ struct tr31_derivation_data_t {
 } __attribute__((packed));
 
 enum tr31_derivation_key_usage_t {
-	TR31_DERIVATION_KEY_USAGE_ENCRYPTION = 0x0000,
+	TR31_DERIVATION_KEY_USAGE_ENCRYPTION_CBC = 0x0000,
 	TR31_DERIVATION_KEY_USAGE_MAC = 0x0001,
+	TR31_DERIVATION_KEY_USAGE_ENCRYPTION_CTR = 0x0002,
 };
 
 enum tr31_derivation_algorithm_t {
@@ -148,7 +150,7 @@ int tr31_tdes_kbpk_derive(const void* kbpk, size_t kbpk_len, void* kbek, void* k
 	// populate key block encryption key derivation input
 	memset(&kbxk_input, 0, sizeof(kbxk_input));
 	kbxk_input.counter = 1;
-	kbxk_input.key_usage = htons(TR31_DERIVATION_KEY_USAGE_ENCRYPTION);
+	kbxk_input.key_usage = htons(TR31_DERIVATION_KEY_USAGE_ENCRYPTION_CBC);
 	kbxk_input.algorithm = htons(kbpk_len / 24); // this happens to correspond with tr31_derivation_algorithm_t
 	kbxk_input.length = htons(kbpk_len * 8);
 
@@ -211,13 +213,24 @@ int tr31_aes_verify_cmac(
 	return r;
 }
 
-int tr31_aes_kbpk_derive(const void* kbpk, size_t kbpk_len, void* kbek, void* kbak)
+int tr31_aes_kbpk_derive(
+	const void* kbpk,
+	size_t kbpk_len,
+	enum tr31_aes_mode_t mode,
+	void* kbek,
+	void* kbak
+)
 {
 	int r;
 	struct tr31_derivation_data_t kbxk_input;
 
 	if (!kbpk || !kbek || !kbak) {
 		return -1;
+	}
+	if (mode != TR31_AES_MODE_CBC &&
+		mode != TR31_AES_MODE_CTR
+	) {
+		return -2;
 	}
 	if (kbpk_len != AES128_KEY_SIZE &&
 		kbpk_len != AES192_KEY_SIZE &&
@@ -230,11 +243,18 @@ int tr31_aes_kbpk_derive(const void* kbpk, size_t kbpk_len, void* kbek, void* kb
 	// CMAC uses subkey and message input to output derived key material of
 	// cipher block length.
 	// Message input is as described in TR-31:2018, section 5.3.2.3, table 2
+	// and ISO 20038:2017, section 6.3, table 1
 
 	// populate key block encryption key derivation input
 	memset(&kbxk_input, 0, sizeof(kbxk_input));
 	kbxk_input.counter = 1;
-	kbxk_input.key_usage = htons(TR31_DERIVATION_KEY_USAGE_ENCRYPTION);
+	if (mode == TR31_AES_MODE_CBC) {
+		kbxk_input.key_usage = htons(TR31_DERIVATION_KEY_USAGE_ENCRYPTION_CBC);
+	} else if (mode == TR31_AES_MODE_CTR) {
+		kbxk_input.key_usage = htons(TR31_DERIVATION_KEY_USAGE_ENCRYPTION_CTR);
+	} else {
+		return -3;
+	}
 	kbxk_input.algorithm = htons(kbpk_len / 8); // this happens to correspond with tr31_derivation_algorithm_t
 	kbxk_input.length = htons(kbpk_len * 8);
 

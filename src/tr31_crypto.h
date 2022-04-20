@@ -51,6 +51,12 @@ __BEGIN_DECLS
 #define TR31_AES192_KEY_UNDER_AES_LENGTH AES_CIPHERTEXT_LENGTH(2 + AES192_KEY_SIZE) ///< 2-byte length + AES-192 key + AES padding, in bytes
 #define TR31_AES256_KEY_UNDER_AES_LENGTH AES_CIPHERTEXT_LENGTH(2 + AES256_KEY_SIZE) ///< 2-byte length + AES-256 key + AES padding, in bytes
 
+/// TR-31 AES block mode
+enum tr31_aes_mode_t {
+	TR31_AES_MODE_CBC = 1,
+	TR31_AES_MODE_CTR,
+};
+
 /**
  * Verify using TDES CBC-MAC
  *
@@ -98,6 +104,7 @@ int tr31_tdes_verify_cmac(
 
 /**
  * Output TDES key block encryption key (KBEK) variant and key block authentication key (KBAK) variant from key block protection key (KBPK)
+ *
  * @param kbpk Key block protection key
  * @param kbpk_len Length of key block protection key in bytes
  * @param kbek Key block encryption key output
@@ -108,6 +115,7 @@ int tr31_tdes_kbpk_variant(const void* kbpk, size_t kbpk_len, void* kbek, void* 
 
 /**
  * Derive TDES key block encryption key (KBEK) and key block authentication key (KBAK) from key block protection key (KBPK)
+ *
  * @param kbpk Key block protection key
  * @param kbpk_len Length of key block protection key in bytes
  * @param kbek Key block encryption key output
@@ -141,13 +149,21 @@ int tr31_aes_verify_cmac(
 
 /**
  * Derive AES key block encryption key (KBEK) and key block authentication key (KBAK) from key block protection key (KBPK)
+ *
  * @param kbpk Key block protection key
  * @param kbpk_len Length of key block protection key in bytes
+ * @param mode Key block encryption key block mode
  * @param kbek Key block encryption key output
  * @param kbak Key block authentication key output
  * @return Zero for success. Less than zero for internal error. Greater than zero for data error. @see #tr31_error_t
  */
-int tr31_aes_kbpk_derive(const void* kbpk, size_t kbpk_len, void* kbek, void* kbak);
+int tr31_aes_kbpk_derive(
+	const void* kbpk,
+	size_t kbpk_len,
+	enum tr31_aes_mode_t mode,
+	void* kbek,
+	void* kbak
+);
 
 __END_DECLS
 
