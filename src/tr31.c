@@ -1032,6 +1032,13 @@ int tr31_export(
 			enc_block_size = AES_BLOCK_SIZE;
 			break;
 
+		case TR31_VERSION_E:
+			// supported
+			ctx->payload_length = sizeof(struct tr31_payload_t) + ctx->key.length; // no padding required
+			ctx->authenticator_length = 16; // 16 bytes; 32 ASCII hex digits
+			enc_block_size = AES_BLOCK_SIZE;
+			break;
+
 		default:
 			// unsupported
 			return TR31_ERROR_UNSUPPORTED_VERSION;
@@ -1232,6 +1239,23 @@ int tr31_export(
 			break;
 
 		case TR31_VERSION_D:
+			// only allow AES key block protection keys
+			if (kbpk->algorithm != TR31_KEY_ALGORITHM_AES) {
+				return TR31_ERROR_UNSUPPORTED_KBPK_ALGORITHM;
+			}
+
+			// sign and encrypt payload
+			// this will populate:
+			//   ctx->payload
+			//   ctx->authenticator
+			r = tr31_aes_encrypt_sign_derivation_binding(ctx, kbpk);
+			if (r) {
+				// return error value as-is
+				return r;
+			}
+			break;
+
+		case TR31_VERSION_E:
 			// only allow AES key block protection keys
 			if (kbpk->algorithm != TR31_KEY_ALGORITHM_AES) {
 				return TR31_ERROR_UNSUPPORTED_KBPK_ALGORITHM;
@@ -1627,6 +1651,7 @@ static int tr31_aes_encrypt_sign_derivation_binding(struct tr31_ctx_t* ctx, cons
 	int r;
 	uint8_t kbek[AES256_KEY_SIZE];
 	uint8_t kbak[AES256_KEY_SIZE];
+	uint8_t cmac[AES_CMAC_SIZE];
 
 	// add payload data to context object
 	ctx->payload = calloc(1, ctx->payload_length);
@@ -1647,27 +1672,57 @@ static int tr31_aes_encrypt_sign_derivation_binding(struct tr31_ctx_t* ctx, cons
 		ctx->payload_length - sizeof(struct tr31_payload_t) - ctx->key.length
 	);
 
-	// derive key block encryption key and key block authentication key from key block protection key
-	r = tr31_aes_kbpk_derive(kbpk->data, kbpk->length, TR31_AES_MODE_CBC, kbek, kbak);
-	if (r) {
-		// return error value as-is
-		goto error;
-	}
+	if (ctx->version == TR31_VERSION_D) {
+		// derive key block encryption key and key block authentication key from key block protection key
+		// format version D uses CBC block mode
+		r = tr31_aes_kbpk_derive(kbpk->data, kbpk->length, TR31_AES_MODE_CBC, kbek, kbak);
+		if (r) {
+			// return error value as-is
+			goto error;
+		}
 
-	// generate authenticator
-	uint8_t cmac[AES_CMAC_SIZE];
-	r = crypto_aes_cmac(kbak, kbpk->length, decrypted_key_block, sizeof(decrypted_key_block), cmac);
-	if (r) {
-		// return error value as-is
-		goto error;
-	}
-	memcpy(ctx->authenticator, cmac, ctx->authenticator_length);
+		// generate authenticator
+		r = crypto_aes_cmac(kbak, kbpk->length, decrypted_key_block, sizeof(decrypted_key_block), cmac);
+		if (r) {
+			// return error value as-is
+			goto error;
+		}
+		memcpy(ctx->authenticator, cmac, ctx->authenticator_length);
 
-	// encrypt key payload; note that the authenticator is used as the IV
-	r = crypto_aes_encrypt(kbek, kbpk->length, ctx->authenticator, decrypted_payload, ctx->payload_length, ctx->payload);
-	if (r) {
-		// return error value as-is
-		goto error;
+		// encrypt key payload; note that the authenticator is used as the IV
+		r = crypto_aes_encrypt(kbek, kbpk->length, ctx->authenticator, decrypted_payload, ctx->payload_length, ctx->payload);
+		if (r) {
+			// return error value as-is
+			goto error;
+		}
+
+	} else if (ctx->version == TR31_VERSION_E) {
+		// derive key block encryption key and key block authentication key from key block protection key
+		// format version E uses CTR block mode
+		r = tr31_aes_kbpk_derive(kbpk->data, kbpk->length, TR31_AES_MODE_CTR, kbek, kbak);
+		if (r) {
+			// return error value as-is
+			goto error;
+		}
+
+		// generate authenticator
+		r = crypto_aes_cmac(kbak, kbpk->length, decrypted_key_block, sizeof(decrypted_key_block), cmac);
+		if (r) {
+			// return error value as-is
+			goto error;
+		}
+		memcpy(ctx->authenticator, cmac, ctx->authenticator_length);
+
+		// encrypt key payload; note that the authenticator is used as the IV/nonce
+		r = crypto_aes_encrypt_ctr(kbek, kbpk->length, ctx->authenticator, decrypted_payload, ctx->payload_length, ctx->payload);
+		if (r) {
+			// return error value as-is
+			goto error;
+		}
+
+	} else {
+		// invalid format version
+		return -1;
 	}
 
 	// success

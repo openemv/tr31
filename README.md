@@ -166,7 +166,6 @@ Roadmap
 * Implement key block component combination
 * Add CPack packaging for Windows and MacOS
 * Test on various ARM architectures
-* Support for ISO 20038:2017 format version E
 
 License
 -------
