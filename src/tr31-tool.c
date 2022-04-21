@@ -345,6 +345,7 @@ static int populate_kbpk(const struct tr31_tool_options_t* options, unsigned int
 			break;
 
 		case TR31_VERSION_D:
+		case TR31_VERSION_E:
 			algorithm = TR31_KEY_ALGORITHM_AES;
 			break;
 
