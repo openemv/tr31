@@ -156,8 +156,8 @@ static const struct tr31_key_t test5_key = {
 	.key_version = TR31_KEY_VERSION_IS_VALID,
 	.key_version_value = 12,
 	.exportability = TR31_KEY_EXPORT_NONE,
-	.length = sizeof(test4_key_raw),
-	.data = (void*)test4_key_raw,
+	.length = sizeof(test5_key_raw),
+	.data = (void*)test5_key_raw,
 };
 static const char test5_tr31_header_verify[] = "D0128M7HC12N0200HM0621PB0A000000";
 static const size_t test5_tr31_length_verify =
@@ -165,6 +165,33 @@ static const size_t test5_tr31_length_verify =
 	+ 6 /* opt block HM */ + 10 /* opt block PB */
 	+ (2 /* key length */ + 16 /* key */ + 14 /* padding */) * 2
 	+ (16 /* authenticator */) * 2;
+
+// ISO 20038:2017, B.2
+static const uint8_t test6_kbpk_raw[] = {
+	0x32, 0x35, 0x36, 0x2D, 0x62, 0x69, 0x74, 0x20, 0x41, 0x45, 0x53, 0x20, 0x77, 0x72, 0x61, 0x70,
+	0x70, 0x69, 0x6E, 0x67, 0x20, 0x28, 0x49, 0x53, 0x4F, 0x20, 0x32, 0x30, 0x30, 0x33, 0x38, 0x29,
+};
+static struct tr31_key_t test6_kbpk = {
+	.usage = TR31_KEY_USAGE_TR31_KBPK,
+	.algorithm = TR31_KEY_ALGORITHM_AES,
+	.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC,
+	.length = 0,
+	.data = NULL,
+};
+static const uint8_t test6_key_raw[] = {
+	0x77, 0x72, 0x61, 0x70, 0x70, 0x65, 0x64, 0x20, 0x33, 0x44, 0x45, 0x53, 0x20, 0x6B, 0x65, 0x79,
+};
+static const struct tr31_key_t test6_key = {
+	.usage = TR31_KEY_USAGE_BDK,
+	.algorithm = TR31_KEY_ALGORITHM_TDES,
+	.mode_of_use = TR31_KEY_MODE_OF_USE_MAC_VERIFY,
+	.key_version = TR31_KEY_VERSION_IS_VALID,
+	.key_version_value = 16,
+	.exportability = TR31_KEY_EXPORT_NONE,
+	.length = sizeof(test6_key_raw),
+	.data = (void*)test6_key_raw,
+};
+static const char test6_tr31_verify[] = "E0084B0TV16N0000B2AE5E26BBA7F246E84D5EA24167E208A6B66EF2E27E55A52DB52F0AEACB94C57547";
 
 static void print_buf(const char* buf_name, const void* buf, size_t length)
 {
@@ -478,6 +505,60 @@ int main(void)
 	}
 	tr31_release(&test_tr31);
 
+	// ISO 20038:2017, B.2
+	// Without padding, format version E is deterministic and the exported
+	// key block can be verified using a sample from ISO 20038:2017
+	printf("Test 6...\n");
+	print_buf("key", test6_key.data, test6_key.length);
+	r = tr31_init(TR31_VERSION_E, &test6_key, &test_tr31);
+	if (r) {
+		fprintf(stderr, "tr31_init() failed; r=%d\n", r);
+		goto exit;
+	}
+
+	print_buf("kbpk", test6_kbpk_raw, sizeof(test6_kbpk_raw));
+	r = tr31_key_set_data(&test6_kbpk, test6_kbpk_raw, sizeof(test6_kbpk_raw));
+	if (r) {
+		fprintf(stderr, "tr31_key_set_data() failed; r=%d\n", r);
+		goto exit;
+	}
+
+	r = tr31_export(&test_tr31, &test6_kbpk, key_block, sizeof(key_block));
+	if (r) {
+		fprintf(stderr, "tr31_export() failed; r=%d\n", r);
+		goto exit;
+	}
+	printf("TR-31: %s\n", key_block);
+	if (strlen(key_block) != strlen(test6_tr31_verify)) {
+		fprintf(stderr, "TR-31 length is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	if (strncmp(key_block, test6_tr31_verify, strlen(test6_tr31_verify)) != 0) {
+		fprintf(stderr, "TR-31 key block is incorrect\n");
+		fprintf(stderr, "%s\n%s\n", key_block, test6_tr31_verify);
+		r = 1;
+		goto exit;
+	}
+	tr31_release(&test_tr31);
+
+	// Verify and decrypt key block
+	r = tr31_import(key_block, &test6_kbpk, &test_tr31);
+	if (r) {
+		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		goto exit;
+	}
+	if (test_tr31.key.length != sizeof(test6_key_raw) ||
+		memcmp(test_tr31.key.data, test6_key_raw, sizeof(test6_key_raw)) != 0)
+	{
+		fprintf(stderr, "Key verification failed\n");
+		print_buf("key.data", test_tr31.key.data, test_tr31.key.length);
+		print_buf("expected", test6_key_raw, sizeof(test6_key_raw));
+		r = 1;
+		goto exit;
+	}
+	tr31_release(&test_tr31);
+
 	printf("All tests passed.\n");
 	r = 0;
 	goto exit;
@@ -489,5 +570,6 @@ exit:
 	tr31_key_release(&test3_kbpk);
 	tr31_key_release(&test4_kbpk);
 	tr31_key_release(&test5_kbpk);
+	tr31_key_release(&test6_kbpk);
 	return r;
 }
