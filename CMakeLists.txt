@@ -35,7 +35,16 @@ endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/")
 
-include(CTest)
+# Configure testing before adding subdirectories
+if(TR31_IS_TOP_LEVEL)
+	# Configure Valgrind before including CTest module
+	find_program(VALGRIND_COMMAND valgrind)
+	set(MEMORYCHECK_TYPE Valgrind)
+	set(VALGRIND_COMMAND_OPTIONS "--leak-check=full --show-reachable=yes --track-origins=yes --num-callers=100 --show-error-list=yes")
+
+	# Only top-level project should include CTest module
+	include(CTest)
+endif()
 
 # Allow parent scope to provide crypto targets when not building shared libs
 if(TR31_IS_TOP_LEVEL OR BUILD_SHARED_LIBS)
