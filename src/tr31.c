@@ -1202,6 +1202,16 @@ int tr31_export(
 	ctx->length = final_key_block_len;
 	int_to_dec(ctx->length, header->length, sizeof(header->length));
 
+	// free internal buffers that my be populated due to reuse of the context object
+	if (ctx->payload) {
+		free(ctx->payload);
+		ctx->payload = NULL;
+	}
+	if (ctx->authenticator) {
+		free(ctx->authenticator);
+		ctx->authenticator = NULL;
+	}
+
 	switch (ctx->version) {
 		case TR31_VERSION_A:
 		case TR31_VERSION_C:
