@@ -1,0 +1,82 @@
+##############################################################################
+# Copyright (c) 2022 Leon Lynch
+#
+# This file is licensed under the terms of the LGPL v2.1 license.
+# See LICENSE file.
+##############################################################################
+
+name: Ubuntu build
+
+on: [push]
+
+jobs:
+  build-ubuntu-debug:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: "Ubuntu 20.04", os: ubuntu-20.04 }
+          - { name: "Ubuntu 22.04", os: ubuntu-22.04 }
+
+    name: ${{ matrix.name }} build (static/debug)
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libmbedtls-dev
+
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        submodules: recursive
+    - run: git describe --always --dirty
+
+    - name: Configure CMake
+      run: cmake -B build -DCMAKE_BUILD_TYPE="Debug"
+
+    - name: Build
+      run: cmake --build build
+
+    - name: Test
+      run: cmake --build build --target test
+
+  build-ubuntu-2004-release:
+    name: Ubuntu 20.04 build (release)
+    runs-on: ubuntu-20.04
+
+    steps:
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libmbedtls-dev doxygen
+
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+        submodules: recursive
+
+    - name: Get version from git tag
+      run: |
+        git describe --always --dirty
+        echo "GIT_DESCRIBE=$(git describe --always --dirty)" >> $GITHUB_ENV
+
+    - name: Configure CMake
+      run: cmake -B build -DCMAKE_BUILD_TYPE="RelWithDebInfo" -DCMAKE_INSTALL_PREFIX=/usr -DBUILD_SHARED_LIBS=YES -DBUILD_DOCS=YES -DCPACK_COMPONENTS_GROUPING=ALL_COMPONENTS_IN_ONE
+
+    - name: Build
+      run: cmake --build build
+
+    - name: Test
+      run: cmake --build build --target test
+
+    - name: Package
+      run: cmake --build build --target package
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: tr31-${{env.GIT_DESCRIBE}}-artifact
+        path: build/tr31_*.deb
