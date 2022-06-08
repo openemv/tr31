@@ -4,6 +4,7 @@ TR-31 library and tools
 [![License: LGPL-2.1](https://img.shields.io/github/license/openemv/tr31)](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html)<br/>
 [![Ubuntu build](https://github.com/openemv/tr31/actions/workflows/ubuntu-build.yaml/badge.svg)](https://github.com/openemv/tr31/actions/workflows/ubuntu-build.yaml)<br/>
 [![MacOS build](https://github.com/openemv/tr31/actions/workflows/macos-build.yaml/badge.svg)](https://github.com/openemv/tr31/actions/workflows/macos-build.yaml)<br/>
+[![Windows build](https://github.com/openemv/tr31/actions/workflows/windows-build.yaml/badge.svg)](https://github.com/openemv/tr31/actions/workflows/windows-build.yaml)<br/>
 
 This library is an implementation of the ASC X9 TR-31 standard. Given that
 most uses of this standard involve dedicated security hardware, this
