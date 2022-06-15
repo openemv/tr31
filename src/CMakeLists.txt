@@ -7,6 +7,20 @@
 
 cmake_minimum_required(VERSION 3.16)
 
+# check for headers that provide ntohs/htons and friends
+include(CheckIncludeFile)
+CHECK_INCLUDE_FILE(
+	arpa/inet.h
+	HAVE_ARPA_INET_H
+)
+CHECK_INCLUDE_FILE(
+	winsock.h
+	HAVE_WINSOCK_H
+)
+if(NOT HAVE_ARPA_INET_H AND NOT HAVE_WINSOCK_H)
+	message(FATAL_ERROR "Failed to find either arpa/inet.h or winsock.h")
+endif()
+
 include(CheckFunctionExists)
 check_function_exists("argp_parse" argp_FOUND)
 option(FETCH_ARGP "Download and build argp-standalone")

@@ -19,6 +19,7 @@
  */
 
 #include "tr31_crypto.h"
+#include "tr31_config.h"
 #include "tr31.h"
 
 #include "crypto_tdes.h"
@@ -28,7 +29,11 @@
 #include <stdint.h>
 #include <string.h>
 
+#if defined(HAVE_ARPA_INET_H)
 #include <arpa/inet.h> // for htons and friends
+#elif defined(HAVE_WINSOCK_H)
+#include <winsock.h>
+#endif
 
 #define TR31_KBEK_VARIANT_XOR (0x45)
 #define TR31_KBAK_VARIANT_XOR (0x4D)

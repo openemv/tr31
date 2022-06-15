@@ -30,7 +30,6 @@
 #include <argp.h>
 
 #include <ctype.h> // for isalnum and friends
-#include <arpa/inet.h> // for ntohs and friends
 
 // command line options
 struct tr31_tool_options_t {

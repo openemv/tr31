@@ -32,7 +32,11 @@
 #include <ctype.h>
 #include <stdlib.h>
 
+#if defined(HAVE_ARPA_INET_H)
 #include <arpa/inet.h> // for ntohs and friends
+#elif defined(HAVE_WINSOCK_H)
+#include <winsock.h>
+#endif
 
 #define sizeof_field(TYPE, FIELD) sizeof(((TYPE*)0)->FIELD)
 
