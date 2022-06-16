@@ -21,16 +21,16 @@ if(NOT HAVE_ARPA_INET_H AND NOT HAVE_WINSOCK_H)
 	message(FATAL_ERROR "Failed to find either arpa/inet.h or winsock.h")
 endif()
 
-include(CheckFunctionExists)
-check_function_exists("argp_parse" argp_FOUND)
+# check for or fetch argp
 option(FETCH_ARGP "Download and build argp-standalone")
+if(FETCH_ARGP)
+	set(ARGP_OSX_ARCHITECTURES ${CMAKE_OSX_ARCHITECTURES})
+	include(FetchArgpStandalone)
+else()
+	find_package(argp)
+endif()
 if(NOT argp_FOUND)
-	if(FETCH_ARGP)
-		set(ARGP_OSX_ARCHITECTURES ${CMAKE_OSX_ARCHITECTURES})
-		include(FetchArgpStandalone)
-	else()
-		message(FATAL_ERROR "Could NOT find argp on target system. Enable FETCH_ARGP to download and build argp-standalone.")
-	endif()
+	message(FATAL_ERROR "Could NOT find argp on target system. Enable FETCH_ARGP to download and build argp-standalone.")
 endif()
 
 include(GNUInstallDirs) # provides CMAKE_INSTALL_* variables and good defaults for install()
@@ -60,8 +60,8 @@ target_link_libraries(tr31 PRIVATE crypto_tdes crypto_aes crypto_mem crypto_rand
 # TR-31 command line tool
 add_executable(tr31-tool tr31-tool.c)
 target_link_libraries(tr31-tool PRIVATE tr31)
-if(TARGET argp::argp)
-	target_link_libraries(tr31-tool PRIVATE argp::argp)
+if(TARGET libargp::argp)
+	target_link_libraries(tr31-tool PRIVATE libargp::argp)
 endif()
 
 install(
