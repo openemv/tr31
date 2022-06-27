@@ -21,16 +21,18 @@ if(NOT HAVE_ARPA_INET_H AND NOT HAVE_WINSOCK_H)
 	message(FATAL_ERROR "Failed to find either arpa/inet.h or winsock.h")
 endif()
 
-# check for or fetch argp
-option(FETCH_ARGP "Download and build argp-standalone")
+# check for argp or allow the FETCH_ARGP option to download and build a local
+# copy of libargp for monolithic builds on platforms without package managers
+# like MacOS and Windows.
+option(FETCH_ARGP "Download and build libargp")
 if(FETCH_ARGP)
 	set(ARGP_OSX_ARCHITECTURES ${CMAKE_OSX_ARCHITECTURES})
-	include(FetchArgpStandalone)
+	include(FetchLibArgp)
 else()
 	find_package(argp)
 endif()
 if(NOT argp_FOUND)
-	message(FATAL_ERROR "Could NOT find argp on target system. Enable FETCH_ARGP to download and build argp-standalone.")
+	message(FATAL_ERROR "Could NOT find argp on target system. Enable FETCH_ARGP to download and build libargp.")
 endif()
 
 include(GNUInstallDirs) # provides CMAKE_INSTALL_* variables and good defaults for install()
