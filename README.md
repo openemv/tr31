@@ -10,6 +10,10 @@ This library is an implementation of the ASC X9 TR-31 standard. Given that
 most uses of this standard involve dedicated security hardware, this
 implementation is mostly for validation and debugging purposes.
 
+If you wish to use this library for a project that is not compatible with the
+terms of the LGPL v2.1 license, please contact the author for alternative
+licensing options.
+
 Features
 --------
 
@@ -21,16 +25,17 @@ Dependencies
 ------------
 
 * C11 compiler such as GCC or Clang
-* CMake
-* TR-31 library requires MbedTLS (preferred), or OpenSSL
-* TR-31 tool requires argp (either via Glibc or a standalone implementation)
+* [CMake](https://cmake.org/)
+* TR-31 library require [MbedTLS](https://github.com/Mbed-TLS/mbedtls)
+  (preferred), or [OpenSSL](https://www.openssl.org/)
+* TR-31 tool requires `argp` (either via Glibc, a system-provided standalone
+  implementation, or a downloaded implementation;
+  see [MacOS / Windows](#macos--windows))
 
-This project also makes use of the OpenEMV common crypto abstraction
-(https://github.com/openemv/crypto), which in turn depends on a cryptographic
-implementation such as MbedTLS (preferred) or OpenSSL. This abstraction should
-either be provided as a git submodule in the `crypto` subdirectory using
-`git clone --recurse-submodules`, or its CMake targets should be provided by a
-parent project.
+This project also makes use of sub-projects that can either be provided as
+git submodules using `git clone --recurse-submodules`, or provided as CMake
+targets by a parent project:
+* [OpenEMV common crypto abstraction](https://github.com/openemv/crypto)
 
 Build
 -----
@@ -120,7 +125,7 @@ MacOS / Windows
 ---------------
 
 On platforms such as MacOS or Windows where static linking is desirable and
-dependencies such as MbedTLS or argp may be unavailable, the `FETCH_MBEDTLS`
+dependencies such as MbedTLS or `argp` may be unavailable, the `FETCH_MBEDTLS`
 and `FETCH_ARGP` options can be specified when generating the build system.
 
 In addition, MacOS universal binaries can be built by specifying the desired
@@ -130,7 +135,7 @@ This is an example of how a self-contained, static, universal binary can be
 built from scratch for MacOS:
 ```
 rm -Rf build &&
-cmake -B build -DCMAKE_BUILD_TYPE="RelWithDebInfo" -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" -DFETCH_MBEDTLS=YES -DFETCH_ARGP=YES &&
+cmake -B build -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" -DCMAKE_BUILD_TYPE="RelWithDebInfo" -DFETCH_MBEDTLS=YES -DFETCH_ARGP=YES &&
 cmake --build build
 ```
 
@@ -175,6 +180,6 @@ Roadmap
 License
 -------
 
-Copyright (c) 2020, 2021, 2022 Leon Lynch.
+Copyright (c) 2020, 2021, 2022 [Leon Lynch](https://github.com/leonlynch).
 
 This project is licensed under the terms of the LGPL v2.1 license. See LICENSE file.
