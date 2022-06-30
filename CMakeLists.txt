@@ -25,12 +25,13 @@ else()
 	set(TR31_IS_TOP_LEVEL ${tr31_IS_TOP_LEVEL})
 endif()
 
+# Configure compiler
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_EXTENSIONS OFF)
-if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
-	add_compile_options(-Wall -Werror)
-	set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -ggdb")
-	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -ggdb")
+if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+	add_compile_options(-Wall)
+	add_compile_options($<$<CONFIG:Debug>:-ggdb>)
+	add_compile_options($<$<CONFIG:RelWithDebInfo>:-ggdb>)
 endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/")
