@@ -225,6 +225,7 @@ const char* tr31_lib_version_string(void);
 
 /**
  * Populate TR-31 key object
+ *
  * @note This function will populate a new TR-31 key object.
  *       Use @ref tr31_key_release() to release internal resources when done.
  *
@@ -257,6 +258,7 @@ void tr31_key_release(struct tr31_key_t* key);
 
 /**
  * Copy TR-31 key object
+ *
  * @note This function will populate a new TR-31 key object.
  *       Use @ref tr31_key_release() to release internal resources when done.
  *
@@ -272,6 +274,7 @@ int tr31_key_copy(
 /**
  * Populate key data in TR-31 key object. This function will also populate the
  * KCV in the TR-31 key object when possible.
+ *
  * @note This function requires a populated TR-31 key object
  *       (after @ref tr31_key_init(), @ref tr31_key_copy() or @ref tr31_export())
  *
@@ -300,10 +303,11 @@ int tr31_key_get_key_version(const struct tr31_key_t* key, char* key_version);
 
 /**
  * Initialise TR-31 context object
+ *
  * @note Use @ref tr31_release() to release internal resources when done.
  *
  * @param version_id TR-31 format version
- * @param key TR-31 key object. If NULL, use @ref tr31_key_copy() to populate @c key field later.
+ * @param key TR-31 key object. If NULL, use @ref tr31_key_copy() to populate @p key field later.
  * @param ctx TR-31 context object output
  * @return Zero for success. Less than zero for internal error. Greater than zero for data error. @see #tr31_error_t
  */
@@ -315,6 +319,7 @@ int tr31_init(
 
 /**
  * Add optional block to TR-31 context object
+ *
  * @note This function requires an initialised TR-31 context object to be provided.
  *
  * @param ctx TR-31 context object
@@ -334,6 +339,7 @@ int tr31_opt_block_add(
  * Add optional block 'KC' for Key Check Value (KCV) of wrapped key to TR-31
  * context object. This function will not compute the KCV but cause it to be
  * computed by @ref tr31_export().
+ *
  * @note This function requires an initialised TR-31 context object to be provided.
  *
  * @param ctx TR-31 context object
@@ -345,6 +351,7 @@ int tr31_opt_block_add_KC(struct tr31_ctx_t* ctx);
  * Add optional block 'KP' for Key Check Value (KCV) of Key Block Protection
  * Key (KBPK) to TR-31 context object. This function will not compute the KCV
  * but cause it to be computed by @ref tr31_export().
+ *
  * @note This function requires an initialised TR-31 context object to be provided.
  *
  * @param ctx TR-31 context object
@@ -355,6 +362,7 @@ int tr31_opt_block_add_KP(struct tr31_ctx_t* ctx);
 /**
  * Add optional block 'HM' for HMAC hash algorithm of wrapped key to TR-31
  * context object.
+ *
  * @note This function requires an initialised TR-31 context object to be provided.
  *
  * @param ctx TR-31 context object
@@ -368,6 +376,7 @@ int tr31_opt_block_add_HM(
 
 /**
  * Import TR-31 key block. This function will also decrypt the key data if possible.
+ *
  * @note This function will populate a new TR-31 context object.
  *       Use @ref tr31_release() to release internal resources when done.
  *
@@ -384,6 +393,7 @@ int tr31_import(
 
 /**
  * Export TR-31 key block. This function will create and encrypt the key block.
+ *
  * @note This function requires a populated TR-31 context object to be provided. See #tr31_ctx_t for populating manually.
  *
  * @param ctx TR-31 context object input
