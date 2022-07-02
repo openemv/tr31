@@ -6,3 +6,7 @@ include(CMakeFindDependencyMacro)
 check_required_components(tr31)
 
 include("${CMAKE_CURRENT_LIST_DIR}/tr31Targets.cmake")
+
+include(FindPackageHandleStandardArgs)
+set(tr31_CONFIG ${CMAKE_CURRENT_LIST_FILE})
+find_package_handle_standard_args(tr31 CONFIG_MODE)
