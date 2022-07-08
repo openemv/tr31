@@ -78,5 +78,5 @@ jobs:
     - name: Upload artifact
       uses: actions/upload-artifact@v3
       with:
-        name: tr31-${{env.GIT_DESCRIBE}}-artifact
+        name: tr31-${{env.GIT_DESCRIBE}}-ubuntu
         path: build/tr31_*.deb
