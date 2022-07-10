@@ -12,7 +12,7 @@ if [[ "${PV}" == *9999 ]] ; then
 	EGIT_REPO_URI="https://github.com/openemv/tr31.git"
 	EGIT_BRANCH="master"
 else
-	SRC_URI="https://github.com/openemv/tr31/archive/${PV}.tar.gz -> ${P}.tar.gz"
+	SRC_URI="https://github.com/openemv/tr31/releases/download/${PV}/${P}-src.tar.gz -> ${P}.tar.gz"
 fi
 
 LICENSE="LGPL-2.1"
