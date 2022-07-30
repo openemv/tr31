@@ -15,7 +15,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { name: "MacOS 10.15", os: macos-10.15, osx_arch: "x86_64", build_type: "Debug" }
           - { name: "MacOS 11", os: macos-11, osx_arch: "x86_64;arm64", build_type: "Debug" }
           - { name: "MacOS 11", os: macos-11, osx_arch: "x86_64;arm64", build_type: "Release" }
           - { name: "MacOS 12", os: macos-12, osx_arch: "x86_64;arm64", build_type: "Debug" }
