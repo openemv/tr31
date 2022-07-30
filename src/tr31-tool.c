@@ -611,7 +611,7 @@ static int populate_tr31_from_template(const struct tr31_tool_options_t* options
 		strcmp(options->export_template, "IPEK") == 0
 	) {
 		// see ANSI X9.24-3:2017, 6.5.3 "Update Initial Key"
-		key.usage = TR31_KEY_USAGE_DUKPT_IPEK;
+		key.usage = TR31_KEY_USAGE_DUKPT_IK;
 		key.mode_of_use = TR31_KEY_MODE_OF_USE_DERIVE;
 		key.key_version = TR31_KEY_VERSION_IS_UNUSED;
 		key.exportability = TR31_KEY_EXPORT_NONE;

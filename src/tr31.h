@@ -38,7 +38,7 @@ enum tr31_version_t {
 
 // TR-31 key usage (see TR-31:2018, A.5.1, table 6)
 #define TR31_KEY_USAGE_BDK              (0x4230) ///< Key Usage B0: Base Derivation Key (BDK)
-#define TR31_KEY_USAGE_DUKPT_IPEK       (0x4231) ///< Key Usage B1: Initial DUKPT Key (IPEK)
+#define TR31_KEY_USAGE_DUKPT_IK         (0x4231) ///< Key Usage B1: Initial DUKPT Key (IK/IPEK)
 #define TR31_KEY_USAGE_BKV              (0x4232) ///< Key Usage B2: Base Key Variant
 #define TR31_KEY_USAGE_CVK              (0x4330) ///< Key Usage C0: Card Verification Key (CVK)
 #define TR31_KEY_USAGE_DATA             (0x4430) ///< Key Usage D0: Symmetric Data Encryption Key
@@ -74,6 +74,9 @@ enum tr31_version_t {
 #define TR31_KEY_USAGE_PV_VISA          (0x5632) ///< Key Usage V2: PIN Verification Key (VISA PVV)
 #define TR31_KEY_USAGE_PV_X9_132_1      (0x5633) ///< Key Usage V3: PIN Verification Key (X9-132 algorithm 1)
 #define TR31_KEY_USAGE_PV_X9_132_2      (0x5634) ///< Key Usage V4: PIN Verification Key (X9-132 algorithm 2)
+
+/// Key Usage B1: Initial DUKPT Key (IK/IPEK). This definition is for backward compatibility and will be removed in future.
+#define TR31_KEY_USAGE_DUKPT_IPEK       TR31_KEY_USAGE_DUKPT_IK
 
 // TR-31 algorithm (see TR-31:2018, A.5.2, table 7)
 #define TR31_KEY_ALGORITHM_AES          ('A') ///< Key Algorithm A: AES

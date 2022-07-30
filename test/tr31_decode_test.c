@@ -50,7 +50,7 @@ int main(void)
 	}
 	if (test_tr31.version != TR31_VERSION_B ||
 		test_tr31.length != 104 ||
-		test_tr31.key.usage != TR31_KEY_USAGE_DUKPT_IPEK ||
+		test_tr31.key.usage != TR31_KEY_USAGE_DUKPT_IK ||
 		test_tr31.key.algorithm != TR31_KEY_ALGORITHM_TDES ||
 		test_tr31.key.mode_of_use != TR31_KEY_MODE_OF_USE_DERIVE ||
 		test_tr31.key.key_version != TR31_KEY_VERSION_IS_UNUSED ||
@@ -135,7 +135,7 @@ int main(void)
 	}
 	if (test_tr31.version != TR31_VERSION_B ||
 		test_tr31.length != 128 ||
-		test_tr31.key.usage != TR31_KEY_USAGE_DUKPT_IPEK ||
+		test_tr31.key.usage != TR31_KEY_USAGE_DUKPT_IK ||
 		test_tr31.key.algorithm != TR31_KEY_ALGORITHM_TDES ||
 		test_tr31.key.mode_of_use != TR31_KEY_MODE_OF_USE_DERIVE ||
 		test_tr31.key.key_version != TR31_KEY_VERSION_IS_UNUSED ||

@@ -252,7 +252,7 @@ int tr31_key_init(
 	key->usage = usage;
 	switch (usage) {
 		case TR31_KEY_USAGE_BDK:
-		case TR31_KEY_USAGE_DUKPT_IPEK:
+		case TR31_KEY_USAGE_DUKPT_IK:
 		case TR31_KEY_USAGE_BKV:
 		case TR31_KEY_USAGE_CVK:
 		case TR31_KEY_USAGE_DATA:
@@ -1840,7 +1840,7 @@ const char* tr31_get_key_usage_string(unsigned int usage)
 	// see TR-31:2018, A.5.1, table 6
 	switch (usage) {
 		case TR31_KEY_USAGE_BDK:                return "Base Derivation Key (BDK)";
-		case TR31_KEY_USAGE_DUKPT_IPEK:         return "Initial DUKPT Key (IPEK)";
+		case TR31_KEY_USAGE_DUKPT_IK:           return "Initial DUKPT Key (IK/IPEK)";
 		case TR31_KEY_USAGE_BKV:                return "Base Key Variant";
 		case TR31_KEY_USAGE_CVK:                return "Card Verification Key (CVK)";
 		case TR31_KEY_USAGE_DATA:               return "Symmetric Data Encryption Key";
