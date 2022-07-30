@@ -33,6 +33,7 @@
 
 // command line options
 struct tr31_tool_options_t {
+	bool found_stdin_arg;
 	bool import;
 	bool export;
 	bool kbpk;
@@ -40,7 +41,7 @@ struct tr31_tool_options_t {
 	// import parameters
 	// valid if import is true
 	size_t key_block_len;
-	const char* key_block;
+	char* key_block;
 
 	// export parameters
 	// valid if export is true
@@ -65,6 +66,7 @@ struct tr31_tool_options_t {
 
 // helper functions
 static error_t argp_parser_helper(int key, char* arg, struct argp_state* state);
+static void* read_file(FILE* file, size_t* len);
 static int parse_hex(const char* hex, void* bin, size_t bin_len);
 static void print_hex(const void* buf, size_t length);
 
@@ -87,10 +89,10 @@ enum tr31_tool_option_keys_t {
 // argp option structure
 static struct argp_option argp_options[] = {
 	{ NULL, 0, NULL, 0, "Options for decoding/decrypting TR-31 key blocks:", 1 },
-	{ "import", TR31_TOOL_OPTION_IMPORT, "KEYBLOCK", 0, "Import TR-31 key block to decode/decrypt. Optionally specify KBPK (--kbpk) to decrypt." },
+	{ "import", TR31_TOOL_OPTION_IMPORT, "KEYBLOCK", 0, "Import TR-31 key block to decode/decrypt. Use - to read raw bytes from stdin. Optionally specify KBPK (--kbpk) to decrypt." },
 
 	{ NULL, 0, NULL, 0, "Options for encoding/encrypting TR-31 key blocks:", 2 },
-	{ "export", TR31_TOOL_OPTION_EXPORT, "KEY", 0, "Export TR-31 key block containing KEY. Requires KBPK (--kbpk). Requires either --export-key-algorithm, --export-format-version and --export-template, or only --export-header" },
+	{ "export", TR31_TOOL_OPTION_EXPORT, "KEY", 0, "Export TR-31 key block containing KEY. Use - to read raw bytes from stdin. Requires KBPK (--kbpk). Requires either --export-key-algorithm, --export-format-version and --export-template, or only --export-header" },
 	{ "export-key-algorithm", TR31_TOOL_OPTION_EXPORT_KEY_ALGORITHM, "TDES|AES", 0, "Algorithm of key to be exported." },
 	{ "export-format-version", TR31_TOOL_OPTION_EXPORT_FORMAT_VERSION, "A|B|C|D", 0, "TR-31 format version to use for export." },
 	{ "export-template", TR31_TOOL_OPTION_EXPORT_TEMPLATE, "KEK|BDK|IK", 0, "TR-31 key block template to use for export." },
@@ -101,7 +103,7 @@ static struct argp_option argp_options[] = {
 	{ "export-opt-block-KC", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KC, NULL, 0, "Add optional block KC (KCV of wrapped key) during TR-31 export. May be used with either --export-template or --export-header." },
 
 	{ NULL, 0, NULL, 0, "Options for decrypting/encrypting TR-31 key blocks:", 3 },
-	{ "kbpk", TR31_TOOL_OPTION_KBPK, "KEY", 0, "TR-31 key block protection key value (hex encoded)" },
+	{ "kbpk", TR31_TOOL_OPTION_KBPK, "KEY", 0, "TR-31 key block protection key. Use - to read raw bytes from stdin." },
 	{ "version", TR31_TOOL_OPTION_VERSION, NULL, 0, "Display TR-31 library version" },
 
 	{ 0 },
@@ -114,7 +116,7 @@ static struct argp argp_config = {
 	NULL,
 	" \v" // force the text to be after the options in the help message
 	"The import (decoding/decrypting) and export (encoding/encrypting) options cannot be specified simultaneously.\n\n"
-	"NOTE: All KEY values are strings of hex digits representing binary data.",
+	"NOTE: All KEY values are strings of hex digits representing binary data, or - to read raw bytes from stdin.",
 };
 
 // argp parser helper function
@@ -122,37 +124,104 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 {
 	int r;
 	struct tr31_tool_options_t* options;
+	void* buf = NULL;
+	size_t buf_len = 0;
 
 	options = state->input;
 	if (!options) {
 		return ARGP_ERR_UNKNOWN;
 	}
 
+	if (arg) {
+		// Process KEYBLOCK and KEY arguments
+		switch (key) {
+			case TR31_TOOL_OPTION_IMPORT: {
+				// If argument is "-", read from stdin
+				if (strcmp(arg, "-") == 0) {
+					if (options->found_stdin_arg) {
+						argp_error(state, "Only one option may be read from stdin");
+					}
+					options->found_stdin_arg = true;
+
+					buf = read_file(stdin, &buf_len);
+					if (!buf) {
+						argp_error(state, "Failed to read data from stdin");
+					}
+
+				} else {
+					// Copy argument
+					buf_len = strlen(arg) + 1;
+					buf = malloc(buf_len);
+					memcpy(buf, arg, buf_len);
+				}
+
+				// Trim KEYBLOCK argument
+				for (char* str = buf; buf_len; --buf_len) {
+					if (!isalnum(str[buf_len - 1])) {
+						str[buf_len - 1] = 0;
+					} else {
+						break;
+					}
+				}
+
+				break;
+			}
+
+			case TR31_TOOL_OPTION_EXPORT:
+			case TR31_TOOL_OPTION_KBPK: {
+				// If argument is "-", read from stdin
+				if (strcmp(arg, "-") == 0) {
+					if (options->found_stdin_arg) {
+						argp_error(state, "Only one option may be read from stdin");
+					}
+					options->found_stdin_arg = true;
+
+					buf = read_file(stdin, &buf_len);
+					if (!buf) {
+						argp_error(state, "Failed to read data from stdin");
+					}
+
+				} else {
+					// Parse KEY argument as hex data
+					size_t arg_len = strlen(arg);
+					if (arg_len % 2 != 0) {
+						argp_error(state, "KEY string must have even number of digits");
+					}
+					buf_len = arg_len / 2;
+					buf = malloc(buf_len);
+
+					r = parse_hex(arg, buf, buf_len);
+					if (r) {
+						argp_error(state, "KEY string must consist of hex digits");
+					}
+				}
+
+				break;
+			}
+		}
+	}
+
 	switch (key) {
 		case TR31_TOOL_OPTION_IMPORT:
-			options->key_block = arg;
-			options->key_block_len = strlen(arg);
+			options->key_block = buf;
+			options->key_block_len = buf_len;
 			options->import = true;
 			return 0;
 
 		case TR31_TOOL_OPTION_EXPORT:
-			if (strlen(arg) > sizeof(options->export_key_buf) * 2) {
+			if (buf_len > sizeof(options->export_key_buf)) {
 				argp_error(state, "KEY string may not have more than %zu digits (thus %zu bytes)",
 					sizeof(options->export_key_buf) * 2,
 					sizeof(options->export_key_buf)
 				);
 			}
-			if (strlen(arg) % 2 != 0) {
-				argp_error(state, "KEY string must have even number of digits");
-			}
-			options->export_key_buf_len = strlen(arg) / 2;
-
-			r = parse_hex(arg, options->export_key_buf, options->export_key_buf_len);
-			if (r) {
-				argp_error(state, "KEY string must consist of hex digits");
-			}
-
+			memcpy(options->export_key_buf, buf, buf_len);
+			options->export_key_buf_len = buf_len;
 			options->export = true;
+
+			free(buf);
+			buf = NULL;
+
 			return 0;
 
 		case TR31_TOOL_OPTION_EXPORT_KEY_ALGORITHM:
@@ -221,23 +290,19 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			return 0;
 
 		case TR31_TOOL_OPTION_KBPK:
-			if (strlen(arg) > sizeof(options->kbpk_buf) * 2) {
+			if (buf_len > sizeof(options->kbpk_buf)) {
 				argp_error(state, "KEY string may not have more than %zu digits (thus %zu bytes)",
 					sizeof(options->kbpk_buf) * 2,
 					sizeof(options->kbpk_buf)
 				);
 			}
-			if (strlen(arg) % 2 != 0) {
-				argp_error(state, "KEY string must have even number of digits");
-			}
-			options->kbpk_buf_len = strlen(arg) / 2;
-
-			r = parse_hex(arg, options->kbpk_buf, options->kbpk_buf_len);
-			if (r) {
-				argp_error(state, "KEY string must consist of hex digits");
-			}
-
+			memcpy(options->kbpk_buf, buf, buf_len);
+			options->kbpk_buf_len = buf_len;
 			options->kbpk = true;
+
+			free(buf);
+			buf = NULL;
+
 			return 0;
 
 		case TR31_TOOL_OPTION_VERSION: {
@@ -291,6 +356,37 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 		default:
 			return ARGP_ERR_UNKNOWN;
 	}
+}
+
+// File/stdin read helper function
+static void* read_file(FILE* file, size_t* len)
+{
+	const size_t block_size = 4096; // Use common page size
+	void* buf = NULL;
+	size_t buf_len = 0;
+	size_t total_len = 0;
+
+	if (!file) {
+		*len = 0;
+		return NULL;
+	}
+
+	do {
+		// Grow buffer
+		buf_len += block_size;
+		buf = realloc(buf, buf_len);
+
+		// Read next block
+		total_len += fread(buf + total_len, 1, block_size, file);
+		if (ferror(file)) {
+			free(buf);
+			*len = 0;
+			return NULL;
+		}
+	} while (!feof(file));
+
+	*len = total_len;
+	return buf;
 }
 
 // hex parser helper function
@@ -711,14 +807,30 @@ int main(int argc, char** argv)
 	r = argp_parse(&argp_config, argc, argv, 0, 0, &options);
 	if (r) {
 		fprintf(stderr, "Failed to parse command line\n");
-		return 1;
+		goto exit;
 	}
 
 	if (options.import) {
-		return do_tr31_import(&options);
+		r = do_tr31_import(&options);
+		goto exit;
 	}
 
 	if (options.export) {
-		return do_tr31_export(&options);
+		r = do_tr31_export(&options);
+		goto exit;
 	}
+
+	// Unknown error
+	r = -1;
+	goto exit;
+
+exit:
+	// Cleanup
+	if (options.key_block) {
+		free(options.key_block);
+		options.key_block = NULL;
+		options.key_block_len = 0;
+	}
+
+	return r;
 }
