@@ -216,6 +216,7 @@ if(rpmbuild_FOUND)
 	set(CPACK_RPM_COMPONENT_INSTALL ON)
 	# use default rpm package naming
 	set(CPACK_RPM_FILE_NAME "RPM-DEFAULT")
+	set(CPACK_RPM_PACKAGE_RELEASE_DIST ON)
 	# configure license and changelog
 	set(CPACK_RPM_PACKAGE_LICENSE "LGPLv2+")
 	set(CPACK_RPM_CHANGELOG_FILE "${CMAKE_CURRENT_SOURCE_DIR}/rpm_changelog.txt")

@@ -84,5 +84,6 @@ jobs:
     - name: Upload artifact
       uses: actions/upload-artifact@v3
       with:
-        name: tr31-${{env.GIT_DESCRIBE}}-fedora
+        name: tr31-${{ env.GIT_DESCRIBE }}-fedora36
         path: build/tr31-*.rpm
+        if-no-files-found: error
