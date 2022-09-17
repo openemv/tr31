@@ -1,7 +1,7 @@
 ##############################################################################
 # Copyright (c) 2022 Leon Lynch
 #
-# This file is licensed under the terms of the MIT license.
+# This file is licensed under the terms of the LGPL v2.1 license.
 # See LICENSE file.
 ##############################################################################
 
