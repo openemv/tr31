@@ -20,6 +20,7 @@ SLOT="0"
 KEYWORDS="~amd64 ~x86"
 IUSE="+mbedtls openssl doc test"
 REQUIRED_USE="|| ( mbedtls openssl )"
+RESTRICT="!test? ( test )"
 
 BDEPEND="
 	doc? ( app-doc/doxygen )
