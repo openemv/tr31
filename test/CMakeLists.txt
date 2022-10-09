@@ -23,4 +23,16 @@ if(BUILD_TESTING)
 	add_executable(tr31_export_test tr31_export_test.c)
 	target_link_libraries(tr31_export_test tr31)
 	add_test(tr31_export_test tr31_export_test)
+
+	if(WIN32)
+		# Ensure that tests can find required DLLs (if any)
+		# Assume that the PATH already contains the compiler runtime DLLs
+		set(TR31_TEST_PATH "${CMAKE_CURRENT_BINARY_DIR}/../src/;$ENV{PATH}")
+		cmake_path(NATIVE_PATH TR31_TEST_PATH NORMALIZE TR31_TEST_PATH)
+		get_property(TR31_TEST_TARGETS DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY TESTS)
+		set_property(TEST ${TR31_TEST_TARGETS}
+			PROPERTY
+				ENVIRONMENT "PATH=${TR31_TEST_PATH}"
+		)
+	endif()
 endif()
