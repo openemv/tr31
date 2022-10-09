@@ -58,6 +58,9 @@ target_include_directories(tr31 INTERFACE
 	$<INSTALL_INTERFACE:include/${PROJECT_NAME}>
 )
 target_link_libraries(tr31 PRIVATE crypto_tdes crypto_aes crypto_mem crypto_rand)
+if(HAVE_WINSOCK_H AND NOT HAVE_ARPA_INET_H)
+	target_link_libraries(tr31 PRIVATE ws2_32)
+endif()
 
 # TR-31 command line tool
 add_executable(tr31-tool tr31-tool.c)
