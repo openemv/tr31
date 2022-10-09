@@ -1,3 +1,6 @@
+* Sun Oct 09 2022 Leon Lynch <lynch.leon@gmail.com> - 0.4.4-1
+- Update to tr31-0.4.4
+
 * Sat Aug 13 2022 Leon Lynch <lynch.leon@gmail.com> - 0.4.3-1
 - Update to tr31-0.4.3
 - Add dist tag to rpm release field
