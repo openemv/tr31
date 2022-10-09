@@ -27,12 +27,15 @@ Dependencies
 
 * C11 compiler such as GCC or Clang
 * [CMake](https://cmake.org/)
-* TR-31 library require [MbedTLS](https://github.com/Mbed-TLS/mbedtls)
+* TR-31 library requires [MbedTLS](https://github.com/Mbed-TLS/mbedtls)
   (preferred), or [OpenSSL](https://www.openssl.org/)
 * TR-31 tool will be built by default and requires `argp` (either via Glibc, a
   system-provided standalone or a downloaded implementation; see
   [MacOS / Windows](#macos--windows)). Use the `BUILD_TR31_TOOL` option to
   prevent TR-31 tool from being built and avoid the dependency on `argp`.
+* [Doxygen](https://github.com/doxygen/doxygen) can _optionally_ be used to
+  generate API documentation if it is available; see
+  [Documentation](#documentation)
 
 This project also makes use of sub-projects that can either be provided as
 git submodules using `git clone --recurse-submodules`, or provided as CMake
