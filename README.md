@@ -29,9 +29,10 @@ Dependencies
 * [CMake](https://cmake.org/)
 * TR-31 library require [MbedTLS](https://github.com/Mbed-TLS/mbedtls)
   (preferred), or [OpenSSL](https://www.openssl.org/)
-* TR-31 tool requires `argp` (either via Glibc, a system-provided standalone
-  implementation, or a downloaded implementation;
-  see [MacOS / Windows](#macos--windows))
+* TR-31 tool will be built by default and requires `argp` (either via Glibc, a
+  system-provided standalone or a downloaded implementation; see
+  [MacOS / Windows](#macos--windows)). Use the `BUILD_TR31_TOOL` option to
+  prevent TR-31 tool from being built and avoid the dependency on `argp`.
 
 This project also makes use of sub-projects that can either be provided as
 git submodules using `git clone --recurse-submodules`, or provided as CMake

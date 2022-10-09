@@ -21,6 +21,9 @@ if(NOT HAVE_ARPA_INET_H AND NOT HAVE_WINSOCK_H)
 	message(FATAL_ERROR "Failed to find either arpa/inet.h or winsock.h")
 endif()
 
+# build TR-31 tool by default
+option(BUILD_TR31_TOOL "Build tr31-tool" ON)
+
 # check for argp or allow the FETCH_ARGP option to download and build a local
 # copy of libargp for monolithic builds on platforms without package managers
 # like MacOS and Windows.
@@ -32,7 +35,9 @@ else()
 	find_package(argp)
 endif()
 if(NOT argp_FOUND)
-	message(FATAL_ERROR "Could NOT find argp on target system. Enable FETCH_ARGP to download and build libargp.")
+	if(BUILD_TR31_TOOL)
+		message(FATAL_ERROR "Could NOT find argp. Enable FETCH_ARGP to download and build libargp. This is required to build tr31-tool.")
+	endif()
 endif()
 
 include(GNUInstallDirs) # provides CMAKE_INSTALL_* variables and good defaults for install()
@@ -62,13 +67,6 @@ if(HAVE_WINSOCK_H AND NOT HAVE_ARPA_INET_H)
 	target_link_libraries(tr31 PRIVATE ws2_32)
 endif()
 
-# TR-31 command line tool
-add_executable(tr31-tool tr31-tool.c)
-target_link_libraries(tr31-tool PRIVATE tr31)
-if(TARGET libargp::argp)
-	target_link_libraries(tr31-tool PRIVATE libargp::argp)
-endif()
-
 install(
 	TARGETS
 		crypto_tdes
@@ -76,7 +74,6 @@ install(
 		crypto_mem
 		crypto_rand
 		tr31
-		tr31-tool
 	EXPORT tr31Targets # for use by install(EXPORT) command
 	PUBLIC_HEADER
 		DESTINATION "include/${PROJECT_NAME}"
@@ -90,7 +87,24 @@ install(
 		COMPONENT tr31_development
 )
 
-if(TR31_IS_TOP_LEVEL AND BUILD_TESTING)
+# TR-31 command line tool
+if(BUILD_TR31_TOOL)
+	add_executable(tr31-tool tr31-tool.c)
+	target_link_libraries(tr31-tool PRIVATE tr31)
+	if(TARGET libargp::argp)
+		target_link_libraries(tr31-tool PRIVATE libargp::argp)
+	endif()
+
+	install(
+		TARGETS
+			tr31-tool
+		EXPORT tr31Targets # for use by install(EXPORT) command
+		RUNTIME
+			COMPONENT tr31_runtime
+	)
+endif()
+
+if(TARGET tr31-tool AND BUILD_TESTING)
 	add_test(NAME tr31_tool_test1
 		COMMAND tr31-tool --import B0128B1TX00N0300KS18FFFF00A0200001E00000KC0C000169E3KP0C00ECAD626F9F1A826814AA066D86C8C18BD0E14033E1EBEC75BEDF586E6E325F3AA8C0E5 --kbpk AB2E09DB3EF0BA71E0CE6CD755C23A3B
 	)
