@@ -412,7 +412,7 @@ int tr31_key_set_data(struct tr31_key_t* key, const void* data, size_t length)
 	int r;
 
 	if (!key || !data || !length) {
-		return 1;
+		return -1;
 	}
 
 	tr31_key_release(key);
@@ -431,10 +431,11 @@ int tr31_key_set_data(struct tr31_key_t* key, const void* data, size_t length)
 		key->kcv_algorithm = TR31_OPT_BLOCK_KCV_LEGACY;
 		r = crypto_tdes_kcv_legacy(key->data, key->length, key->kcv);
 		if (r) {
-			// return error value as-is
-			return r;
+			// failed to compute KCV
+			return TR31_ERROR_KCV_NOT_AVAILABLE;
 		}
 		key->kcv_len = DES_KCV_SIZE_LEGACY;
+		return 0;
 
 	} else if (key->algorithm == TR31_KEY_ALGORITHM_AES) {
 		// use CMAC-based KCV for AES key
@@ -442,12 +443,14 @@ int tr31_key_set_data(struct tr31_key_t* key, const void* data, size_t length)
 		key->kcv_algorithm = TR31_OPT_BLOCK_KCV_CMAC;
 		r = crypto_aes_kcv(key->data, key->length, key->kcv);
 		if (r) {
-			// return error value as-is
-			return r;
+			// failed to compute KCV
+			return TR31_ERROR_KCV_NOT_AVAILABLE;
 		}
 		key->kcv_len = AES_KCV_SIZE;
+		return 0;
 	}
 
+	// key algorithm not suitable for KCV computation; continue
 	return 0;
 }
 
