@@ -11,9 +11,16 @@ on: [push]
 
 jobs:
   build-fedora-debug:
-    name: Fedora 36 (static/debug)
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: "Fedora 36", fedora_version: 36 }
+          - { name: "Fedora 37", fedora_version: 37 }
+
+    name: ${{ matrix.name }} build (static/debug)
     runs-on: ubuntu-latest
-    container: fedora:36
+    container: fedora:${{ matrix.fedora_version }}
 
     steps:
     - name: Install dependencies
@@ -43,9 +50,16 @@ jobs:
       run: cmake --build build --target test
 
   build-fedora-36-release:
-    name: Fedora 36 (release)
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: "Fedora 36", fedora_version: 36 }
+          - { name: "Fedora 37", fedora_version: 37 }
+
+    name: ${{ matrix.name }} release
     runs-on: ubuntu-latest
-    container: fedora:36
+    container: fedora:${{ matrix.fedora_version }}
 
     steps:
     - name: Install dependencies
@@ -84,6 +98,6 @@ jobs:
     - name: Upload artifact
       uses: actions/upload-artifact@v3
       with:
-        name: tr31-${{ env.GIT_DESCRIBE }}-fedora36
+        name: tr31-${{ env.GIT_DESCRIBE }}-fedora${{ matrix.fedora_version }}
         path: build/tr31-*.rpm
         if-no-files-found: error
