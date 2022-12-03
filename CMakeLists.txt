@@ -36,6 +36,32 @@ endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/")
 
+# Determine version string (use git describe string if possible)
+if(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/.git)
+	find_package(Git)
+
+	if(GIT_FOUND)
+		execute_process(
+			COMMAND ${GIT_EXECUTABLE} describe --always --dirty
+			WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+			RESULT_VARIABLE GIT_DESCRIBE_FAILED
+			OUTPUT_VARIABLE GIT_DESCRIBE_STRING
+			OUTPUT_STRIP_TRAILING_WHITESPACE
+		)
+
+		if(GIT_DESCRIBE_FAILED)
+			message(WARNING "Failed to obtain git describe string (${GIT_DESCRIBE_FAILED})")
+		else()
+			message(STATUS "Using git describe string \"${GIT_DESCRIBE_STRING}\"")
+			set(TR31_VERSION_STRING ${GIT_DESCRIBE_STRING})
+		endif()
+	endif()
+endif()
+if(NOT TR31_VERSION_STRING)
+	# Otherwise use project version
+	set(TR31_VERSION_STRING ${tr31_VERSION})
+endif()
+
 # Configure testing before adding subdirectories
 if(TR31_IS_TOP_LEVEL)
 	# Configure Valgrind before including CTest module
@@ -167,6 +193,7 @@ endif()
 
 # configure CPack to generate .tgz package
 set(CPACK_GENERATOR "TGZ")
+set(CPACK_PACKAGE_VERSION "${TR31_VERSION_STRING}")
 set(CPACK_PACKAGE_VENDOR "OpenEMV")
 set(CPACK_PACKAGE_CONTACT "lynch.leon@gmail.com")
 set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
