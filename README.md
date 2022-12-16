@@ -22,6 +22,25 @@ Currently this library implements parsing/decryption and encoding/encryption
 of TR-31 format version A, B, C, and D. Various helper functions are also
 available to stringify TR-31 header attributes.
 
+Installation
+------------
+
+* For Ubuntu 20.04 LTS (Focal) or Ubuntu 22.04 LTS (Jammy), install the
+  appropriate [release package](https://github.com/openemv/tr31/releases)
+* For Fedora 36 or Fedora 37, install the appropriate
+  [release package](https://github.com/openemv/tr31/releases)
+* For Gentoo, use  the
+  [OpenEMV overlay](https://github.com/openemv/openemv-overlay), set the
+  keywords and useflags as needed, and install using
+  `emerge --verbose --ask tr31`
+* For MacOS with [Homebrew](https://brew.sh/), use the
+  [OpenEMV tap](https://github.com/openemv/homebrew-tap) and install using
+  `brew install openemv/tap/tr31`
+* For Windows, use [MSYS2](https://www.msys2.org/) and follow the build
+  instructions below
+* For other platforms, architectures or configurations, follow the build
+  instructions below
+
 Dependencies
 ------------
 
