@@ -33,6 +33,9 @@ if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
 	add_compile_options($<$<CONFIG:Debug>:-ggdb>)
 	add_compile_options($<$<CONFIG:RelWithDebInfo>:-ggdb>)
 endif()
+if(CMAKE_C_COMPILER_ID STREQUAL "AppleClang")
+	add_compile_options(-Wall)
+endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/")
 
@@ -191,7 +194,7 @@ if(Doxygen_FOUND)
 	endif()
 endif()
 
-# configure CPack to generate .tgz package
+# configure CPack to generate .tar.gz package
 set(CPACK_GENERATOR "TGZ")
 set(CPACK_PACKAGE_VERSION "${TR31_VERSION_STRING}")
 set(CPACK_PACKAGE_VENDOR "OpenEMV")
@@ -209,6 +212,7 @@ set(CPACK_COMPONENT_TR31_DEVELOPMENT_DEPENDS tr31_runtime)
 # invoking CMake
 #set(CPACK_COMPONENTS_GROUPING ALL_COMPONENTS_IN_ONE)
 
+# generate Debian/Ubuntu packages if dpkg is available
 find_package(dpkg) # optional for building Debian/Ubuntu packages
 if(dpkg_FOUND)
 	# configure CPack to generate .deb package
@@ -235,6 +239,7 @@ if(dpkg_FOUND)
 	set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 endif()
 
+# generate RedHat/Fedora packages if rpmbuild is available
 find_package(rpmbuild) # optional for building RedHat/Fedora packages
 if(rpmbuild_FOUND)
 	list(APPEND CPACK_GENERATOR "RPM")
