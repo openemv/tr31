@@ -27,7 +27,7 @@ Installation
 
 * For Ubuntu 20.04 LTS (Focal) or Ubuntu 22.04 LTS (Jammy), install the
   appropriate [release package](https://github.com/openemv/tr31/releases)
-* For Fedora 36 or Fedora 37, install the appropriate
+* For Fedora 36, Fedora 37 or Fedora 38, install the appropriate
   [release package](https://github.com/openemv/tr31/releases)
 * For Gentoo, use  the
   [OpenEMV overlay](https://github.com/openemv/openemv-overlay), set the

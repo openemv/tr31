@@ -17,6 +17,7 @@ jobs:
         include:
           - { name: "Fedora 36", fedora_version: 36 }
           - { name: "Fedora 37", fedora_version: 37 }
+          - { name: "Fedora 38", fedora_version: 38 }
 
     name: ${{ matrix.name }} build (static/debug)
     runs-on: ubuntu-latest
@@ -49,13 +50,14 @@ jobs:
     - name: Test
       run: ctest --test-dir build --output-on-failure
 
-  build-fedora-36-release:
+  build-fedora-release:
     strategy:
       fail-fast: false
       matrix:
         include:
           - { name: "Fedora 36", fedora_version: 36 }
           - { name: "Fedora 37", fedora_version: 37 }
+          - { name: "Fedora 38", fedora_version: 38 }
 
     name: ${{ matrix.name }} release
     runs-on: ubuntu-latest
