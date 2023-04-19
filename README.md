@@ -195,6 +195,6 @@ Roadmap
 License
 -------
 
-Copyright (c) 2020, 2021, 2022 [Leon Lynch](https://github.com/leonlynch).
+Copyright (c) 2020, 2021, 2022, 2023 [Leon Lynch](https://github.com/leonlynch).
 
 This project is licensed under the terms of the LGPL v2.1 license. See LICENSE file.
