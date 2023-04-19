@@ -109,7 +109,7 @@ int tr31_tdes_verify_cmac(
  * @param kbpk_len Length of key block protection key in bytes
  * @param kbek Key block encryption key output
  * @param kbak Key block authentication key output
- * @return Zero for success. Less than zero for internal error. Greater than zero for data error. @see #tr31_error_t
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
  */
 int tr31_tdes_kbpk_variant(const void* kbpk, size_t kbpk_len, void* kbek, void* kbak);
 
@@ -120,7 +120,7 @@ int tr31_tdes_kbpk_variant(const void* kbpk, size_t kbpk_len, void* kbek, void* 
  * @param kbpk_len Length of key block protection key in bytes
  * @param kbek Key block encryption key output
  * @param kbak Key block authentication key output
- * @return Zero for success. Less than zero for internal error. Greater than zero for data error. @see #tr31_error_t
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
  */
 int tr31_tdes_kbpk_derive(const void* kbpk, size_t kbpk_len, void* kbek, void* kbak);
 
@@ -155,7 +155,7 @@ int tr31_aes_verify_cmac(
  * @param mode Key block encryption key block mode
  * @param kbek Key block encryption key output
  * @param kbak Key block authentication key output
- * @return Zero for success. Less than zero for internal error. Greater than zero for data error. @see #tr31_error_t
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
  */
 int tr31_aes_kbpk_derive(
 	const void* kbpk,

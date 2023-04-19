@@ -240,7 +240,7 @@ const char* tr31_lib_version_string(void);
  * @param data Key data. If NULL, use @ref tr31_key_set_data() to populate key data later.
  * @param length Length of key data in bytes
  * @param key TR-31 key object output
- * @return Zero for success. Less than zero for internal error. Greater than zero for data error. @see #tr31_error_t
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
  */
 int tr31_key_init(
 	unsigned int usage,
@@ -267,7 +267,7 @@ void tr31_key_release(struct tr31_key_t* key);
  *
  * @param src Source TR-31 key object from which to copy
  * @param key TR-31 key object output
- * @return Zero for success. Less than zero for internal error. Greater than zero for data error. @see #tr31_error_t
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
  */
 int tr31_key_copy(
 	const struct tr31_key_t* src,
@@ -284,7 +284,7 @@ int tr31_key_copy(
  * @param key TR-31 key object
  * @param data Key data
  * @param length Length of key data in bytes
- * @return Zero for success. Less than zero for internal error. Greater than zero for data error. @see #tr31_error_t
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
  */
 int tr31_key_set_data(struct tr31_key_t* key, const void* data, size_t length);
 
@@ -292,7 +292,7 @@ int tr31_key_set_data(struct tr31_key_t* key, const void* data, size_t length);
  * Decode TR-31 key version field and populate it in TR-31 key object
  * @param key TR-31 key object
  * @param key_version TR-31 key version; two bytes (see TR-31:2018, A.5.4, table 9)
- * @return Zero for success. Less than zero for internal error. Greater than zero for data error. @see #tr31_error_t
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
  */
 int tr31_key_set_key_version(struct tr31_key_t* key, const char* key_version);
 
@@ -300,7 +300,7 @@ int tr31_key_set_key_version(struct tr31_key_t* key, const char* key_version);
  * Retrieve key version from TR-31 key object and encode as TR-31 key version field
  * @param key TR-31 key object
  * @param key_version TR-31 key version; two bytes (see TR-31:2018, A.5.4, table 9)
- * @return Zero for success. Less than zero for internal error. Greater than zero for data error. @see #tr31_error_t
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
  */
 int tr31_key_get_key_version(const struct tr31_key_t* key, char* key_version);
 
@@ -312,7 +312,7 @@ int tr31_key_get_key_version(const struct tr31_key_t* key, char* key_version);
  * @param version_id TR-31 format version
  * @param key TR-31 key object. If NULL, use @ref tr31_key_copy() to populate @p key field later.
  * @param ctx TR-31 context object output
- * @return Zero for success. Less than zero for internal error. Greater than zero for data error. @see #tr31_error_t
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
  */
 int tr31_init(
 	uint8_t version_id,
@@ -329,7 +329,7 @@ int tr31_init(
  * @param id TR-31 optional block identifier (see TR-31:2018, A.5.6, table 11)
  * @param data TR-31 optional block data
  * @param length Length of TR-31 optional block data in bytes
- * @return Zero for success. Less than zero for internal error. Greater than zero for data error. @see #tr31_error_t
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
  */
 int tr31_opt_block_add(
 	struct tr31_ctx_t* ctx,
@@ -346,7 +346,7 @@ int tr31_opt_block_add(
  * @note This function requires an initialised TR-31 context object to be provided.
  *
  * @param ctx TR-31 context object
- * @return Zero for success. Less than zero for internal error. Greater than zero for data error. @see #tr31_error_t
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
  */
 int tr31_opt_block_add_KC(struct tr31_ctx_t* ctx);
 
@@ -358,7 +358,7 @@ int tr31_opt_block_add_KC(struct tr31_ctx_t* ctx);
  * @note This function requires an initialised TR-31 context object to be provided.
  *
  * @param ctx TR-31 context object
- * @return Zero for success. Less than zero for internal error. Greater than zero for data error. @see #tr31_error_t
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
  */
 int tr31_opt_block_add_KP(struct tr31_ctx_t* ctx);
 
@@ -370,7 +370,7 @@ int tr31_opt_block_add_KP(struct tr31_ctx_t* ctx);
  *
  * @param ctx TR-31 context object
  * @param hash_algorithm TR-31 HMAC hash algorithm (see TR-31:2018, A.5.9)
- * @return Zero for success. Less than zero for internal error. Greater than zero for data error. @see #tr31_error_t
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
  */
 int tr31_opt_block_add_HM(
 	struct tr31_ctx_t* ctx,
@@ -386,7 +386,7 @@ int tr31_opt_block_add_HM(
  * @param key_block TR-31 key block. Null terminated. At least the header must be ASCII encoded.
  * @param kbpk TR-31 key block protection key. NULL if not available or decryption is not required.
  * @param ctx TR-31 context object output
- * @return Zero for success. Less than zero for internal error. Greater than zero for data error. @see #tr31_error_t
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
  */
 int tr31_import(
 	const char* key_block,
@@ -403,7 +403,7 @@ int tr31_import(
  * @param kbpk TR-31 key block protection key.
  * @param key_block TR-31 key block output. Null terminated. At least the header will be ASCII encoded.
  * @param key_block_len TR-31 key block output buffer length.
- * @return Zero for success. Less than zero for internal error. Greater than zero for data error. @see #tr31_error_t
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
  */
 int tr31_export(
 	struct tr31_ctx_t* ctx,
