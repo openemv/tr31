@@ -79,6 +79,7 @@ static int hex_to_int(const char* str, size_t str_len);
 static void int_to_hex(unsigned int value, char* str, size_t str_len);
 static int hex_to_bin(const char* hex, void* bin, size_t bin_len);
 static int bin_to_hex(const void* bin, size_t bin_len, char* str, size_t str_len);
+static int tr31_opt_block_parse(const struct tr31_opt_blk_t* opt_blk, size_t remaining_len, size_t* opt_block_len, struct tr31_opt_ctx_t* opt_ctx);
 static int tr31_tdes_decrypt_verify_variant_binding(struct tr31_ctx_t* ctx, const struct tr31_key_t* kbpk);
 static int tr31_tdes_encrypt_sign_variant_binding(struct tr31_ctx_t* ctx, const struct tr31_key_t* kbpk);
 static int tr31_tdes_decrypt_verify_derivation_binding(struct tr31_ctx_t* ctx, const struct tr31_key_t* kbpk);
@@ -676,41 +677,22 @@ int tr31_import(
 			r = TR31_ERROR_INVALID_LENGTH;
 			goto error;
 		}
-		const struct tr31_opt_blk_t* opt_blk = ptr;
-
-		// ensure that optional block length is valid
-		int opt_blk_len = hex_to_int(opt_blk->length, sizeof(opt_blk->length));
-		if (opt_blk_len < 0) {
-			// parse error
-			r = TR31_ERROR_INVALID_LENGTH;
-			goto error;
-		}
-		if (opt_blk_len == 0) {
-			// extended optional block length not supported
-			r = TR31_ERROR_INVALID_LENGTH;
-			goto error;
-		}
-		if (opt_blk_len < sizeof(struct tr31_opt_blk_t)) {
-			// optional block length must be at least 4 bytes (2 byte id + 2 byte length)
-			r = TR31_ERROR_INVALID_LENGTH;
-			goto error;
-		}
-		if (ptr + opt_blk_len - (void*)header > key_block_len) {
-			// optional block length exceeds total key block length
-			r = TR31_ERROR_INVALID_LENGTH;
-			goto error;
-		}
-		opt_blk_len_total += opt_blk_len;
 
 		// copy optional block field
-		ctx->opt_blocks[i].id = ntohs(opt_blk->id);
-		ctx->opt_blocks[i].data_length = (opt_blk_len - 4) / 2;
-		ctx->opt_blocks[i].data = calloc(1, ctx->opt_blocks[i].data_length);
-		r = hex_to_bin(opt_blk->data, ctx->opt_blocks[i].data, ctx->opt_blocks[i].data_length);
+		size_t opt_blk_len;
+		r = tr31_opt_block_parse(
+			ptr,
+			(void*)key_block + key_block_len - ptr,
+			&opt_blk_len,
+			&ctx->opt_blocks[i]
+		);
 		if (r) {
-			r = TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+			// return error value as-is
 			goto error;
 		}
+
+		// compute total optional block length
+		opt_blk_len_total += opt_blk_len;
 
 		// advance current pointer
 		ptr += opt_blk_len;
@@ -1316,6 +1298,66 @@ int tr31_export(
 	}
 
 	return 0;
+}
+
+static int tr31_opt_block_parse(
+	const struct tr31_opt_blk_t* opt_blk,
+	size_t remaining_len,
+	size_t* opt_blk_len,
+	struct tr31_opt_ctx_t* opt_ctx
+)
+{
+	int r;
+
+	if (!opt_blk || !opt_blk_len || !opt_ctx) {
+		return -1;
+	}
+	*opt_blk_len = 0;
+
+	// ensure that optional block length is valid
+	r = hex_to_int(opt_blk->length, sizeof(opt_blk->length));
+	if (r < 0) {
+		// parse error
+		return TR31_ERROR_INVALID_LENGTH;
+	}
+	if (r == 0) {
+		// extended optional block length not supported
+		return TR31_ERROR_INVALID_LENGTH;
+	}
+	*opt_blk_len = r;
+	if (*opt_blk_len < sizeof(struct tr31_opt_blk_t)) {
+		// optional block length must be at least 4 bytes (2 byte id + 2 byte length)
+		return TR31_ERROR_INVALID_LENGTH;
+	}
+	if (*opt_blk_len > remaining_len) {
+		// optional block length exceeds remaining key block length
+		return TR31_ERROR_INVALID_LENGTH;
+	}
+
+	opt_ctx->id = ntohs(opt_blk->id);
+
+	switch (opt_ctx->id) {
+		// optional blocks to be decoded as hex
+		case TR31_OPT_BLOCK_HM:
+		case TR31_OPT_BLOCK_IK:
+		case TR31_OPT_BLOCK_KC:
+		case TR31_OPT_BLOCK_KP:
+		case TR31_OPT_BLOCK_KS:
+			opt_ctx->data_length = (*opt_blk_len - 4) / 2;
+			opt_ctx->data = calloc(1, opt_ctx->data_length);
+			r = hex_to_bin(opt_blk->data, opt_ctx->data, opt_ctx->data_length);
+			if (r) {
+				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+			}
+			return 0;
+
+		// copy all other optional blocks, including proprietary ones, verbatim
+		default:
+			opt_ctx->data_length = (*opt_blk_len - 4);
+			opt_ctx->data = calloc(1, opt_ctx->data_length);
+			memcpy(opt_ctx->data, opt_blk->data, opt_ctx->data_length);
+			return 0;
+	}
 }
 
 static int tr31_tdes_decrypt_verify_variant_binding(struct tr31_ctx_t* ctx, const struct tr31_key_t* kbpk)
