@@ -69,7 +69,7 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state);
 static void* read_file(FILE* file, size_t* len);
 static int parse_hex(const char* hex, void* bin, size_t bin_len);
 static void print_hex(const void* buf, size_t length);
-static void print_str(const void* buf, size_t length);
+static void print_str_with_quotes(const void* buf, size_t length);
 
 // argp option keys
 enum tr31_tool_option_keys_t {
@@ -426,7 +426,7 @@ static void print_hex(const void* buf, size_t length)
 	}
 }
 
-static void print_str(const void* buf, size_t length)
+static void print_str_with_quotes(const void* buf, size_t length)
 {
 	char* str;
 
@@ -437,7 +437,7 @@ static void print_str(const void* buf, size_t length)
 	str = malloc(length + 1);
 	memcpy(str, buf, length);
 	str[length] = 0;
-	printf("%s", str);
+	printf("\"%s\"", str);
 	free(str);
 }
 
@@ -561,7 +561,7 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 
 				case TR31_OPT_BLOCK_PB:
 				case TR31_OPT_BLOCK_TS:
-					print_str(tr31_ctx.opt_blocks[i].data, tr31_ctx.opt_blocks[i].data_length);
+					print_str_with_quotes(tr31_ctx.opt_blocks[i].data, tr31_ctx.opt_blocks[i].data_length);
 					break;
 
 				// print all other optional blocks, including proprietary ones, as hex
