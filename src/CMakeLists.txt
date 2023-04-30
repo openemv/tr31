@@ -266,7 +266,7 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 		".*"
 		"Optional blocks \\[2\\]:[\r\n]"
 		"\t\\[KS\\] Key Set Identifier: 1ED9D500000001200000[\r\n]"
-		"\t\\[PB\\] Padding Block: 6E443855[\r\n]"
+		"\t\\[PB\\] Padding Block: nD8U[\r\n]"
 		"Key length: 16[\r\n]"
 		"Key value: 4AC3A7637268E618C52C97CE7766F26A \\(KCV: 72098B\\)[\r\n]"
 	)

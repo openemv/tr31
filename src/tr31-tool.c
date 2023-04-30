@@ -69,6 +69,7 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state);
 static void* read_file(FILE* file, size_t* len);
 static int parse_hex(const char* hex, void* bin, size_t bin_len);
 static void print_hex(const void* buf, size_t length);
+static void print_str(const void* buf, size_t length);
 
 // argp option keys
 enum tr31_tool_option_keys_t {
@@ -425,6 +426,21 @@ static void print_hex(const void* buf, size_t length)
 	}
 }
 
+static void print_str(const void* buf, size_t length)
+{
+	char* str;
+
+	if (!length) {
+		return;
+	}
+
+	str = malloc(length + 1);
+	memcpy(str, buf, length);
+	str[length] = 0;
+	printf("%s", str);
+	free(str);
+}
+
 // TR-31 KBPK populating helper function
 static int populate_kbpk(const struct tr31_tool_options_t* options, unsigned int format_version, struct tr31_key_t* kbpk)
 {
@@ -532,15 +548,25 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 				tr31_get_opt_block_id_ascii(tr31_ctx.opt_blocks[i].id, ascii_buf, sizeof(ascii_buf)),
 				tr31_get_opt_block_id_string(tr31_ctx.opt_blocks[i].id)
 			);
-			if ((tr31_ctx.opt_blocks[i].id == TR31_OPT_BLOCK_KC || tr31_ctx.opt_blocks[i].id == TR31_OPT_BLOCK_KP) &&
-				tr31_ctx.opt_blocks[i].data_length >= 1
-			) {
-				// for optional blocks involving KCVs, skip the first byte (KCV algorithm)
-				// the first byte will be decoded by tr31_get_opt_block_data_string()
-				print_hex(tr31_ctx.opt_blocks[i].data + 1, tr31_ctx.opt_blocks[i].data_length - 1);
-			} else {
-				// print all optional block data
-				print_hex(tr31_ctx.opt_blocks[i].data, tr31_ctx.opt_blocks[i].data_length);
+
+			switch (tr31_ctx.opt_blocks[i].id) {
+				case TR31_OPT_BLOCK_KC:
+				case TR31_OPT_BLOCK_KP:
+					// for optional blocks involving KCVs, skip the first byte (KCV algorithm)
+					// the first byte will be decoded by tr31_get_opt_block_data_string()
+					if (tr31_ctx.opt_blocks[i].data_length > 1) {
+						print_hex(tr31_ctx.opt_blocks[i].data + 1, tr31_ctx.opt_blocks[i].data_length - 1);
+					}
+					break;
+
+				case TR31_OPT_BLOCK_PB:
+				case TR31_OPT_BLOCK_TS:
+					print_str(tr31_ctx.opt_blocks[i].data, tr31_ctx.opt_blocks[i].data_length);
+					break;
+
+				// print all other optional blocks, including proprietary ones, as hex
+				default:
+					print_hex(tr31_ctx.opt_blocks[i].data, tr31_ctx.opt_blocks[i].data_length);
 			}
 
 			opt_block_data_str = tr31_get_opt_block_data_string(&tr31_ctx.opt_blocks[i]);
