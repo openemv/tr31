@@ -80,6 +80,7 @@ static void int_to_hex(unsigned int value, char* str, size_t str_len);
 static int hex_to_bin(const char* hex, void* bin, size_t bin_len);
 static int bin_to_hex(const void* bin, size_t bin_len, char* str, size_t str_len);
 static int tr31_opt_block_parse(const struct tr31_opt_blk_t* opt_blk, size_t remaining_len, size_t* opt_block_len, struct tr31_opt_ctx_t* opt_ctx);
+static int tr31_opt_block_export(const struct tr31_opt_ctx_t* opt_ctx, size_t remaining_len, size_t* opt_blk_len, struct tr31_opt_blk_t* opt_blk);
 static int tr31_tdes_decrypt_verify_variant_binding(struct tr31_ctx_t* ctx, const struct tr31_key_t* kbpk);
 static int tr31_tdes_encrypt_sign_variant_binding(struct tr31_ctx_t* ctx, const struct tr31_key_t* kbpk);
 static int tr31_tdes_decrypt_verify_derivation_binding(struct tr31_ctx_t* ctx, const struct tr31_key_t* kbpk);
@@ -1097,38 +1098,20 @@ int tr31_export(
 
 	// populate optional blocks
 	for (size_t i = 0; i < ctx->opt_blocks_count; ++i) {
-		// ensure that current pointer is valid for minimal optional block
-		if (ptr + sizeof(struct tr31_opt_blk_t) - (void*)header > key_block_len) {
-			return TR31_ERROR_INVALID_LENGTH;
-		}
-		struct tr31_opt_blk_t* opt_blk = ptr;
-
-		// ensure that optional block length is valid
-		size_t opt_blk_len = (ctx->opt_blocks[i].data_length * 2) + 4;
-		if (ptr + opt_blk_len - (void*)header > key_block_len) {
-			// optional block length exceeds total key block length
-			return TR31_ERROR_INVALID_LENGTH;
-		}
-		opt_blk_len_total += opt_blk_len;
-
-		// populate optional block id and length
-		opt_blk->id = htons(ctx->opt_blocks[i].id);
-		int_to_hex(opt_blk_len, opt_blk->length, sizeof(opt_blk->length));
-
-		// populate optional block data
-		if (ctx->opt_blocks[i].data_length && !ctx->opt_blocks[i].data) {
-			// optional block payload length is non-zero but optional block data is missing
-			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
-		}
-		r = bin_to_hex(
-			ctx->opt_blocks[i].data,
-			ctx->opt_blocks[i].data_length,
-			opt_blk->data,
-			ctx->opt_blocks[i].data_length * 2
+		size_t opt_blk_len;
+		r = tr31_opt_block_export(
+			&ctx->opt_blocks[i],
+			(void*)key_block + key_block_len - ptr,
+			&opt_blk_len,
+			ptr
 		);
 		if (r) {
-			return -2;
+			// return error value as-is
+			return r;
 		}
+
+		// compute total optional block length
+		opt_blk_len_total += opt_blk_len;
 
 		// advance current pointer
 		ptr += opt_blk_len;
@@ -1356,6 +1339,73 @@ static int tr31_opt_block_parse(
 			opt_ctx->data_length = (*opt_blk_len - 4);
 			opt_ctx->data = calloc(1, opt_ctx->data_length);
 			memcpy(opt_ctx->data, opt_blk->data, opt_ctx->data_length);
+			return 0;
+	}
+}
+
+static int tr31_opt_block_export(
+	const struct tr31_opt_ctx_t* opt_ctx,
+	size_t remaining_len,
+	size_t* opt_blk_len,
+	struct tr31_opt_blk_t* opt_blk
+)
+{
+	int r;
+
+	if (!opt_ctx || !opt_blk_len || !opt_blk) {
+		return -1;
+	}
+	*opt_blk_len = 0;
+
+	if (remaining_len < sizeof(struct tr31_opt_blk_t)) {
+		// minimal optional block lengths exceeded remaining key block length
+		return TR31_ERROR_INVALID_LENGTH;
+	}
+
+	if (opt_ctx->data_length && !opt_ctx->data) {
+		// optional block payload length is non-zero but optional block data is missing
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+
+	switch (opt_ctx->id) {
+		// optional blocks to be encoded as hex
+		case TR31_OPT_BLOCK_HM:
+		case TR31_OPT_BLOCK_IK:
+		case TR31_OPT_BLOCK_KC:
+		case TR31_OPT_BLOCK_KP:
+		case TR31_OPT_BLOCK_KS:
+			*opt_blk_len = (opt_ctx->data_length * 2) + 4;
+			if (*opt_blk_len > remaining_len) {
+				// optional block length exceeds remaining key block length
+				return TR31_ERROR_INVALID_LENGTH;
+			}
+
+			// populate optional block
+			opt_blk->id = htons(opt_ctx->id);
+			int_to_hex(*opt_blk_len, opt_blk->length, sizeof(opt_blk->length));
+			r = bin_to_hex(
+				opt_ctx->data,
+				opt_ctx->data_length,
+				opt_blk->data,
+				opt_ctx->data_length * 2
+			);
+			if (r) {
+				return -2;
+			}
+			return 0;
+
+		// copy all other optional blocks, including proprietary ones, verbatim
+		default:
+			*opt_blk_len = (opt_ctx->data_length) + 4;
+			if (*opt_blk_len > remaining_len) {
+				// optional block length exceeds remaining key block length
+				return TR31_ERROR_INVALID_LENGTH;
+			}
+
+			// populate optional block
+			opt_blk->id = htons(opt_ctx->id);
+			int_to_hex(*opt_blk_len, opt_blk->length, sizeof(opt_blk->length));
+			memcpy(opt_blk->data, opt_ctx->data, opt_ctx->data_length);
 			return 0;
 	}
 }
