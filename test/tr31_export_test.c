@@ -159,7 +159,7 @@ static const struct tr31_key_t test5_key = {
 	.length = sizeof(test5_key_raw),
 	.data = (void*)test5_key_raw,
 };
-static const char test5_tr31_header_verify[] = "D0128M7HC12N0200HM0621PB0A000000";
+static const char test5_tr31_header_verify[] = "D0128M7HC12N0200HM0621PB0A"; // omit random optional block padding digits
 static const size_t test5_tr31_length_verify =
 	16 /* header */
 	+ 6 /* opt block HM */ + 10 /* opt block PB */

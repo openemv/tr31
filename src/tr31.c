@@ -79,8 +79,10 @@ static int hex_to_int(const char* str, size_t str_len);
 static void int_to_hex(unsigned int value, char* str, size_t str_len);
 static int hex_to_bin(const char* hex, void* bin, size_t bin_len);
 static int bin_to_hex(const void* bin, size_t bin_len, char* str, size_t str_len);
+static int tr31_format_pa_to_bin(const char* buf, void* bin, size_t bin_len);
 static int tr31_opt_block_parse(const struct tr31_opt_blk_t* opt_blk, size_t remaining_len, size_t* opt_block_len, struct tr31_opt_ctx_t* opt_ctx);
 static int tr31_opt_block_export(const struct tr31_opt_ctx_t* opt_ctx, size_t remaining_len, size_t* opt_blk_len, struct tr31_opt_blk_t* opt_blk);
+static int tr31_opt_block_export_PB(size_t pb_len, struct tr31_opt_blk_t* opt_blk);
 static int tr31_tdes_decrypt_verify_variant_binding(struct tr31_ctx_t* ctx, const struct tr31_key_t* kbpk);
 static int tr31_tdes_encrypt_sign_variant_binding(struct tr31_ctx_t* ctx, const struct tr31_key_t* kbpk);
 static int tr31_tdes_decrypt_verify_derivation_binding(struct tr31_ctx_t* ctx, const struct tr31_key_t* kbpk);
@@ -220,6 +222,25 @@ static int bin_to_hex(const void* bin, size_t bin_len, char* hex, size_t hex_len
 		} else {
 			hex[(i * 2) + 1] = digit - 0xA + 'A';
 		}
+	}
+
+	return 0;
+}
+
+static int tr31_format_pa_to_bin(const char* buf, void* bin, size_t bin_len)
+{
+	while (bin_len--) {
+		uint8_t* ptr = bin;
+
+		// printable ASCII characters are in the range 0x20 to 0x7E
+		// see ANSI X9.143:2021, 4
+		if (*buf < 0x20 || *buf > 0x7E) {
+			return -1;
+		}
+		*ptr = *buf;
+
+		++buf;
+		++bin;
 	}
 
 	return 0;
@@ -1141,15 +1162,16 @@ int tr31_export(
 		}
 
 		// populate optional block PB
-		struct tr31_opt_blk_t* opt_blk = ptr;
-		opt_blk->id = htons(TR31_OPT_BLOCK_PB);
-		int_to_hex(pb_len, opt_blk->length, sizeof(opt_blk->length));
-		memset(opt_blk->data, '0', pb_len - 4);
+		r = tr31_opt_block_export_PB(pb_len, ptr);
+		if (r) {
+			// return error value as-is
+			return r;
+		}
 
 		// update optional block count in header
 		int_to_dec(ctx->opt_blocks_count + 1, header->opt_blocks_count, sizeof(header->opt_blocks_count));
 
-		// update total block length
+		// update total optional block length
 		opt_blk_len_total += pb_len;
 
 		// advance current pointer
@@ -1334,6 +1356,15 @@ static int tr31_opt_block_parse(
 			}
 			return 0;
 
+		case TR31_OPT_BLOCK_PB:
+			opt_ctx->data_length = (*opt_blk_len - 4);
+			opt_ctx->data = calloc(1, opt_ctx->data_length);
+			r = tr31_format_pa_to_bin(opt_blk->data, opt_ctx->data, opt_ctx->data_length);
+			if (r) {
+				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+			}
+			return 0;
+
 		// copy all other optional blocks, including proprietary ones, verbatim
 		default:
 			opt_ctx->data_length = (*opt_blk_len - 4);
@@ -1408,6 +1439,43 @@ static int tr31_opt_block_export(
 			memcpy(opt_blk->data, opt_ctx->data, opt_ctx->data_length);
 			return 0;
 	}
+}
+
+static int tr31_opt_block_export_PB(size_t pb_len, struct tr31_opt_blk_t* opt_blk)
+{
+	opt_blk->id = htons(TR31_OPT_BLOCK_PB);
+	int_to_hex(pb_len, opt_blk->length, sizeof(opt_blk->length));
+
+	// populate with random data and then transpose to the required range
+	crypto_rand(opt_blk->data, pb_len - 4);
+
+	for (size_t i = 0; i < pb_len - 4; ++i) {
+		// although optional block PB may contain printable ASCII characters in
+		// the range 0x20 to 0x7E, characters outside the ranges of '0'-'9',
+		// 'A'-'Z' and 'a'-'Z' are problematic when using HSM protocols that
+		// may use other printable ASCII characters as delimiters
+
+		// use unsigned integers for sanity but cast to uint8_t to fix negative
+		// char values without setting high order bits due to 2s complement
+		unsigned int tmp = (uint8_t)opt_blk->data[i];
+
+		// clamp range to [0 - 61] for 62 possible characters
+		tmp = (tmp * 61) / 0xFF;
+
+		// split range into ranges of '0'-'9', 'A'-'Z' and 'a'-'Z'
+		if (tmp < 10) {
+			opt_blk->data[i] = tmp + '0'; // '0'-'9'
+		} else if (tmp < 36) {
+			opt_blk->data[i] = tmp - 10 + 'A'; // 'A'-'Z'
+		} else if (tmp < 62) {
+			opt_blk->data[i] = tmp - 36 + 'a'; // 'a'-'Z'
+		} else {
+			// This should never happen
+			return -1;
+		}
+	}
+
+	return 0;
 }
 
 static int tr31_tdes_decrypt_verify_variant_binding(struct tr31_ctx_t* ctx, const struct tr31_key_t* kbpk)
