@@ -2117,14 +2117,14 @@ const char* tr31_get_opt_block_id_ascii(unsigned int opt_block_id, char* ascii, 
 
 const char* tr31_get_opt_block_id_string(unsigned int opt_block_id)
 {
-	// see TR-31:2018, A.5.6, table 11
+	// see ANSI X9.143:2021, 6.3.6, table 7
 	switch (opt_block_id) {
 		case TR31_OPT_BLOCK_CT:         return "Public Key Certificate";
-		case TR31_OPT_BLOCK_HM:         return "HMAC hash algorithm";
-		case TR31_OPT_BLOCK_IK:         return "Initial Key Identifier";
+		case TR31_OPT_BLOCK_HM:         return "Hash algorithm for HMAC";
+		case TR31_OPT_BLOCK_IK:         return "Initial Key Identifier (IKID)";
 		case TR31_OPT_BLOCK_KC:         return "Key Check Value (KCV) of wrapped key";
 		case TR31_OPT_BLOCK_KP:         return "Key Check Value (KCV) of KBPK";
-		case TR31_OPT_BLOCK_KS:         return "Key Set Identifier";
+		case TR31_OPT_BLOCK_KS:         return "Initial Key Serial Number (KSN)";
 		case TR31_OPT_BLOCK_KV:         return "Key Block Values";
 		case TR31_OPT_BLOCK_PB:         return "Padding Block";
 		case TR31_OPT_BLOCK_TS:         return "Time Stamp";
@@ -2164,7 +2164,7 @@ static const char* tr31_get_opt_block_kcv_string(const struct tr31_opt_ctx_t* op
 	}
 	data = opt_block->data;
 
-	// see TR-31:2018, A.5.8
+	// see ANSI X9.143:2021, 6.3.6.7, table 15
 	switch (data[0]) {
 		case TR31_OPT_BLOCK_KCV_LEGACY:         return "Legacy KCV algorithm";
 		case TR31_OPT_BLOCK_KCV_CMAC:           return "CMAC based KCV";
@@ -2185,7 +2185,7 @@ static const char* tr31_get_opt_block_hmac_string(const struct tr31_opt_ctx_t* o
 	}
 	data = opt_block->data;
 
-	// see TR-31:2018, A.5.9
+	// see ANSI X9.143:2021, 6.3.6.5, table 13
 	switch (data[0]) {
 		case TR31_OPT_BLOCK_HM_SHA1:            return "SHA-1";
 		case TR31_OPT_BLOCK_HM_SHA224:          return "SHA-224";
@@ -2198,6 +2198,8 @@ static const char* tr31_get_opt_block_hmac_string(const struct tr31_opt_ctx_t* o
 		case TR31_OPT_BLOCK_HM_SHA3_256:        return "SHA3-256";
 		case TR31_OPT_BLOCK_HM_SHA3_384:        return "SHA3-384";
 		case TR31_OPT_BLOCK_HM_SHA3_512:        return "SHA3-512";
+		case TR31_OPT_BLOCK_HM_SHAKE128:        return "SHAKE128";
+		case TR31_OPT_BLOCK_HM_SHAKE256:        return "SHAKE256";
 	}
 
 	return "Unknown";
