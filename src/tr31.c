@@ -81,6 +81,7 @@ static int hex_to_bin(const char* hex, void* bin, size_t bin_len);
 static int bin_to_hex(const void* bin, size_t bin_len, char* str, size_t str_len);
 static int tr31_format_pa_to_bin(const char* buf, void* bin, size_t bin_len);
 static int tr31_opt_block_parse(const struct tr31_opt_blk_t* opt_blk, size_t remaining_len, size_t* opt_block_len, struct tr31_opt_ctx_t* opt_ctx);
+static int tr31_opt_block_validate_iso8601(const char* ts_str, size_t ts_str_len);
 static int tr31_opt_block_export(const struct tr31_opt_ctx_t* opt_ctx, size_t remaining_len, size_t* opt_blk_len, struct tr31_opt_blk_t* opt_blk);
 static int tr31_opt_block_export_PB(size_t pb_len, struct tr31_opt_blk_t* opt_blk);
 static int tr31_tdes_decrypt_verify_variant_binding(struct tr31_ctx_t* ctx, const struct tr31_key_t* kbpk);
@@ -623,6 +624,27 @@ int tr31_opt_block_add_HM(
 )
 {
 	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_HM, &hash_algorithm, 1);
+}
+
+int tr31_opt_block_add_TS(
+	struct tr31_ctx_t* ctx,
+	const char* ts_str
+)
+{
+	int r;
+
+	if (!ctx || !ts_str) {
+		return -1;
+	}
+
+	// validate date/time string
+	r = tr31_opt_block_validate_iso8601(ts_str, strlen(ts_str));
+	if (r) {
+		// return error value as-is
+		return r;
+	}
+
+	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_TS, ts_str, strlen(ts_str));
 }
 
 int tr31_import(
@@ -1365,6 +1387,16 @@ static int tr31_opt_block_parse(
 			}
 			return 0;
 
+		case TR31_OPT_BLOCK_TS:
+			opt_ctx->data_length = (*opt_blk_len - 4);
+			opt_ctx->data = calloc(1, opt_ctx->data_length);
+			r = tr31_opt_block_validate_iso8601(opt_blk->data, opt_ctx->data_length);
+			if (r) {
+				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+			}
+			memcpy(opt_ctx->data, opt_blk->data, opt_ctx->data_length);
+			return 0;
+
 		// copy all other optional blocks, including proprietary ones, verbatim
 		default:
 			opt_ctx->data_length = (*opt_blk_len - 4);
@@ -1372,6 +1404,52 @@ static int tr31_opt_block_parse(
 			memcpy(opt_ctx->data, opt_blk->data, opt_ctx->data_length);
 			return 0;
 	}
+}
+
+static int tr31_opt_block_validate_iso8601(const char* str, size_t str_len)
+{
+	if (!str) {
+		return -1;
+	}
+
+	// NOTE: this function only performs basic format checks and is not
+	// intended to perform strict ISO 8601 format validation nor determine the
+	// correctness of the date or time
+
+	// validate time stamp string length
+	// see ANSI X9.143:2021, 6.3.6.14, table 22
+	if (str_len != 0x13 - 4 && // no delimiters, ss precision
+		str_len != 0x15 - 4 && // no delimiters, ssss precision
+		str_len != 0x18 - 4 && // delimiters, ss precision
+		str_len != 0x1B - 4 // delimiters, ss.ss precision
+	) {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+
+	// validate time stamp time zone designator (must be UTC)
+	// see ANSI X9.143:2021, 6.3.6.14
+	if (str[str_len-1] != 'Z') {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+
+	// validate delimiters (YYYY-MM-DDThh:mm:ss[.ss])
+	if (str_len == 0x18 || str_len == 0x1B) {
+		if (str[4] != '-' ||
+			str[7] != '-' ||
+			str[10] != 'T' ||
+			str[13] != ':' ||
+			str[16] != ':'
+		) {
+			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+		}
+	}
+	if (str_len == 0x1B) {
+		if (str[19] != '.') {
+			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+		}
+	}
+
+	return 0;
 }
 
 static int tr31_opt_block_export(

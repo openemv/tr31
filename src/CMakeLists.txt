@@ -274,4 +274,111 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 		PROPERTIES
 			PASS_REGULAR_EXPRESSION ${tr31_tool_test20_regex}
 	)
+
+	add_test(NAME tr31_tool_test21
+		COMMAND tr31-tool --kbpk 0123456789ABCDEFFEDCBA9876543210 --export 4AC3A7637268E618C52C97CE7766F26A --export-header D0144B1TX00S0000 --export-opt-block-KS 1ED9D500000001200000 --export-opt-block-TS 20200818192030Z
+	)
+	set_tests_properties(tr31_tool_test21
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^D0160B1TX00S0300KS181ED9D500000001200000TS1320200818192030ZPB05"
+	)
+
+	add_test(NAME tr31_tool_test22
+		COMMAND tr31-tool --kbpk 0123456789ABCDEFFEDCBA9876543210 --export 4AC3A7637268E618C52C97CE7766F26A --export-header D0144B1TX00S0000 --export-opt-block-KS 1ED9D500000001200000 --export-opt-block-TS 2020081819203022Z
+	)
+	set_tests_properties(tr31_tool_test22
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^D0176B1TX00S0300KS181ED9D500000001200000TS152020081819203022ZPB13"
+	)
+
+	add_test(NAME tr31_tool_test23
+		COMMAND tr31-tool --kbpk 0123456789ABCDEFFEDCBA9876543210 --export 4AC3A7637268E618C52C97CE7766F26A --export-header D0144B1TX00S0000 --export-opt-block-KS 1ED9D500000001200000 --export-opt-block-TS 2018-06-18T20:42:39Z
+	)
+	set_tests_properties(tr31_tool_test23
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^D0160B1TX00S0200KS181ED9D500000001200000TS182018-06-18T20:42:39Z"
+	)
+
+	add_test(NAME tr31_tool_test24
+		COMMAND tr31-tool --kbpk 0123456789ABCDEFFEDCBA9876543210 --export 4AC3A7637268E618C52C97CE7766F26A --export-header D0144B1TX00S0000 --export-opt-block-KS 1ED9D500000001200000 --export-opt-block-TS 2018-06-18T20:42:39.22Z
+	)
+	set_tests_properties(tr31_tool_test24
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^D0176B1TX00S0300KS181ED9D500000001200000TS1B2018-06-18T20:42:39.22ZPB0D"
+	)
+
+	add_test(NAME tr31_tool_test25
+		COMMAND tr31-tool --kbpk 0123456789ABCDEFFEDCBA9876543210 --import D0160B1TX00S0300KS181ED9D500000001200000TS1320200818192030ZPB05gA333430B5C329683053737C8BCF63FF6C7218331680563A68E61387161715B6ACB191F837266F87F71F8C506F1DF470F
+	)
+	string(CONCAT tr31_tool_test25_regex
+		"^Key block format version: D[\r\n]"
+		"Key block length: 160 bytes[\r\n]"
+		".*"
+		"Optional blocks \\[3\\]:[\r\n]"
+		"\t\\[KS\\] Initial Key Serial Number \\(KSN\\): 1ED9D500000001200000[\r\n]"
+		"\t\\[TS\\] Time Stamp: \"20200818192030Z\"[\r\n]"
+		"\t\\[PB\\] Padding Block: \"g\"[\r\n]"
+		"Key length: 16[\r\n]"
+		"Key value: 4AC3A7637268E618C52C97CE7766F26A \\(KCV: 72098B\\)[\r\n]"
+	)
+	set_tests_properties(tr31_tool_test25
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION ${tr31_tool_test25_regex}
+	)
+
+	add_test(NAME tr31_tool_test26
+		COMMAND tr31-tool --kbpk 0123456789ABCDEFFEDCBA9876543210 --import D0176B1TX00S0300KS181ED9D500000001200000TS152020081819203022ZPB13W5TP83uVxuM0rBv44BACDC4F3D81401BECFFEF3C189B49709545196B37057B5A39CBAFC176C01873FF04CC7B2DDBC0F26C1E40E3BB0E065
+	)
+	string(CONCAT tr31_tool_test26_regex
+		"^Key block format version: D[\r\n]"
+		"Key block length: 176 bytes[\r\n]"
+		".*"
+		"Optional blocks \\[3\\]:[\r\n]"
+		"\t\\[KS\\] Initial Key Serial Number \\(KSN\\): 1ED9D500000001200000[\r\n]"
+		"\t\\[TS\\] Time Stamp: \"2020081819203022Z\"[\r\n]"
+		"\t\\[PB\\] Padding Block: \"W5TP83uVxuM0rBv\"[\r\n]"
+		"Key length: 16[\r\n]"
+		"Key value: 4AC3A7637268E618C52C97CE7766F26A \\(KCV: 72098B\\)[\r\n]"
+	)
+	set_tests_properties(tr31_tool_test26
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION ${tr31_tool_test26_regex}
+	)
+
+	add_test(NAME tr31_tool_test27
+		COMMAND tr31-tool --kbpk 0123456789ABCDEFFEDCBA9876543210 --import D0160B1TX00S0200KS181ED9D500000001200000TS182018-06-18T20:42:39Z26E8604B5A3CBD120E277E4EA44994FB850B8C8359973BD75070978865B4792E4FA1183937408697365ADA7A5CF8A208
+	)
+	string(CONCAT tr31_tool_test27_regex
+		"^Key block format version: D[\r\n]"
+		"Key block length: 160 bytes[\r\n]"
+		".*"
+		"Optional blocks \\[2\\]:[\r\n]"
+		"\t\\[KS\\] Initial Key Serial Number \\(KSN\\): 1ED9D500000001200000[\r\n]"
+		"\t\\[TS\\] Time Stamp: \"2018-06-18T20:42:39Z\"[\r\n]"
+		"Key length: 16[\r\n]"
+		"Key value: 4AC3A7637268E618C52C97CE7766F26A \\(KCV: 72098B\\)[\r\n]"
+	)
+	set_tests_properties(tr31_tool_test27
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION ${tr31_tool_test27_regex}
+	)
+
+	add_test(NAME tr31_tool_test28
+		COMMAND tr31-tool --kbpk 0123456789ABCDEFFEDCBA9876543210 --import D0176B1TX00S0300KS181ED9D500000001200000TS1B2018-06-18T20:42:39.22ZPB0DU4WIA8mio0B36039D89698BECE03FC2B07CB3AA43100DC7425F23DFBF93FCCEAD96D6C322A43E51F33806F10094B5760006AC5BC1
+	)
+	string(CONCAT tr31_tool_test28_regex
+		"^Key block format version: D[\r\n]"
+		"Key block length: 176 bytes[\r\n]"
+		".*"
+		"Optional blocks \\[3\\]:[\r\n]"
+		"\t\\[KS\\] Initial Key Serial Number \\(KSN\\): 1ED9D500000001200000[\r\n]"
+		"\t\\[TS\\] Time Stamp: \"2018-06-18T20:42:39.22Z\"[\r\n]"
+		"\t\\[PB\\] Padding Block: \"U4WIA8mio\"[\r\n]"
+		"Key length: 16[\r\n]"
+		"Key value: 4AC3A7637268E618C52C97CE7766F26A \\(KCV: 72098B\\)[\r\n]"
+	)
+	set_tests_properties(tr31_tool_test28
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION ${tr31_tool_test28_regex}
+	)
 endif()
