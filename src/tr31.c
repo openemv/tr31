@@ -626,6 +626,27 @@ int tr31_opt_block_add_HM(
 	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_HM, &hash_algorithm, 1);
 }
 
+int tr31_opt_block_add_TC(
+	struct tr31_ctx_t* ctx,
+	const char* tc_str
+)
+{
+	int r;
+
+	if (!ctx || !tc_str) {
+		return -1;
+	}
+
+	// validate date/time string
+	r = tr31_opt_block_validate_iso8601(tc_str, strlen(tc_str));
+	if (r) {
+		// return error value as-is
+		return r;
+	}
+
+	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_TC, tc_str, strlen(tc_str));
+}
+
 int tr31_opt_block_add_TS(
 	struct tr31_ctx_t* ctx,
 	const char* ts_str
@@ -1387,6 +1408,8 @@ static int tr31_opt_block_parse(
 			}
 			return 0;
 
+		// optional blocks to be validated as ISO 8601
+		case TR31_OPT_BLOCK_TC:
 		case TR31_OPT_BLOCK_TS:
 			opt_ctx->data_length = (*opt_blk_len - 4);
 			opt_ctx->data = calloc(1, opt_ctx->data_length);
@@ -1416,7 +1439,8 @@ static int tr31_opt_block_validate_iso8601(const char* str, size_t str_len)
 	// intended to perform strict ISO 8601 format validation nor determine the
 	// correctness of the date or time
 
-	// validate time stamp string length
+	// validate ISO 8601 string length
+	// see ANSI X9.143:2021, 6.3.6.13, table 21
 	// see ANSI X9.143:2021, 6.3.6.14, table 22
 	if (str_len != 0x13 - 4 && // no delimiters, ss precision
 		str_len != 0x15 - 4 && // no delimiters, ssss precision
@@ -1426,13 +1450,14 @@ static int tr31_opt_block_validate_iso8601(const char* str, size_t str_len)
 		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 	}
 
-	// validate time stamp time zone designator (must be UTC)
+	// validate ISO 8601 designator (must be UTC)
+	// see ANSI X9.143:2021, 6.3.6.13
 	// see ANSI X9.143:2021, 6.3.6.14
 	if (str[str_len-1] != 'Z') {
 		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 	}
 
-	// validate delimiters (YYYY-MM-DDThh:mm:ss[.ss])
+	// validate ISO 8601 delimiters (YYYY-MM-DDThh:mm:ss[.ss])
 	if (str_len == 0x18 || str_len == 0x1B) {
 		if (str[4] != '-' ||
 			str[7] != '-' ||
@@ -2205,6 +2230,7 @@ const char* tr31_get_opt_block_id_string(unsigned int opt_block_id)
 		case TR31_OPT_BLOCK_KS:         return "Initial Key Serial Number (KSN)";
 		case TR31_OPT_BLOCK_KV:         return "Key Block Values";
 		case TR31_OPT_BLOCK_PB:         return "Padding Block";
+		case TR31_OPT_BLOCK_TC:         return "Time of Creation";
 		case TR31_OPT_BLOCK_TS:         return "Time Stamp";
 	}
 

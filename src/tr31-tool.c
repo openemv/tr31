@@ -57,6 +57,7 @@ struct tr31_tool_options_t {
 	uint8_t export_opt_block_KS_buf[24];
 	bool export_opt_block_KC;
 	bool export_opt_block_KP;
+	const char* export_opt_block_TC_str;
 	const char* export_opt_block_TS_str;
 
 	// kbpk parameters
@@ -84,6 +85,7 @@ enum tr31_tool_option_keys_t {
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KS,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KC,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KP,
+	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TC,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TS,
 	TR31_TOOL_OPTION_KBPK,
 	TR31_TOOL_OPTION_VERSION,
@@ -104,6 +106,7 @@ static struct argp_option argp_options[] = {
 	{ "export-opt-block-KS", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KS, "IKSN", 0, "Add optional block KS (Initial Key Serial Number) during TR-31 export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-KP", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KP, NULL, 0, "Add optional block KP (KCV of KBPK) during TR-31 export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-KC", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KC, NULL, 0, "Add optional block KC (KCV of wrapped key) during TR-31 export. May be used with either --export-template or --export-header." },
+	{ "export-opt-block-TC", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TC, "ISO8601", 0, "Add optional block TC (Time of Creation in ISO 8601 UTC format) during TR-31 export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-TS", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TS, "ISO8601", 0, "Add optional block TS (Time Stamp in ISO 8601 UTC format) during TR-31 export. May be used with either --export-template or --export-header." },
 
 	{ NULL, 0, NULL, 0, "Options for decrypting/encrypting TR-31 key blocks:", 3 },
@@ -292,6 +295,10 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 
 		case TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KP:
 			options->export_opt_block_KP = true;
+			return 0;
+
+		case TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TC:
+			options->export_opt_block_TC_str = arg;
 			return 0;
 
 		case TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TS:
@@ -568,6 +575,7 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 					break;
 
 				case TR31_OPT_BLOCK_PB:
+				case TR31_OPT_BLOCK_TC:
 				case TR31_OPT_BLOCK_TS:
 					print_str_with_quotes(tr31_ctx.opt_blocks[i].data, tr31_ctx.opt_blocks[i].data_length);
 					break;
@@ -757,6 +765,14 @@ static int populate_opt_blocks(const struct tr31_tool_options_t* options, struct
 		r = tr31_opt_block_add_KP(tr31_ctx);
 		if (r) {
 			fprintf(stderr, "Failed to add optional block KP; error %d: %s\n", r, tr31_get_error_string(r));
+			return 1;
+		}
+	}
+
+	if (options->export_opt_block_TC_str) {
+		r = tr31_opt_block_add_TC(tr31_ctx, options->export_opt_block_TC_str);
+		if (r) {
+			fprintf(stderr, "Failed to add optional block TC; error %d: %s\n", r, tr31_get_error_string(r));
 			return 1;
 		}
 	}
