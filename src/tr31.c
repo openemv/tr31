@@ -90,8 +90,6 @@ static int tr31_tdes_decrypt_verify_derivation_binding(struct tr31_ctx_t* ctx, c
 static int tr31_tdes_encrypt_sign_derivation_binding(struct tr31_ctx_t* ctx, const struct tr31_key_t* kbpk);
 static int tr31_aes_decrypt_verify_derivation_binding(struct tr31_ctx_t* ctx, const struct tr31_key_t* kbpk);
 static int tr31_aes_encrypt_sign_derivation_binding(struct tr31_ctx_t* ctx, const struct tr31_key_t* kbpk);
-static const char* tr31_get_opt_block_kcv_string(const struct tr31_opt_ctx_t* opt_block);
-static const char* tr31_get_opt_block_hmac_string(const struct tr31_opt_ctx_t* opt_block);
 
 static int dec_to_int(const char* str, size_t str_len)
 {
@@ -2232,78 +2230,6 @@ const char* tr31_get_opt_block_id_string(unsigned int opt_block_id)
 		case TR31_OPT_BLOCK_PB:         return "Padding Block";
 		case TR31_OPT_BLOCK_TC:         return "Time of Creation";
 		case TR31_OPT_BLOCK_TS:         return "Time Stamp";
-	}
-
-	return "Unknown";
-}
-
-const char* tr31_get_opt_block_data_string(const struct tr31_opt_ctx_t* opt_block)
-{
-	if (!opt_block) {
-		return NULL;
-	}
-
-	switch (opt_block->id) {
-		case TR31_OPT_BLOCK_KC: return tr31_get_opt_block_kcv_string(opt_block);
-		case TR31_OPT_BLOCK_KP: return tr31_get_opt_block_kcv_string(opt_block);
-		case TR31_OPT_BLOCK_HM: return tr31_get_opt_block_hmac_string(opt_block);
-	}
-
-	return NULL;
-}
-
-static const char* tr31_get_opt_block_kcv_string(const struct tr31_opt_ctx_t* opt_block)
-{
-	const uint8_t* data;
-
-	if (!opt_block ||
-		opt_block->data_length < 2
-	) {
-		return NULL;
-	}
-	if (opt_block->id != TR31_OPT_BLOCK_KC &&
-		opt_block->id != TR31_OPT_BLOCK_KP
-	) {
-		return NULL;
-	}
-	data = opt_block->data;
-
-	// see ANSI X9.143:2021, 6.3.6.7, table 15
-	switch (data[0]) {
-		case TR31_OPT_BLOCK_KCV_LEGACY:         return "Legacy KCV algorithm";
-		case TR31_OPT_BLOCK_KCV_CMAC:           return "CMAC based KCV";
-	}
-
-	return "Unknown";
-}
-
-static const char* tr31_get_opt_block_hmac_string(const struct tr31_opt_ctx_t* opt_block)
-{
-	const uint8_t* data;
-
-	if (!opt_block ||
-		opt_block->id != TR31_OPT_BLOCK_HM ||
-		opt_block->data_length != 1
-	) {
-		return NULL;
-	}
-	data = opt_block->data;
-
-	// see ANSI X9.143:2021, 6.3.6.5, table 13
-	switch (data[0]) {
-		case TR31_OPT_BLOCK_HM_SHA1:            return "SHA-1";
-		case TR31_OPT_BLOCK_HM_SHA224:          return "SHA-224";
-		case TR31_OPT_BLOCK_HM_SHA256:          return "SHA-256";
-		case TR31_OPT_BLOCK_HM_SHA384:          return "SHA-384";
-		case TR31_OPT_BLOCK_HM_SHA512:          return "SHA-512";
-		case TR31_OPT_BLOCK_HM_SHA512_224:      return "SHA-512/224";
-		case TR31_OPT_BLOCK_HM_SHA512_256:      return "SHA-512/256";
-		case TR31_OPT_BLOCK_HM_SHA3_224:        return "SHA3-224";
-		case TR31_OPT_BLOCK_HM_SHA3_256:        return "SHA3-256";
-		case TR31_OPT_BLOCK_HM_SHA3_384:        return "SHA3-384";
-		case TR31_OPT_BLOCK_HM_SHA3_512:        return "SHA3-512";
-		case TR31_OPT_BLOCK_HM_SHAKE128:        return "SHAKE128";
-		case TR31_OPT_BLOCK_HM_SHAKE256:        return "SHAKE256";
 	}
 
 	return "Unknown";

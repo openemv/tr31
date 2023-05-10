@@ -50,7 +50,11 @@ configure_file(
 )
 
 # TR-31 library
-add_library(tr31 tr31.c tr31_crypto.c)
+add_library(tr31
+	tr31.c
+	tr31_crypto.c
+	tr31_strings.c
+)
 set_target_properties(tr31
 	PROPERTIES
 		PUBLIC_HEADER tr31.h

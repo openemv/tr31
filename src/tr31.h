@@ -511,13 +511,6 @@ const char* tr31_get_opt_block_id_ascii(unsigned int opt_block_id, char* ascii, 
  */
 const char* tr31_get_opt_block_id_string(unsigned int opt_block_id);
 
-/**
- * Create formatted string associated with optional block data
- * @param opt_block Optional block
- * @return Pointer to null-terminated string. Do not free. NULL if unknown or not applicable.
- */
-const char* tr31_get_opt_block_data_string(const struct tr31_opt_ctx_t* opt_block);
-
 __END_DECLS
 
 #endif

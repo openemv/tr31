@@ -19,6 +19,7 @@
  */
 
 #include "tr31.h"
+#include "tr31_strings.h"
 
 #include <stddef.h>
 #include <stdbool.h>
@@ -557,7 +558,7 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 	}
 	if (tr31_ctx.opt_blocks) { // might be NULL when tr31_import() fails
 		for (size_t i = 0; i < tr31_ctx.opt_blocks_count; ++i) {
-			const char* opt_block_data_str;
+			char opt_block_data_str[128];
 
 			printf("\t[%s] %s: ",
 				tr31_get_opt_block_id_ascii(tr31_ctx.opt_blocks[i].id, ascii_buf, sizeof(ascii_buf)),
@@ -585,8 +586,8 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 					print_hex(tr31_ctx.opt_blocks[i].data, tr31_ctx.opt_blocks[i].data_length);
 			}
 
-			opt_block_data_str = tr31_get_opt_block_data_string(&tr31_ctx.opt_blocks[i]);
-			if (opt_block_data_str) {
+			r = tr31_opt_block_data_get_desc(&tr31_ctx.opt_blocks[i], opt_block_data_str, sizeof(opt_block_data_str));
+			if (r == 0 && opt_block_data_str[0]) {
 				printf(" (%s)", opt_block_data_str);
 			}
 
