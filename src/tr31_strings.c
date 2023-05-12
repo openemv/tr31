@@ -21,12 +21,24 @@
 
 #include "tr31_strings.h"
 #include "tr31.h"
+#include "tr31_config.h"
 
+#include <stdlib.h>
 #include <string.h>
+
+#ifdef TR31_ENABLE_DATETIME_CONVERSION
+#ifdef HAVE_LOCALE_H
+#include <locale.h>
+#endif
+#ifdef HAVE_TIME_H
+#include <time.h>
+#endif
+#endif // TR31_ENABLE_DATETIME_CONVERSION
 
 // Helper functions
 static const char* tr31_opt_block_hmac_get_string(const struct tr31_opt_ctx_t* opt_block);
 static const char* tr31_opt_block_kcv_get_string(const struct tr31_opt_ctx_t* opt_block);
+static int tr31_opt_block_iso8601_get_string(const struct tr31_opt_ctx_t* opt_block, char* str, size_t str_len);
 
 int tr31_opt_block_data_get_desc(const struct tr31_opt_ctx_t* opt_block, char* str, size_t str_len)
 {
@@ -46,6 +58,10 @@ int tr31_opt_block_data_get_desc(const struct tr31_opt_ctx_t* opt_block, char* s
 		case TR31_OPT_BLOCK_KP:
 			simple_str = tr31_opt_block_kcv_get_string(opt_block);
 			break;
+
+		case TR31_OPT_BLOCK_TC:
+		case TR31_OPT_BLOCK_TS:
+			return tr31_opt_block_iso8601_get_string(opt_block, str, str_len);
 	}
 
 	if (simple_str) {
@@ -111,4 +127,88 @@ static const char* tr31_opt_block_kcv_get_string(const struct tr31_opt_ctx_t* op
 	}
 
 	return "Unknown";
+}
+
+static int tr31_opt_block_iso8601_get_string(const struct tr31_opt_ctx_t* opt_block, char* str, size_t str_len)
+{
+#ifdef TR31_ENABLE_DATETIME_CONVERSION
+	char* iso8601_str;
+	char* ptr;
+	struct tm ztm; // Time structure in UTC
+	time_t lt; // Calendar/Unix/POSIX time in local time
+	struct tm* ltm; // Time structure in local time
+	size_t ret;
+
+	if (!opt_block->data_length) {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+
+	// Copy optional block data to NULL-terminated string
+	iso8601_str = malloc(opt_block->data_length + 1);
+	memcpy(iso8601_str, opt_block->data, opt_block->data_length);
+	iso8601_str[opt_block->data_length] = 0;
+
+	// Validate ISO 8601 format based on string length
+	// NOTE: struct tm cannot hold sub-second values and they will be ignored
+	// during parsing
+	// See ANSI X9.143:2021, 6.3.6.13, table 21
+	// See ANSI X9.143:2021, 6.3.6.14, table 22
+	memset(&ztm, 0, sizeof(ztm));
+	switch (opt_block->data_length) {
+		case 0x13 - 4: // YYYYMMDDhhmmssZ
+			ptr = strptime(iso8601_str, "%Y%m%d%H%M%SZ", &ztm);
+			break;
+
+		case 0x15 - 4: // YYYYMMDDhhmmssssZ
+			ptr = strptime(iso8601_str, "%Y%m%d%H%M%S", &ztm);
+			if (ptr - iso8601_str == 0x15 - 4 - 3 && *(ptr + 2) == 'Z') {
+				ptr += 3;
+			}
+			break;
+
+		case 0x18 - 4: // YYYY-MM-DDThh:mm:ssZ
+			ptr = strptime(iso8601_str, "%Y-%m-%dT%H:%M:%SZ", &ztm);
+			break;
+
+		case 0x1B - 4: // YYYY-MM-DDThh:mm:ss.ssZ
+			ptr = strptime(iso8601_str, "%Y-%m-%dT%H:%M:%S", &ztm);
+			if (ptr - iso8601_str == 0x1B - 4 - 4 && *ptr == '.' && *(ptr + 3) == 'Z') {
+				ptr += 4;
+			}
+			break;
+
+		default:
+			ptr = NULL; // Don't return before free()'ing iso8601_str
+	}
+	// NOTE: strptime() returns NULL if it fails to match the format string or
+	// returns a pointer to the first character after the matched format
+	// string. Therefore iso8601_str may only be free()'d after evaluating *ptr
+	if (!ptr || *ptr) {
+		free(iso8601_str);
+		iso8601_str = NULL;
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+	free(iso8601_str);
+	iso8601_str = NULL;
+
+	// Convert UTC time to local time
+	lt = timegm(&ztm);
+	ltm = localtime(&lt);
+	ztm = *ltm;
+
+	// Set time locale according to environment variable
+	setlocale(LC_TIME, "");
+
+	// Provide time according to locale
+	ret = strftime(str, str_len, "%c", &ztm);
+	if (!ret) {
+		// Unexpected failure
+		return -1;
+	}
+
+	return 0;
+#else
+	str[0] = 0;
+	return 0;
+#endif
 }

@@ -40,6 +40,42 @@ if(NOT argp_FOUND)
 	endif()
 endif()
 
+# check for features required for date/time conversion:
+# locale.h, time.h, setlocale(), strptime() and timegm()
+include(CheckIncludeFile)
+include(CheckSymbolExists)
+CHECK_INCLUDE_FILE(locale.h HAVE_LOCALE_H)
+CHECK_INCLUDE_FILE(time.h HAVE_TIME_H)
+check_symbol_exists(setlocale locale.h HAVE_SETLOCALE)
+check_symbol_exists(strptime time.h HAVE_STRPTIME)
+set(TIME_H_DEFINITIONS_TRY _GNU_SOURCE) # Retry using _GNU_SOURCE
+if(NOT HAVE_STRPTIME)
+	unset(HAVE_STRPTIME CACHE)
+	list(APPEND CMAKE_REQUIRED_DEFINITIONS -D${TIME_H_DEFINITIONS_TRY})
+	check_symbol_exists(strptime time.h HAVE_STRPTIME)
+	list(REMOVE_ITEM CMAKE_REQUIRED_DEFINITIONS -D${TIME_H_DEFINITIONS_TRY})
+	if(HAVE_STRPTIME)
+		set(TIME_H_DEFINITIONS ${TIME_H_DEFINITIONS_TRY})
+	endif()
+endif()
+check_symbol_exists(timegm time.h HAVE_TIMEGM)
+if(NOT HAVE_TIMEGM)
+	unset(HAVE_TIMEGM CACHE)
+	list(APPEND CMAKE_REQUIRED_DEFINITIONS -D${TIME_H_DEFINITIONS_TRY})
+	check_symbol_exists(timegm time.h HAVE_TIMEGM)
+	list(REMOVE_ITEM CMAKE_REQUIRED_DEFINITIONS -D${TIME_H_DEFINITIONS_TRY})
+	if(HAVE_TIMEGM)
+		set(TIME_H_DEFINITIONS ${TIME_H_DEFINITIONS_TRY})
+	endif()
+endif()
+if(HAVE_SETLOCALE AND HAVE_STRPTIME AND HAVE_TIMEGM)
+	message(STATUS "Enabling date/time conversion")
+	set(TR31_ENABLE_DATETIME_CONVERSION ON)
+else()
+	message(STATUS "Disabling date/time conversion; some tests may fail")
+	set(TR31_ENABLE_DATETIME_CONVERSION OFF)
+endif()
+
 include(GNUInstallDirs) # provides CMAKE_INSTALL_* variables and good defaults for install()
 
 # generate config file for internal use only
@@ -55,6 +91,12 @@ add_library(tr31
 	tr31_crypto.c
 	tr31_strings.c
 )
+if(TIME_H_DEFINITIONS)
+	set_source_files_properties(tr31_strings.c
+		PROPERTIES
+			COMPILE_DEFINITIONS ${TIME_H_DEFINITIONS}
+	)
+endif()
 set_target_properties(tr31
 	PROPERTIES
 		PUBLIC_HEADER tr31.h
@@ -319,8 +361,8 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 		"Key block length: 160 bytes[\r\n]"
 		".*"
 		"Optional blocks \\[3\\]:[\r\n]"
-		"\t\\[TC\\] Time of Creation: \"20190717181929Z\"[\r\n]"
-		"\t\\[TS\\] Time Stamp: \"20200818192030Z\"[\r\n]"
+		"\t\\[TC\\] Time of Creation: \"20190717181929Z\" \\(.*\\)[\r\n]"
+		"\t\\[TS\\] Time Stamp: \"20200818192030Z\" \\(.*\\)[\r\n]"
 		"\t\\[PB\\] Padding Block: \"Mn6Rg3\"[\r\n]"
 		"Key length: 16[\r\n]"
 		"Key value: 4AC3A7637268E618C52C97CE7766F26A \\(KCV: 72098B\\)[\r\n]"
@@ -338,8 +380,8 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 		"Key block length: 160 bytes[\r\n]"
 		".*"
 		"Optional blocks \\[3\\]:[\r\n]"
-		"\t\\[TC\\] Time of Creation: \"2019071718192921Z\"[\r\n]"
-		"\t\\[TS\\] Time Stamp: \"2020081819203022Z\"[\r\n]"
+		"\t\\[TC\\] Time of Creation: \"2019071718192921Z\" \\(.*\\)[\r\n]"
+		"\t\\[TS\\] Time Stamp: \"2020081819203022Z\" \\(.*\\)[\r\n]"
 		"\t\\[PB\\] Padding Block: \"3r\"[\r\n]"
 		"Key length: 16[\r\n]"
 		"Key value: 4AC3A7637268E618C52C97CE7766F26A \\(KCV: 72098B\\)[\r\n]"
@@ -357,8 +399,8 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 		"Key block length: 160 bytes[\r\n]"
 		".*"
 		"Optional blocks \\[2\\]:[\r\n]"
-		"\t\\[TC\\] Time of Creation: \"2017-05-17T19:41:38Z\"[\r\n]"
-		"\t\\[TS\\] Time Stamp: \"2018-06-18T20:42:39Z\"[\r\n]"
+		"\t\\[TC\\] Time of Creation: \"2017-05-17T19:41:38Z\" \\(.*\\)[\r\n]"
+		"\t\\[TS\\] Time Stamp: \"2018-06-18T20:42:39Z\" \\(.*\\)[\r\n]"
 		"Key length: 16[\r\n]"
 		"Key value: 4AC3A7637268E618C52C97CE7766F26A \\(KCV: 72098B\\)[\r\n]"
 	)
@@ -375,8 +417,8 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 		"Key block length: 176 bytes[\r\n]"
 		".*"
 		"Optional blocks \\[3\\]:[\r\n]"
-		"\t\\[TC\\] Time of Creation: \"2017-05-17T19:41:38.21Z\"[\r\n]"
-		"\t\\[TS\\] Time Stamp: \"2018-06-18T20:42:39.22Z\"[\r\n]"
+		"\t\\[TC\\] Time of Creation: \"2017-05-17T19:41:38.21Z\" \\(.*\\)[\r\n]"
+		"\t\\[TS\\] Time Stamp: \"2018-06-18T20:42:39.22Z\" \\(.*\\)[\r\n]"
 		"\t\\[PB\\] Padding Block: \"0tGy4e\"[\r\n]"
 		"Key length: 16[\r\n]"
 		"Key value: 4AC3A7637268E618C52C97CE7766F26A \\(KCV: 72098B\\)[\r\n]"

@@ -24,5 +24,11 @@
 #define TR31_LIB_VERSION_STRING "@TR31_VERSION_STRING@"
 #cmakedefine HAVE_ARPA_INET_H
 #cmakedefine HAVE_WINSOCK_H
+#cmakedefine HAVE_LOCALE_H
+#cmakedefine HAVE_TIME_H
+#cmakedefine HAVE_SETLOCALE
+#cmakedefine HAVE_STRPTIME
+#cmakedefine HAVE_TIMEGM
+#cmakedefine TR31_ENABLE_DATETIME_CONVERSION
 
 #endif

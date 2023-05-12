@@ -587,7 +587,9 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 			}
 
 			r = tr31_opt_block_data_get_desc(&tr31_ctx.opt_blocks[i], opt_block_data_str, sizeof(opt_block_data_str));
-			if (r == 0 && opt_block_data_str[0]) {
+			if (r == TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA) {
+				printf(" (Invalid)");
+			} else if (r == 0 && opt_block_data_str[0]) {
 				printf(" (%s)", opt_block_data_str);
 			}
 
