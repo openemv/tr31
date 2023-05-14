@@ -68,7 +68,9 @@ if(NOT HAVE_TIMEGM)
 		set(TIME_H_DEFINITIONS ${TIME_H_DEFINITIONS_TRY})
 	endif()
 endif()
-if(HAVE_SETLOCALE AND HAVE_STRPTIME AND HAVE_TIMEGM)
+# Only setlocale() and timegm() are required for date/time conversion.
+# If strptime() is absent, sscanf() will be used instead.
+if(HAVE_SETLOCALE AND HAVE_TIMEGM)
 	message(STATUS "Enabling date/time conversion")
 	set(TR31_ENABLE_DATETIME_CONVERSION ON)
 else()

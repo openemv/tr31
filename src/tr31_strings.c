@@ -33,6 +33,9 @@
 #ifdef HAVE_TIME_H
 #include <time.h>
 #endif
+#ifndef HAVE_STRPTIME
+#include <stdio.h> // For sscanf()
+#endif
 #endif // TR31_ENABLE_DATETIME_CONVERSION
 
 // Helper functions
@@ -133,7 +136,11 @@ static int tr31_opt_block_iso8601_get_string(const struct tr31_opt_ctx_t* opt_bl
 {
 #ifdef TR31_ENABLE_DATETIME_CONVERSION
 	char* iso8601_str;
+#ifdef HAVE_STRPTIME
 	char* ptr;
+#else
+	int r;
+#endif
 	struct tm ztm; // Time structure in UTC
 	time_t lt; // Calendar/Unix/POSIX time in local time
 	struct tm* ltm; // Time structure in local time
@@ -154,6 +161,7 @@ static int tr31_opt_block_iso8601_get_string(const struct tr31_opt_ctx_t* opt_bl
 	// See ANSI X9.143:2021, 6.3.6.13, table 21
 	// See ANSI X9.143:2021, 6.3.6.14, table 22
 	memset(&ztm, 0, sizeof(ztm));
+#ifdef HAVE_STRPTIME
 	switch (opt_block->data_length) {
 		case 0x13 - 4: // YYYYMMDDhhmmssZ
 			ptr = strptime(iso8601_str, "%Y%m%d%H%M%SZ", &ztm);
@@ -188,6 +196,37 @@ static int tr31_opt_block_iso8601_get_string(const struct tr31_opt_ctx_t* opt_bl
 		iso8601_str = NULL;
 		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 	}
+#else
+	switch (opt_block->data_length) {
+		case 0x13 - 4: // YYYYMMDDhhmmssZ
+			r = sscanf(iso8601_str, "%4d%2d%2d%2d%2d%2dZ", &ztm.tm_year, &ztm.tm_mon, &ztm.tm_mday, &ztm.tm_hour, &ztm.tm_min, &ztm.tm_sec);
+			break;
+
+		case 0x15 - 4: // YYYYMMDDhhmmssssZ
+			r = sscanf(iso8601_str, "%4d%2d%2d%2d%2d%2d%*c%*cZ", &ztm.tm_year, &ztm.tm_mon, &ztm.tm_mday, &ztm.tm_hour, &ztm.tm_min, &ztm.tm_sec);
+			break;
+
+		case 0x18 - 4: // YYYY-MM-DDThh:mm:ssZ
+			r = sscanf(iso8601_str, "%4d-%2d-%2dT%2d:%2d:%2dZ", &ztm.tm_year, &ztm.tm_mon, &ztm.tm_mday, &ztm.tm_hour, &ztm.tm_min, &ztm.tm_sec);
+			break;
+
+		case 0x1B - 4: // YYYY-MM-DDThh:mm:ss.ssZ
+			r = sscanf(iso8601_str, "%4d-%2d-%2dT%2d:%2d:%2d*c%*cZ", &ztm.tm_year, &ztm.tm_mon, &ztm.tm_mday, &ztm.tm_hour, &ztm.tm_min, &ztm.tm_sec);
+			break;
+
+		default:
+			r = 0; // Don't return before free()'ing iso8601_str
+	}
+	// Fix year and month in time structure
+	ztm.tm_year -= 1900;
+	ztm.tm_min -= 1;
+	// NOTE: sscanf() returns number of matched input items
+	if (r != 6) {
+		free(iso8601_str);
+		iso8601_str = NULL;
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+#endif
 	free(iso8601_str);
 	iso8601_str = NULL;
 
