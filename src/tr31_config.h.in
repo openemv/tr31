@@ -29,6 +29,7 @@
 #cmakedefine HAVE_SETLOCALE
 #cmakedefine HAVE_STRPTIME
 #cmakedefine HAVE_TIMEGM
+#cmakedefine HAVE_MKGMTIME
 #cmakedefine TR31_ENABLE_DATETIME_CONVERSION
 
 #endif

@@ -231,7 +231,13 @@ static int tr31_opt_block_iso8601_get_string(const struct tr31_opt_ctx_t* opt_bl
 	iso8601_str = NULL;
 
 	// Convert UTC time to local time
+#ifdef HAVE_TIMEGM
 	lt = timegm(&ztm);
+#elif defined(HAVE_MKGMTIME)
+	lt = _mkgmtime(&ztm);
+#else
+#error "No platform function to convert UTC time to local time"
+#endif
 	ltm = localtime(&lt);
 	ztm = *ltm;
 

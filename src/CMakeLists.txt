@@ -41,7 +41,7 @@ if(NOT argp_FOUND)
 endif()
 
 # check for features required for date/time conversion:
-# locale.h, time.h, setlocale(), strptime() and timegm()
+# locale.h, time.h, setlocale(), strptime(), timegm(), _mkgmtime()
 include(CheckIncludeFile)
 include(CheckSymbolExists)
 CHECK_INCLUDE_FILE(locale.h HAVE_LOCALE_H)
@@ -68,9 +68,12 @@ if(NOT HAVE_TIMEGM)
 		set(TIME_H_DEFINITIONS ${TIME_H_DEFINITIONS_TRY})
 	endif()
 endif()
-# Only setlocale() and timegm() are required for date/time conversion.
-# If strptime() is absent, sscanf() will be used instead.
-if(HAVE_SETLOCALE AND HAVE_TIMEGM)
+if(WIN32)
+	check_symbol_exists(_mkgmtime time.h HAVE_MKGMTIME)
+endif()
+# Only setlocale() and either timegm() or _mkgmtime are required for date/time
+# conversion. If strptime() is absent, sscanf() will be used instead.
+if(HAVE_SETLOCALE AND (HAVE_TIMEGM OR HAVE_MKGMTIME))
 	message(STATUS "Enabling date/time conversion")
 	set(TR31_ENABLE_DATETIME_CONVERSION ON)
 else()
