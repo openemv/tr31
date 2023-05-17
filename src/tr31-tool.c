@@ -31,6 +31,7 @@
 #include <argp.h>
 
 #include <ctype.h> // for isalnum and friends
+#include <time.h> // for time, gmtime and strftime
 
 // command line options
 struct tr31_tool_options_t {
@@ -107,8 +108,8 @@ static struct argp_option argp_options[] = {
 	{ "export-opt-block-KS", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KS, "IKSN", 0, "Add optional block KS (Initial Key Serial Number) during TR-31 export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-KP", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KP, NULL, 0, "Add optional block KP (KCV of KBPK) during TR-31 export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-KC", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KC, NULL, 0, "Add optional block KC (KCV of wrapped key) during TR-31 export. May be used with either --export-template or --export-header." },
-	{ "export-opt-block-TC", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TC, "ISO8601", 0, "Add optional block TC (Time of Creation in ISO 8601 UTC format) during TR-31 export. May be used with either --export-template or --export-header." },
-	{ "export-opt-block-TS", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TS, "ISO8601", 0, "Add optional block TS (Time Stamp in ISO 8601 UTC format) during TR-31 export. May be used with either --export-template or --export-header." },
+	{ "export-opt-block-TC", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TC, "ISO8601", 0, "Add optional block TC (Time of Creation in ISO 8601 UTC format) during TR-31 export. May be used with either --export-template or --export-header. Specify \"now\" for current date/time." },
+	{ "export-opt-block-TS", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TS, "ISO8601", 0, "Add optional block TS (Time Stamp in ISO 8601 UTC format) during TR-31 export. May be used with either --export-template or --export-header. Specify \"now\" for current date/time." },
 
 	{ NULL, 0, NULL, 0, "Options for decrypting/encrypting TR-31 key blocks:", 3 },
 	{ "kbpk", TR31_TOOL_OPTION_KBPK, "KEY", 0, "TR-31 key block protection key. Use - to read raw bytes from stdin." },
@@ -773,7 +774,34 @@ static int populate_opt_blocks(const struct tr31_tool_options_t* options, struct
 	}
 
 	if (options->export_opt_block_TC_str) {
-		r = tr31_opt_block_add_TC(tr31_ctx, options->export_opt_block_TC_str);
+		const char* export_opt_block_TC_str = options->export_opt_block_TC_str;
+		char iso8601_now[16]; // YYYYMMDDhhmmssZ + \0
+
+		if (strcmp(options->export_opt_block_TC_str, "now") == 0) {
+			time_t lt; // Calendar/Unix/POSIX time in local time
+			struct tm* ztm; // Time structure in UTC
+			size_t ret;
+
+			lt = time(NULL);
+			if (lt == (time_t)-1) {
+				fprintf(stderr, "Failed to obtain current date/time: %s\n", strerror(errno));
+				return 1;
+			}
+			ztm = gmtime(&lt);
+			if (ztm == NULL) {
+				fprintf(stderr, "Failed to convert current date/time to UTC\n");
+				return 1;
+			}
+			ret = strftime(iso8601_now, sizeof(iso8601_now), "%Y%m%d%H%M%SZ", ztm);
+			if (!ret) {
+				fprintf(stderr, "Failed to convert current date/time to ISO 8601\n");
+				return 1;
+			}
+
+			export_opt_block_TC_str = iso8601_now;
+		}
+
+		r = tr31_opt_block_add_TC(tr31_ctx, export_opt_block_TC_str);
 		if (r) {
 			fprintf(stderr, "Failed to add optional block TC; error %d: %s\n", r, tr31_get_error_string(r));
 			return 1;
@@ -781,7 +809,34 @@ static int populate_opt_blocks(const struct tr31_tool_options_t* options, struct
 	}
 
 	if (options->export_opt_block_TS_str) {
-		r = tr31_opt_block_add_TS(tr31_ctx, options->export_opt_block_TS_str);
+		const char* export_opt_block_TS_str = options->export_opt_block_TS_str;
+		char iso8601_now[16]; // YYYYMMDDhhmmssZ + \0
+
+		if (strcmp(options->export_opt_block_TS_str, "now") == 0) {
+			time_t lt; // Calendar/Unix/POSIX time in local time
+			struct tm* ztm; // Time structure in UTC
+			size_t ret;
+
+			lt = time(NULL);
+			if (lt == (time_t)-1) {
+				fprintf(stderr, "Failed to obtain current date/time: %s\n", strerror(errno));
+				return 1;
+			}
+			ztm = gmtime(&lt);
+			if (ztm == NULL) {
+				fprintf(stderr, "Failed to convert current date/time to UTC\n");
+				return 1;
+			}
+			ret = strftime(iso8601_now, sizeof(iso8601_now), "%Y%m%d%H%M%SZ", ztm);
+			if (!ret) {
+				fprintf(stderr, "Failed to convert current date/time to ISO 8601\n");
+				return 1;
+			}
+
+			export_opt_block_TS_str = iso8601_now;
+		}
+
+		r = tr31_opt_block_add_TS(tr31_ctx, export_opt_block_TS_str);
 		if (r) {
 			fprintf(stderr, "Failed to add optional block TS; error %d: %s\n", r, tr31_get_error_string(r));
 			return 1;
