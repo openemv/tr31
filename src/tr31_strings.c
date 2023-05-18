@@ -39,6 +39,7 @@
 #endif // TR31_ENABLE_DATETIME_CONVERSION
 
 // Helper functions
+static const char* tr31_opt_block_alf_get_string(const struct tr31_opt_ctx_t* opt_block);
 static const char* tr31_opt_block_hmac_get_string(const struct tr31_opt_ctx_t* opt_block);
 static const char* tr31_opt_block_kcv_get_string(const struct tr31_opt_ctx_t* opt_block);
 static int tr31_opt_block_iso8601_get_string(const struct tr31_opt_ctx_t* opt_block, char* str, size_t str_len);
@@ -53,6 +54,10 @@ int tr31_opt_block_data_get_desc(const struct tr31_opt_ctx_t* opt_block, char* s
 	str[0] = 0; // Default to empty string
 
 	switch (opt_block->id) {
+		case TR31_OPT_BLOCK_AL:
+			simple_str = tr31_opt_block_alf_get_string(opt_block);
+			break;
+
 		case TR31_OPT_BLOCK_HM:
 			simple_str = tr31_opt_block_hmac_get_string(opt_block);
 			break;
@@ -73,6 +78,31 @@ int tr31_opt_block_data_get_desc(const struct tr31_opt_ctx_t* opt_block, char* s
 	}
 
 	return 0;
+}
+
+static const char* tr31_opt_block_alf_get_string(const struct tr31_opt_ctx_t* opt_block)
+{
+	const uint8_t* data;
+
+	if (!opt_block ||
+		opt_block->id != TR31_OPT_BLOCK_AL ||
+		opt_block->data_length != 2
+	) {
+		return NULL;
+	}
+	data = opt_block->data;
+
+	if (data[0] != TR31_OPT_BLOCK_AL_VERSION_1) {
+		return "Unknown AFL version";
+	}
+
+	// See ANSI X9.143:2021, 6.3.6.1, table 8
+	switch (data[1]) {
+		case TR31_OPT_BLOCK_AL_AKL_EPHEMERAL: return "Ephemeral";
+		case TR31_OPT_BLOCK_AL_AKL_STATIC: return "Static";
+	}
+
+	return "Unknown";
 }
 
 static const char* tr31_opt_block_hmac_get_string(const struct tr31_opt_ctx_t* opt_block)

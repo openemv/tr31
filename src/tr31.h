@@ -112,6 +112,7 @@ enum tr31_key_version_t {
 #define TR31_KEY_EXPORT_SENSITIVE       ('S') ///< Exportability S: Sensitive; exportable in forms not in accordance with ANSI X9.24; eg ANSI X9.17
 
 // TR-31 optional block IDs (see ANSI X9.143:2021, 6.3.6, table 7)
+#define TR31_OPT_BLOCK_AL               (0x414C) ///< Optional Block AL: Asymmetric Key Life (AKL) attribute
 #define TR31_OPT_BLOCK_CT               (0x4354) ///< Optional Block CT: Public Key Certificate
 #define TR31_OPT_BLOCK_HM               (0x484D) ///< Optional Block HM: Hash algorithm for HMAC
 #define TR31_OPT_BLOCK_IK               (0x494B) ///< Optional Block IK: Initial Key Identifier (IKID) for Initial AES DUKPT Key (see ANSI X9.24-3:2017, 4.17)
@@ -122,6 +123,11 @@ enum tr31_key_version_t {
 #define TR31_OPT_BLOCK_PB               (0x5042) ///< Optional Block PB: Padding Block
 #define TR31_OPT_BLOCK_TC               (0x5443) ///< Optional Block TC: Time of Creation (in ISO 8601 UTC format)
 #define TR31_OPT_BLOCK_TS               (0x5453) ///< Optional Block TS: Time Stamp (in ISO 8601 UTC format)
+
+// TR-31 Asymmetric Key Life (AKL) optional block format (see ANSI X9.143:2021, 6.3.6.1, table 8)
+#define TR31_OPT_BLOCK_AL_VERSION_1     (0x01) ///< Asymmetric Key Life version: 1
+#define TR31_OPT_BLOCK_AL_AKL_EPHEMERAL (0x00) ///< Asymmetric Key Life: Ephemeral
+#define TR31_OPT_BLOCK_AL_AKL_STATIC    (0x01) ///< Asymmetric Key Life: Static/Permanent
 
 // TR-31 HMAC optional block format (see ANSI X9.143:2021, 6.3.6.5, table 13)
 #define TR31_OPT_BLOCK_HM_SHA1          (0x10) ///< HMAC Hash Algorithm 10: SHA-1
@@ -339,6 +345,21 @@ int tr31_opt_block_add(
 	unsigned int id,
 	const void* data,
 	size_t length
+);
+
+/**
+ * Add optional block 'AL' for Asymmetric Key Life (AKL) of wrapped key to
+ * TR-31 context object.
+ *
+ * @note This function requires an initialised TR-31 context object to be provided.
+ *
+ * @param ctx TR-31 context object
+ * @param akl Asymmetric Key Life (AKL)
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
+ */
+int tr31_opt_block_add_AL(
+	struct tr31_ctx_t* ctx,
+	uint8_t akl
 );
 
 /**

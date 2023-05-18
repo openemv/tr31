@@ -616,6 +616,26 @@ int tr31_opt_block_add_KP(struct tr31_ctx_t* ctx)
 	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_KP, NULL, 0);
 }
 
+int tr31_opt_block_add_AL(
+	struct tr31_ctx_t* ctx,
+	uint8_t akl
+)
+{
+	uint8_t buf[2];
+
+	if (akl != TR31_OPT_BLOCK_AL_AKL_EPHEMERAL &&
+		akl != TR31_OPT_BLOCK_AL_AKL_STATIC)
+	{
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+
+	// assume AKL optional block version 1
+	// see ANSI X9.143:2021, 6.3.6.1, table 8
+	buf[0] = TR31_OPT_BLOCK_AL_VERSION_1;
+	buf[1] = akl;
+	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_AL, buf, sizeof(buf));
+}
+
 int tr31_opt_block_add_HM(
 	struct tr31_ctx_t* ctx,
 	uint8_t hash_algorithm
@@ -1384,6 +1404,7 @@ static int tr31_opt_block_parse(
 
 	switch (opt_ctx->id) {
 		// optional blocks to be decoded as hex
+		case TR31_OPT_BLOCK_AL:
 		case TR31_OPT_BLOCK_HM:
 		case TR31_OPT_BLOCK_IK:
 		case TR31_OPT_BLOCK_KC:
@@ -1501,6 +1522,7 @@ static int tr31_opt_block_export(
 
 	switch (opt_ctx->id) {
 		// optional blocks to be encoded as hex
+		case TR31_OPT_BLOCK_AL:
 		case TR31_OPT_BLOCK_HM:
 		case TR31_OPT_BLOCK_IK:
 		case TR31_OPT_BLOCK_KC:
@@ -2220,6 +2242,7 @@ const char* tr31_get_opt_block_id_string(unsigned int opt_block_id)
 {
 	// see ANSI X9.143:2021, 6.3.6, table 7
 	switch (opt_block_id) {
+		case TR31_OPT_BLOCK_AL:         return "Asymmetric Key Life (AKL)";
 		case TR31_OPT_BLOCK_CT:         return "Public Key Certificate";
 		case TR31_OPT_BLOCK_HM:         return "Hash algorithm for HMAC";
 		case TR31_OPT_BLOCK_IK:         return "Initial Key Identifier (IKID)";

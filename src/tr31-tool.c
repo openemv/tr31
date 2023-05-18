@@ -53,6 +53,8 @@ struct tr31_tool_options_t {
 	unsigned int export_format_version;
 	const char* export_template;
 	const char* export_header;
+	bool export_opt_block_AL;
+	uint8_t export_opt_block_AL_akl;
 	size_t export_opt_block_IK_buf_len;
 	uint8_t export_opt_block_IK_buf[10];
 	size_t export_opt_block_KS_buf_len;
@@ -83,6 +85,7 @@ enum tr31_tool_option_keys_t {
 	TR31_TOOL_OPTION_EXPORT_FORMAT_VERSION,
 	TR31_TOOL_OPTION_EXPORT_TEMPLATE,
 	TR31_TOOL_OPTION_EXPORT_HEADER,
+	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_AL,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_IK,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KS,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KC,
@@ -104,6 +107,7 @@ static struct argp_option argp_options[] = {
 	{ "export-format-version", TR31_TOOL_OPTION_EXPORT_FORMAT_VERSION, "A|B|C|D|E", 0, "TR-31 format version to use for export." },
 	{ "export-template", TR31_TOOL_OPTION_EXPORT_TEMPLATE, "KEK|BDK|IK", 0, "TR-31 key block template to use for export." },
 	{ "export-header", TR31_TOOL_OPTION_EXPORT_HEADER, "KEYBLOCK-HEADER", 0, "TR-31 key block header to use for export. Key block length field in the header will be ignored." },
+	{ "export-opt-block-AL", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_AL, "Ephemeral|Static", 0, "Add optional block AL (Asymmetric Key Life) during TR-31 export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-IK", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_IK, "IKID", 0, "Add optional block IK (Initial Key Identifier) during TR-31 export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-KS", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KS, "IKSN", 0, "Add optional block KS (Initial Key Serial Number) during TR-31 export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-KP", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KP, NULL, 0, "Add optional block KP (KCV of KBPK) during TR-31 export. May be used with either --export-template or --export-header." },
@@ -259,6 +263,18 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 				}
 			}
 			options->export_header = arg;
+			return 0;
+
+		case TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_AL:
+			if (strcmp(arg, "Ephemeral") == 0) {
+				options->export_opt_block_AL = true;
+				options->export_opt_block_AL_akl = TR31_OPT_BLOCK_AL_AKL_EPHEMERAL;
+			} else if (strcmp(arg, "Static") == 0) {
+				options->export_opt_block_AL = true;
+				options->export_opt_block_AL_akl = TR31_OPT_BLOCK_AL_AKL_STATIC;
+			} else {
+				argp_error(state, "Export optional block AL must be either \"Ephemeral\" or \"Static\"");
+			}
 			return 0;
 
 		case TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_IK:
@@ -730,6 +746,14 @@ static int populate_tr31_from_header(const struct tr31_tool_options_t* options, 
 static int populate_opt_blocks(const struct tr31_tool_options_t* options, struct tr31_ctx_t* tr31_ctx)
 {
 	int r;
+
+	if (options->export_opt_block_AL) {
+		r = tr31_opt_block_add_AL(tr31_ctx, options->export_opt_block_AL_akl);
+		if (r) {
+			fprintf(stderr, "Failed to add optional block AL; error %d: %s\n", r, tr31_get_error_string(r));
+			return 1;
+		}
+	}
 
 	if (options->export_opt_block_IK_buf_len) {
 		r = tr31_opt_block_add(
