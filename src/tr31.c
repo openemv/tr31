@@ -636,6 +636,44 @@ int tr31_opt_block_add_AL(
 	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_AL, buf, sizeof(buf));
 }
 
+int tr31_opt_block_add_BI(
+	struct tr31_ctx_t* ctx,
+	uint8_t key_type,
+	const void* bdkid,
+	size_t bdkid_len
+)
+{
+	uint8_t buf[6];
+
+	if (!ctx || !bdkid) {
+		return -1;
+	}
+
+	// validate KSI / BDK-ID length according to key type
+	// see ANSI X9.143:2021, 6.3.6.2, table 9
+	switch (key_type) {
+		case TR31_OPT_BLOCK_BI_TDES_DUKPT:
+			if (bdkid_len != 5) {
+				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+			}
+			break;
+
+		case TR31_OPT_BLOCK_BI_AES_DUKPT:
+			if (bdkid_len != 4) {
+				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+			}
+			break;
+
+		default:
+			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+
+	// NOTE: tr31_opt_block_export() will hex encode this optional block
+	buf[0] = key_type;
+	memcpy(&buf[1], bdkid, bdkid_len);
+	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_BI, buf, bdkid_len + 1);
+}
+
 int tr31_opt_block_add_HM(
 	struct tr31_ctx_t* ctx,
 	uint8_t hash_algorithm
@@ -1405,6 +1443,7 @@ static int tr31_opt_block_parse(
 	switch (opt_ctx->id) {
 		// optional blocks to be decoded as hex
 		case TR31_OPT_BLOCK_AL:
+		case TR31_OPT_BLOCK_BI:
 		case TR31_OPT_BLOCK_HM:
 		case TR31_OPT_BLOCK_IK:
 		case TR31_OPT_BLOCK_KC:
@@ -1523,6 +1562,7 @@ static int tr31_opt_block_export(
 	switch (opt_ctx->id) {
 		// optional blocks to be encoded as hex
 		case TR31_OPT_BLOCK_AL:
+		case TR31_OPT_BLOCK_BI:
 		case TR31_OPT_BLOCK_HM:
 		case TR31_OPT_BLOCK_IK:
 		case TR31_OPT_BLOCK_KC:
@@ -2243,6 +2283,7 @@ const char* tr31_get_opt_block_id_string(unsigned int opt_block_id)
 	// see ANSI X9.143:2021, 6.3.6, table 7
 	switch (opt_block_id) {
 		case TR31_OPT_BLOCK_AL:         return "Asymmetric Key Life (AKL)";
+		case TR31_OPT_BLOCK_BI:         return "Base Derivation Key (BDK) Identifier";
 		case TR31_OPT_BLOCK_CT:         return "Public Key Certificate";
 		case TR31_OPT_BLOCK_HM:         return "Hash algorithm for HMAC";
 		case TR31_OPT_BLOCK_IK:         return "Initial Key Identifier (IKID)";

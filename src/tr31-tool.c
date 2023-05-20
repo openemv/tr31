@@ -55,6 +55,8 @@ struct tr31_tool_options_t {
 	const char* export_header;
 	bool export_opt_block_AL;
 	uint8_t export_opt_block_AL_akl;
+	size_t export_opt_block_BI_buf_len;
+	uint8_t export_opt_block_BI_buf[5];
 	size_t export_opt_block_IK_buf_len;
 	uint8_t export_opt_block_IK_buf[10];
 	size_t export_opt_block_KS_buf_len;
@@ -86,6 +88,7 @@ enum tr31_tool_option_keys_t {
 	TR31_TOOL_OPTION_EXPORT_TEMPLATE,
 	TR31_TOOL_OPTION_EXPORT_HEADER,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_AL,
+	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_BI,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_IK,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KS,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KC,
@@ -108,6 +111,7 @@ static struct argp_option argp_options[] = {
 	{ "export-template", TR31_TOOL_OPTION_EXPORT_TEMPLATE, "KEK|BDK|IK", 0, "TR-31 key block template to use for export." },
 	{ "export-header", TR31_TOOL_OPTION_EXPORT_HEADER, "KEYBLOCK-HEADER", 0, "TR-31 key block header to use for export. Key block length field in the header will be ignored." },
 	{ "export-opt-block-AL", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_AL, "Ephemeral|Static", 0, "Add optional block AL (Asymmetric Key Life) during TR-31 export. May be used with either --export-template or --export-header." },
+	{ "export-opt-block-BI", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_BI, "BDK-ID", 0, "Add optional block BI (Base Derivation Key Identifier) during TR-31 export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-IK", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_IK, "IKID", 0, "Add optional block IK (Initial Key Identifier) during TR-31 export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-KS", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KS, "IKSN", 0, "Add optional block KS (Initial Key Serial Number) during TR-31 export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-KP", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KP, NULL, 0, "Add optional block KP (KCV of KBPK) during TR-31 export. May be used with either --export-template or --export-header." },
@@ -276,6 +280,25 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 				argp_error(state, "Export optional block AL must be either \"Ephemeral\" or \"Static\"");
 			}
 			return 0;
+
+		case TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_BI: {
+			size_t arg_len = strlen(arg);
+			if (arg_len % 2 != 0) {
+				argp_error(state, "Export optional block BI must have even number of digits");
+			}
+			if ((arg_len != 10 && arg_len != 8) ||
+				arg_len / 2 > sizeof(options->export_opt_block_BI_buf)
+			) {
+				argp_error(state, "Export optional block BI must be either 10 digits (thus 5 bytes) for Key set ID (KSI) or 8 digits (thus 4 bytes) for Base Derivation Key ID (BDK ID)");
+			}
+			options->export_opt_block_BI_buf_len = arg_len / 2;
+
+			r = parse_hex(arg, options->export_opt_block_BI_buf, options->export_opt_block_BI_buf_len);
+			if (r) {
+				argp_error(state, "Export optional block BI must consist of hex digits");
+			}
+			return 0;
+		}
 
 		case TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_IK:
 			if (strlen(arg) < 16) {
@@ -583,9 +606,10 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 			);
 
 			switch (tr31_ctx.opt_blocks[i].id) {
+				case TR31_OPT_BLOCK_BI:
 				case TR31_OPT_BLOCK_KC:
 				case TR31_OPT_BLOCK_KP:
-					// for optional blocks involving KCVs, skip the first byte (KCV algorithm)
+					// for some optional blocks, skip the first byte
 					// the first byte will be decoded by tr31_get_opt_block_data_string()
 					if (tr31_ctx.opt_blocks[i].data_length > 1) {
 						print_hex(tr31_ctx.opt_blocks[i].data + 1, tr31_ctx.opt_blocks[i].data_length - 1);
@@ -751,6 +775,42 @@ static int populate_opt_blocks(const struct tr31_tool_options_t* options, struct
 		r = tr31_opt_block_add_AL(tr31_ctx, options->export_opt_block_AL_akl);
 		if (r) {
 			fprintf(stderr, "Failed to add optional block AL; error %d: %s\n", r, tr31_get_error_string(r));
+			return 1;
+		}
+	}
+
+	if (options->export_opt_block_BI_buf_len) {
+		uint8_t BI_key_type;
+		switch (tr31_ctx->key.algorithm) {
+			case TR31_KEY_ALGORITHM_TDES:
+				if (options->export_opt_block_BI_buf_len != 5) {
+					fprintf(stderr, "Export optional block BI must be 10 digits (thus 5 bytes) for Key set ID (KSI) when the wrapped key algorithm is TDES\n");
+					return 1;
+				}
+				BI_key_type = TR31_OPT_BLOCK_BI_TDES_DUKPT;
+				break;
+
+			case TR31_KEY_ALGORITHM_AES:
+				if (options->export_opt_block_BI_buf_len != 4) {
+					fprintf(stderr, "Export optional block BI must be 8 digits (thus 4 bytes) for Base Derivation Key ID (BDK ID) when the wrapped key algorithm is AES\n");
+					return 1;
+				}
+				BI_key_type = TR31_OPT_BLOCK_BI_AES_DUKPT;
+				break;
+
+			default:
+				fprintf(stderr, "Export optional block BI is only allowed for TDES or AES wrapped key\n");
+				return 1;
+		}
+
+		r = tr31_opt_block_add_BI(
+			tr31_ctx,
+			BI_key_type,
+			options->export_opt_block_BI_buf,
+			options->export_opt_block_BI_buf_len
+		);
+		if (r) {
+			fprintf(stderr, "Failed to add optional block BI; error %d: %s\n", r, tr31_get_error_string(r));
 			return 1;
 		}
 	}

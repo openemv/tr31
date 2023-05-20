@@ -432,4 +432,35 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 		PROPERTIES
 			PASS_REGULAR_EXPRESSION ${tr31_tool_test28_regex}
 	)
+
+	add_test(NAME tr31_tool_test29
+		COMMAND tr31-tool --kbpk 88E1AB2A2E3DD38C1FA039A536500CC8A87AB9D62DC92C01058FA79F44657DE6 --export 3F419E1CB7079442AA37474C2EFBF8B8 --export-key-algorithm AES --export-format-version D --export-template BDK --export-opt-block-BI 08793E25 --export-opt-block-KC --export-opt-block-KP
+	)
+	set_tests_properties(tr31_tool_test29
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^D0176B0AX00E0400BI0E0108793E25KC100108793E25ABKP10012331550BC9PB12"
+	)
+
+	add_test(NAME tr31_tool_test30
+		COMMAND tr31-tool --kbpk B8ED59E0A279A295E9F5ED7944FD06B9 --import B0120B0TX00E0300BI100008793E2500KC0C00F4B08DKP0C002F0EEA9256AC04302C5343DB396AEA37A8BB44BAF9F1AFE162D446AC33CEBDC3C56578
+	)
+	string(CONCAT tr31_tool_test30_regex
+		"^Key block format version: B[\r\n]"
+		"Key block length: 120 bytes[\r\n]"
+		"Key usage: \\[B0\\] Base Derivation Key \\(BDK\\)[\r\n]"
+		"Key algorithm: \\[T\\] TDES[\r\n]"
+		"Key mode of use: \\[X\\] Key Derivation[\r\n]"
+		"Key version: Unused[\r\n]"
+		"Key exportability: \\[E\\] Exportable in a trusted key block only[\r\n]"
+		"Optional blocks \\[3\\]:[\r\n]"
+		"\t\\[BI\\] Base Derivation Key \\(BDK\\) Identifier: 08793E2500 \\(Key Set ID\\)[\r\n]"
+		"\t\\[KC\\] Key Check Value \\(KCV\\) of wrapped key: F4B08D \\(Legacy KCV algorithm\\)[\r\n]"
+		"\t\\[KP\\] Key Check Value \\(KCV\\) of KBPK: 2F0EEA \\(Legacy KCV algorithm\\)[\r\n]"
+		"Key length: 16[\r\n]"
+		"Key value: EDB380DD340BC2620247D445F5B8D678 \\(KCV: F4B08D\\)[\r\n]"
+	)
+	set_tests_properties(tr31_tool_test30
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION ${tr31_tool_test30_regex}
+	)
 endif()

@@ -40,6 +40,7 @@
 
 // Helper functions
 static const char* tr31_opt_block_alf_get_string(const struct tr31_opt_ctx_t* opt_block);
+static const char* tr31_opt_block_BI_get_string(const struct tr31_opt_ctx_t* opt_block);
 static const char* tr31_opt_block_hmac_get_string(const struct tr31_opt_ctx_t* opt_block);
 static const char* tr31_opt_block_kcv_get_string(const struct tr31_opt_ctx_t* opt_block);
 static int tr31_opt_block_iso8601_get_string(const struct tr31_opt_ctx_t* opt_block, char* str, size_t str_len);
@@ -56,6 +57,10 @@ int tr31_opt_block_data_get_desc(const struct tr31_opt_ctx_t* opt_block, char* s
 	switch (opt_block->id) {
 		case TR31_OPT_BLOCK_AL:
 			simple_str = tr31_opt_block_alf_get_string(opt_block);
+			break;
+
+		case TR31_OPT_BLOCK_BI:
+			simple_str = tr31_opt_block_BI_get_string(opt_block);
 			break;
 
 		case TR31_OPT_BLOCK_HM:
@@ -100,6 +105,27 @@ static const char* tr31_opt_block_alf_get_string(const struct tr31_opt_ctx_t* op
 	switch (data[1]) {
 		case TR31_OPT_BLOCK_AL_AKL_EPHEMERAL: return "Ephemeral";
 		case TR31_OPT_BLOCK_AL_AKL_STATIC: return "Static";
+	}
+
+	return "Unknown";
+}
+
+static const char* tr31_opt_block_BI_get_string(const struct tr31_opt_ctx_t* opt_block)
+{
+	const uint8_t* data;
+
+	if (!opt_block ||
+		opt_block->id != TR31_OPT_BLOCK_BI ||
+		(opt_block->data_length != 6 && opt_block->data_length != 5)
+	) {
+		return NULL;
+	}
+	data = opt_block->data;
+
+	// See ANSI X9.143:2021, 6.3.6.2, table 9
+	switch (data[0]) {
+		case TR31_OPT_BLOCK_BI_TDES_DUKPT: return "Key Set ID";
+		case TR31_OPT_BLOCK_BI_AES_DUKPT: return "Base Derivation Key ID";
 	}
 
 	return "Unknown";
