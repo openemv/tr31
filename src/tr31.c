@@ -682,6 +682,25 @@ int tr31_opt_block_add_HM(
 	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_HM, &hash_algorithm, 1);
 }
 
+int tr31_opt_block_add_IK(
+	struct tr31_ctx_t* ctx,
+	const void* ikid,
+	size_t ikid_len
+)
+{
+	if (!ctx || !ikid) {
+		return -1;
+	}
+
+	// IKID must be 8 bytes (thus 16 hex digits)
+	// see ANSI X9.143:2021, 6.3.6.6, table 14
+	if (ikid_len != 8) {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+
+	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_IK, ikid, ikid_len);
+}
+
 int tr31_opt_block_add_TC(
 	struct tr31_ctx_t* ctx,
 	const char* tc_str

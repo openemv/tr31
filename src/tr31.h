@@ -426,6 +426,23 @@ int tr31_opt_block_add_HM(
 );
 
 /**
+ * Add optional block 'IK' for Initial Key Identifier (IKID) of
+ * Initial AES DUKPT Key to TR-31 context object.
+ *
+ * @note This function requires an initialised TR-31 context object to be provided.
+ *
+ * @param ctx TR-31 context object
+ * @param ikid Initial Key Identifier (IKID) for Initial AES DUKPT Key
+ * @param ikid_len of @p ikid in bytes. Must be 8 bytes.
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
+ */
+int tr31_opt_block_add_IK(
+	struct tr31_ctx_t* ctx,
+	const void* ikid,
+	size_t ikid_len
+);
+
+/**
  * Add optional block 'TC' for time of creation of the wrapped key to TR-31
  * context object
  *

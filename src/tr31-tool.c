@@ -58,7 +58,7 @@ struct tr31_tool_options_t {
 	size_t export_opt_block_BI_buf_len;
 	uint8_t export_opt_block_BI_buf[5];
 	size_t export_opt_block_IK_buf_len;
-	uint8_t export_opt_block_IK_buf[10];
+	uint8_t export_opt_block_IK_buf[8];
 	size_t export_opt_block_KS_buf_len;
 	uint8_t export_opt_block_KS_buf[24];
 	bool export_opt_block_KC;
@@ -300,20 +300,24 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			return 0;
 		}
 
-		case TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_IK:
-			if (strlen(arg) < 16) {
-				argp_error(state, "Export optional block IK must be at least 16 digits (thus 8 bytes)");
-			}
-			if (strlen(arg) % 2 != 0) {
+		case TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_IK: {
+			size_t arg_len = strlen(arg);
+			if (arg_len % 2 != 0) {
 				argp_error(state, "Export optional block IK must have even number of digits");
 			}
-			options->export_opt_block_IK_buf_len = strlen(arg) / 2;
+			if (arg_len != 16 ||
+				arg_len / 2 > sizeof(options->export_opt_block_IK_buf)
+			) {
+				argp_error(state, "Export optional block IK must be 16 digits (thus 8 bytes)");
+			}
+			options->export_opt_block_IK_buf_len = arg_len / 2;
 
 			r = parse_hex(arg, options->export_opt_block_IK_buf, options->export_opt_block_IK_buf_len);
 			if (r) {
 				argp_error(state, "Export optional block IK must consist of hex digits");
 			}
 			return 0;
+		}
 
 		case TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KS:
 			if (strlen(arg) < 16) {
@@ -816,9 +820,13 @@ static int populate_opt_blocks(const struct tr31_tool_options_t* options, struct
 	}
 
 	if (options->export_opt_block_IK_buf_len) {
-		r = tr31_opt_block_add(
+		if (tr31_ctx->key.algorithm != TR31_KEY_ALGORITHM_AES) {
+			fprintf(stderr, "Export optional block IK is only allowed for AES DUKPT\n");
+			return 1;
+		}
+
+		r = tr31_opt_block_add_IK(
 			tr31_ctx,
-			TR31_OPT_BLOCK_IK,
 			options->export_opt_block_IK_buf,
 			options->export_opt_block_IK_buf_len
 		);
