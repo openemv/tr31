@@ -59,10 +59,10 @@ struct tr31_tool_options_t {
 	uint8_t export_opt_block_BI_buf[5];
 	size_t export_opt_block_IK_buf_len;
 	uint8_t export_opt_block_IK_buf[8];
-	size_t export_opt_block_KS_buf_len;
-	uint8_t export_opt_block_KS_buf[24];
 	bool export_opt_block_KC;
 	bool export_opt_block_KP;
+	size_t export_opt_block_KS_buf_len;
+	uint8_t export_opt_block_KS_buf[24];
 	const char* export_opt_block_TC_str;
 	const char* export_opt_block_TS_str;
 
@@ -90,9 +90,9 @@ enum tr31_tool_option_keys_t {
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_AL,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_BI,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_IK,
-	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KS,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KC,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KP,
+	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KS,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TC,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TS,
 	TR31_TOOL_OPTION_KBPK,
@@ -113,9 +113,9 @@ static struct argp_option argp_options[] = {
 	{ "export-opt-block-AL", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_AL, "Ephemeral|Static", 0, "Add optional block AL (Asymmetric Key Life) during TR-31 export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-BI", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_BI, "BDK-ID", 0, "Add optional block BI (Base Derivation Key Identifier) during TR-31 export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-IK", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_IK, "IKID", 0, "Add optional block IK (Initial Key Identifier) during TR-31 export. May be used with either --export-template or --export-header." },
-	{ "export-opt-block-KS", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KS, "IKSN", 0, "Add optional block KS (Initial Key Serial Number) during TR-31 export. May be used with either --export-template or --export-header." },
-	{ "export-opt-block-KP", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KP, NULL, 0, "Add optional block KP (KCV of KBPK) during TR-31 export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-KC", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KC, NULL, 0, "Add optional block KC (KCV of wrapped key) during TR-31 export. May be used with either --export-template or --export-header." },
+	{ "export-opt-block-KP", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KP, NULL, 0, "Add optional block KP (KCV of KBPK) during TR-31 export. May be used with either --export-template or --export-header." },
+	{ "export-opt-block-KS", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KS, "IKSN", 0, "Add optional block KS (Initial Key Serial Number) during TR-31 export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-TC", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TC, "ISO8601", 0, "Add optional block TC (Time of Creation in ISO 8601 UTC format) during TR-31 export. May be used with either --export-template or --export-header. Specify \"now\" for current date/time." },
 	{ "export-opt-block-TS", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TS, "ISO8601", 0, "Add optional block TS (Time Stamp in ISO 8601 UTC format) during TR-31 export. May be used with either --export-template or --export-header. Specify \"now\" for current date/time." },
 
@@ -319,6 +319,14 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			return 0;
 		}
 
+		case TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KC:
+			options->export_opt_block_KC = true;
+			return 0;
+
+		case TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KP:
+			options->export_opt_block_KP = true;
+			return 0;
+
 		case TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KS:
 			if (strlen(arg) < 16) {
 				argp_error(state, "Export optional block KS must be at least 16 digits (thus 8 bytes)");
@@ -332,14 +340,6 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			if (r) {
 				argp_error(state, "Export optional block KS must consist of hex digits");
 			}
-			return 0;
-
-		case TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KC:
-			options->export_opt_block_KC = true;
-			return 0;
-
-		case TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KP:
-			options->export_opt_block_KP = true;
 			return 0;
 
 		case TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TC:
@@ -836,19 +836,6 @@ static int populate_opt_blocks(const struct tr31_tool_options_t* options, struct
 		}
 	}
 
-	if (options->export_opt_block_KS_buf_len) {
-		r = tr31_opt_block_add(
-			tr31_ctx,
-			TR31_OPT_BLOCK_KS,
-			options->export_opt_block_KS_buf,
-			options->export_opt_block_KS_buf_len
-		);
-		if (r) {
-			fprintf(stderr, "Failed to add optional block KS; error %d: %s\n", r, tr31_get_error_string(r));
-			return 1;
-		}
-	}
-
 	if (options->export_opt_block_KC) {
 		r = tr31_opt_block_add_KC(tr31_ctx);
 		if (r) {
@@ -861,6 +848,19 @@ static int populate_opt_blocks(const struct tr31_tool_options_t* options, struct
 		r = tr31_opt_block_add_KP(tr31_ctx);
 		if (r) {
 			fprintf(stderr, "Failed to add optional block KP; error %d: %s\n", r, tr31_get_error_string(r));
+			return 1;
+		}
+	}
+
+	if (options->export_opt_block_KS_buf_len) {
+		r = tr31_opt_block_add(
+			tr31_ctx,
+			TR31_OPT_BLOCK_KS,
+			options->export_opt_block_KS_buf,
+			options->export_opt_block_KS_buf_len
+		);
+		if (r) {
+			fprintf(stderr, "Failed to add optional block KS; error %d: %s\n", r, tr31_get_error_string(r));
 			return 1;
 		}
 	}

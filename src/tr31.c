@@ -604,18 +604,6 @@ int tr31_opt_block_add(
 	return 0;
 }
 
-int tr31_opt_block_add_KC(struct tr31_ctx_t* ctx)
-{
-	// add empty KC optional block to be finalised by tr31_export()
-	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_KC, NULL, 0);
-}
-
-int tr31_opt_block_add_KP(struct tr31_ctx_t* ctx)
-{
-	// add empty KP optional block to be finalised by tr31_export()
-	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_KP, NULL, 0);
-}
-
 int tr31_opt_block_add_AL(
 	struct tr31_ctx_t* ctx,
 	uint8_t akl
@@ -699,6 +687,18 @@ int tr31_opt_block_add_IK(
 	}
 
 	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_IK, ikid, ikid_len);
+}
+
+int tr31_opt_block_add_KC(struct tr31_ctx_t* ctx)
+{
+	// add empty KC optional block to be finalised by tr31_export()
+	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_KC, NULL, 0);
+}
+
+int tr31_opt_block_add_KP(struct tr31_ctx_t* ctx)
+{
+	// add empty KP optional block to be finalised by tr31_export()
+	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_KP, NULL, 0);
 }
 
 int tr31_opt_block_add_TC(

@@ -387,30 +387,6 @@ int tr31_opt_block_add_BI(
 );
 
 /**
- * Add optional block 'KC' for Key Check Value (KCV) of wrapped key to TR-31
- * context object. This function will not compute the KCV but cause it to be
- * computed by @ref tr31_export().
- *
- * @note This function requires an initialised TR-31 context object to be provided.
- *
- * @param ctx TR-31 context object
- * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
- */
-int tr31_opt_block_add_KC(struct tr31_ctx_t* ctx);
-
-/**
- * Add optional block 'KP' for Key Check Value (KCV) of Key Block Protection
- * Key (KBPK) to TR-31 context object. This function will not compute the KCV
- * but cause it to be computed by @ref tr31_export().
- *
- * @note This function requires an initialised TR-31 context object to be provided.
- *
- * @param ctx TR-31 context object
- * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
- */
-int tr31_opt_block_add_KP(struct tr31_ctx_t* ctx);
-
-/**
  * Add optional block 'HM' for HMAC hash algorithm of wrapped key to TR-31
  * context object.
  *
@@ -441,6 +417,30 @@ int tr31_opt_block_add_IK(
 	const void* ikid,
 	size_t ikid_len
 );
+
+/**
+ * Add optional block 'KC' for Key Check Value (KCV) of wrapped key to TR-31
+ * context object. This function will not compute the KCV but cause it to be
+ * computed by @ref tr31_export().
+ *
+ * @note This function requires an initialised TR-31 context object to be provided.
+ *
+ * @param ctx TR-31 context object
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
+ */
+int tr31_opt_block_add_KC(struct tr31_ctx_t* ctx);
+
+/**
+ * Add optional block 'KP' for Key Check Value (KCV) of Key Block Protection
+ * Key (KBPK) to TR-31 context object. This function will not compute the KCV
+ * but cause it to be computed by @ref tr31_export().
+ *
+ * @note This function requires an initialised TR-31 context object to be provided.
+ *
+ * @param ctx TR-31 context object
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
+ */
+int tr31_opt_block_add_KP(struct tr31_ctx_t* ctx);
 
 /**
  * Add optional block 'TC' for time of creation of the wrapped key to TR-31
