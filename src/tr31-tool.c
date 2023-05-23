@@ -62,7 +62,7 @@ struct tr31_tool_options_t {
 	bool export_opt_block_KC;
 	bool export_opt_block_KP;
 	size_t export_opt_block_KS_buf_len;
-	uint8_t export_opt_block_KS_buf[24];
+	uint8_t export_opt_block_KS_buf[10];
 	const char* export_opt_block_TC_str;
 	const char* export_opt_block_TS_str;
 
@@ -327,20 +327,24 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			options->export_opt_block_KP = true;
 			return 0;
 
-		case TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KS:
-			if (strlen(arg) < 16) {
-				argp_error(state, "Export optional block KS must be at least 16 digits (thus 8 bytes)");
-			}
-			if (strlen(arg) % 2 != 0) {
+		case TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KS: {
+			size_t arg_len = strlen(arg);
+			if (arg_len % 2 != 0) {
 				argp_error(state, "Export optional block KS must have even number of digits");
 			}
-			options->export_opt_block_KS_buf_len = strlen(arg) / 2;
+			if ((arg_len != 20 && arg_len != 16) ||
+				arg_len / 2 > sizeof(options->export_opt_block_KS_buf)
+			) {
+				argp_error(state, "Export optional block KS must be either 20 digits (thus 10 bytes, according to ANSI X9.143) or 16 digits (thus 8 bytes, for legacy implementations)");
+			}
+			options->export_opt_block_KS_buf_len = arg_len / 2;
 
 			r = parse_hex(arg, options->export_opt_block_KS_buf, options->export_opt_block_KS_buf_len);
 			if (r) {
 				argp_error(state, "Export optional block KS must consist of hex digits");
 			}
 			return 0;
+		}
 
 		case TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TC:
 			options->export_opt_block_TC_str = arg;
@@ -853,9 +857,13 @@ static int populate_opt_blocks(const struct tr31_tool_options_t* options, struct
 	}
 
 	if (options->export_opt_block_KS_buf_len) {
-		r = tr31_opt_block_add(
+		if (tr31_ctx->key.algorithm != TR31_KEY_ALGORITHM_TDES) {
+			fprintf(stderr, "Export optional block KS is only allowed for TDES DUKPT\n");
+			return 1;
+		}
+
+		r = tr31_opt_block_add_KS(
 			tr31_ctx,
-			TR31_OPT_BLOCK_KS,
 			options->export_opt_block_KS_buf,
 			options->export_opt_block_KS_buf_len
 		);

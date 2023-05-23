@@ -443,6 +443,23 @@ int tr31_opt_block_add_KC(struct tr31_ctx_t* ctx);
 int tr31_opt_block_add_KP(struct tr31_ctx_t* ctx);
 
 /**
+ * Add optional block 'KS' for Initial Key Serial Number (KSN) of
+ * Initial TDES DUKPT key to TR-31 context object.
+ *
+ * @note This function requires an initialised TR-31 context object to be provided.
+ *
+ * @param ctx TR-31 context object
+ * @param iksn Initial Key Serial Number (IKSN) for Initial TDES DUKPT Key
+ * @param iksn_len of @p iksn in bytes. Must be 10 bytes (according to ANSI X9.143:2021, 6.3.6.8, table 16) or 8 bytes (for legacy implementations).
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
+ */
+int tr31_opt_block_add_KS(
+	struct tr31_ctx_t* ctx,
+	const void* iksn,
+	size_t iksn_len
+);
+
+/**
  * Add optional block 'TC' for time of creation of the wrapped key to TR-31
  * context object
  *

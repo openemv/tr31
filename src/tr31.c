@@ -701,6 +701,27 @@ int tr31_opt_block_add_KP(struct tr31_ctx_t* ctx)
 	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_KP, NULL, 0);
 }
 
+int tr31_opt_block_add_KS(
+	struct tr31_ctx_t* ctx,
+	const void* iksn,
+	size_t iksn_len
+)
+{
+	if (!ctx || !iksn) {
+		return -1;
+	}
+
+	// IKSN must be 10 bytes (thus 20 hex digits)
+	// see ANSI X9.143:2021, 6.3.6.8, table 16
+	// NOTE: this implementation also allows 8 bytes (thus 16 hex digits) for
+	// compatibility with other legacy implementations
+	if (iksn_len != 10 && iksn_len != 8) {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+
+	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_KS, iksn, iksn_len);
+}
+
 int tr31_opt_block_add_TC(
 	struct tr31_ctx_t* ctx,
 	const char* tc_str
