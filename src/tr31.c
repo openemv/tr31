@@ -722,6 +722,30 @@ int tr31_opt_block_add_KS(
 	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_KS, iksn, iksn_len);
 }
 
+int tr31_opt_block_add_KV(
+	struct tr31_ctx_t* ctx,
+	const char* version_id,
+	const char* other
+)
+{
+	uint8_t buf[4];
+
+	if (!ctx) {
+		return -1;
+	}
+
+	// see ANSI X9.143:2021, 6.3.6.9, table 17
+	memset(buf, 0x30, sizeof(buf)); // default value
+	if (version_id) {
+		memcpy(buf, version_id, 2);
+	}
+	if (other) {
+		memcpy(buf + 2, other, 2);
+	}
+
+	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_KV, buf, sizeof(buf));
+}
+
 int tr31_opt_block_add_TC(
 	struct tr31_ctx_t* ctx,
 	const char* tc_str

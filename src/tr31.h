@@ -121,7 +121,7 @@ enum tr31_key_version_t {
 #define TR31_OPT_BLOCK_KC               (0x4B43) ///< Optional Block KC: Key Check Value (KCV) of wrapped key (see ANSI X9.24-1:2017, Annex A)
 #define TR31_OPT_BLOCK_KP               (0x4B50) ///< Optional Block KP: Key Check Value (KCV) of KBPK (see ANSI X9.24-1:2017, Annex A)
 #define TR31_OPT_BLOCK_KS               (0x4B53) ///< Optional Block KS: Initial Key Serial Number (KSN) as used in TDEA DUKPT (see ANSI X9.24-3:2017, C.2.3)
-#define TR31_OPT_BLOCK_KV               (0x4B56) ///< Optional Block KV: Key Block Values
+#define TR31_OPT_BLOCK_KV               (0x4B56) ///< Optional Block KV: Key Block Values (deprecated)
 #define TR31_OPT_BLOCK_PB               (0x5042) ///< Optional Block PB: Padding Block
 #define TR31_OPT_BLOCK_TC               (0x5443) ///< Optional Block TC: Time of Creation (in ISO 8601 UTC format)
 #define TR31_OPT_BLOCK_TS               (0x5453) ///< Optional Block TS: Time Stamp (in ISO 8601 UTC format)
@@ -459,6 +459,23 @@ int tr31_opt_block_add_KS(
 	const void* iksn,
 	size_t iksn_len
 );
+
+/**
+ * Add optional block 'KV' for Key Block Values to TR-31 context object.
+ *
+ * @note This function requires an initialised TR-31 context object to be provided.
+ * @deprecated Optional block 'KV' is deprecated by ANSI X9.143.
+ *
+ * @param ctx TR-31 context object
+ * @param version_id Version ID field. Must contain two printable ASCII characters or NULL for default value.
+ * @param other Other reserved field. Must contain two printable ASCII characters or NULL for default value.
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
+ */
+int tr31_opt_block_add_KV(
+	struct tr31_ctx_t* ctx,
+	const char* version_id,
+	const char* other
+) __attribute__((deprecated));
 
 /**
  * Add optional block 'TC' for time of creation of the wrapped key to TR-31

@@ -624,6 +624,7 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 					}
 					break;
 
+				case TR31_OPT_BLOCK_KV:
 				case TR31_OPT_BLOCK_PB:
 				case TR31_OPT_BLOCK_TC:
 				case TR31_OPT_BLOCK_TS:
