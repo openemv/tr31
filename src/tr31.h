@@ -115,6 +115,7 @@ enum tr31_key_version_t {
 #define TR31_OPT_BLOCK_AL               (0x414C) ///< Optional Block AL: Asymmetric Key Life (AKL) attribute
 #define TR31_OPT_BLOCK_BI               (0x4249) ///< Optional Block BI: Base Derivation Key Identifier (BDK) for DUKPT (see ANSI X9.24-3:2017, 4.7)
 #define TR31_OPT_BLOCK_CT               (0x4354) ///< Optional Block CT: Public Key Certificate
+#define TR31_OPT_BLOCK_FL               (0x464C) ///< Optional Block FL: Flags
 #define TR31_OPT_BLOCK_HM               (0x484D) ///< Optional Block HM: Hash algorithm for HMAC
 #define TR31_OPT_BLOCK_IK               (0x494B) ///< Optional Block IK: Initial Key Identifier (IKID) for Initial AES DUKPT Key (see ANSI X9.24-3:2017, 4.17)
 #define TR31_OPT_BLOCK_KC               (0x4B43) ///< Optional Block KC: Key Check Value (KCV) of wrapped key (see ANSI X9.24-1:2017, Annex A)

@@ -2325,6 +2325,7 @@ const char* tr31_get_opt_block_id_string(unsigned int opt_block_id)
 		case TR31_OPT_BLOCK_AL:         return "Asymmetric Key Life (AKL)";
 		case TR31_OPT_BLOCK_BI:         return "Base Derivation Key (BDK) Identifier";
 		case TR31_OPT_BLOCK_CT:         return "Public Key Certificate";
+		case TR31_OPT_BLOCK_FL:         return "Flags";
 		case TR31_OPT_BLOCK_HM:         return "Hash algorithm for HMAC";
 		case TR31_OPT_BLOCK_IK:         return "Initial Key Identifier (IKID)";
 		case TR31_OPT_BLOCK_KC:         return "Key Check Value (KCV) of wrapped key";
