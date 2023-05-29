@@ -63,6 +63,7 @@ struct tr31_tool_options_t {
 	bool export_opt_block_KP;
 	size_t export_opt_block_KS_buf_len;
 	uint8_t export_opt_block_KS_buf[10];
+	const char* export_opt_block_LB_str;
 	const char* export_opt_block_TC_str;
 	const char* export_opt_block_TS_str;
 
@@ -93,6 +94,7 @@ enum tr31_tool_option_keys_t {
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KC,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KP,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KS,
+	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_LB,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TC,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TS,
 	TR31_TOOL_OPTION_KBPK,
@@ -116,6 +118,7 @@ static struct argp_option argp_options[] = {
 	{ "export-opt-block-KC", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KC, NULL, 0, "Add optional block KC (KCV of wrapped key) during TR-31 export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-KP", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KP, NULL, 0, "Add optional block KP (KCV of KBPK) during TR-31 export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-KS", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KS, "IKSN", 0, "Add optional block KS (Initial Key Serial Number) during TR-31 export. May be used with either --export-template or --export-header." },
+	{ "export-opt-block-LB", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_LB, "ASCII", 0, "Add optinal block LB (Label) during TR-31 export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-TC", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TC, "ISO8601", 0, "Add optional block TC (Time of Creation in ISO 8601 UTC format) during TR-31 export. May be used with either --export-template or --export-header. Specify \"now\" for current date/time." },
 	{ "export-opt-block-TS", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TS, "ISO8601", 0, "Add optional block TS (Time Stamp in ISO 8601 UTC format) during TR-31 export. May be used with either --export-template or --export-header. Specify \"now\" for current date/time." },
 
@@ -345,6 +348,10 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			}
 			return 0;
 		}
+
+		case TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_LB:
+			options->export_opt_block_LB_str = arg;
+			return 0;
 
 		case TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TC:
 			options->export_opt_block_TC_str = arg;
@@ -625,6 +632,7 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 					break;
 
 				case TR31_OPT_BLOCK_KV:
+				case TR31_OPT_BLOCK_LB:
 				case TR31_OPT_BLOCK_PB:
 				case TR31_OPT_BLOCK_TC:
 				case TR31_OPT_BLOCK_TS:
@@ -870,6 +878,14 @@ static int populate_opt_blocks(const struct tr31_tool_options_t* options, struct
 		);
 		if (r) {
 			fprintf(stderr, "Failed to add optional block KS; error %d: %s\n", r, tr31_get_error_string(r));
+			return 1;
+		}
+	}
+
+	if (options->export_opt_block_LB_str) {
+		r = tr31_opt_block_add_LB(tr31_ctx, options->export_opt_block_LB_str);
+		if (r) {
+			fprintf(stderr, "Failed to add optional block LB; error %d: %s\n", r, tr31_get_error_string(r));
 			return 1;
 		}
 	}

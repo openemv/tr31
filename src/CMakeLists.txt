@@ -463,4 +463,33 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 		PROPERTIES
 			PASS_REGULAR_EXPRESSION ${tr31_tool_test30_regex}
 	)
+
+	add_test(NAME tr31_tool_test31
+		COMMAND tr31-tool --kbpk 88E1AB2A2E3DD38C1FA039A536500CC8A87AB9D62DC92C01058FA79F44657DE6 --export 3F419E1CB7079442AA37474C2EFBF8B8 --export-header D0000B2AX00E0000 --export-opt-block-LB "My Great Key"
+	)
+	set_tests_properties(tr31_tool_test31
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^D0128B2AX00E0100LB10My Great Key"
+	)
+
+	add_test(NAME tr31_tool_test32
+		COMMAND tr31-tool --kbpk 88E1AB2A2E3DD38C1FA039A536500CC8A87AB9D62DC92C01058FA79F44657DE6 --import "D0128B2AX00E0100LB10My Great Key9CA1251652F7933B99FC79874AD98B5B8221A42B15ED65FB19F19C638FE62A2741B6E3ECAC673CB33AB5049E30A1C181"
+	)
+	string(CONCAT tr31_tool_test32_regex
+		"^Key block format version: D[\r\n]"
+		"Key block length: 128 bytes[\r\n]"
+		"Key usage: \\[B2\\] Base Key Variant[\r\n]"
+		"Key algorithm: \\[A\\] AES[\r\n]"
+		"Key mode of use: \\[X\\] Key Derivation[\r\n]"
+		"Key version: Unused[\r\n]"
+		"Key exportability: \\[E\\] Exportable in a trusted key block only[\r\n]"
+		"Optional blocks \\[1\\]:[\r\n]"
+		"\t\\[LB\\] Label: \"My Great Key\"[\r\n]"
+		"Key length: 16[\r\n]"
+		"Key value: 3F419E1CB7079442AA37474C2EFBF8B8 \\(KCV: 08793E25AB\\)[\r\n]"
+	)
+	set_tests_properties(tr31_tool_test32
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION ${tr31_tool_test32_regex}
+	)
 endif()

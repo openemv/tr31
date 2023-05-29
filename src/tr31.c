@@ -79,7 +79,7 @@ static int hex_to_int(const char* str, size_t str_len);
 static void int_to_hex(unsigned int value, char* str, size_t str_len);
 static int hex_to_bin(const char* hex, void* bin, size_t bin_len);
 static int bin_to_hex(const void* bin, size_t bin_len, char* str, size_t str_len);
-static int tr31_format_pa_to_bin(const char* buf, void* bin, size_t bin_len);
+static int tr31_validate_format_pa(const char* buf, size_t buf_len);
 static int tr31_opt_block_parse(const struct tr31_opt_blk_t* opt_blk, size_t remaining_len, size_t* opt_block_len, struct tr31_opt_ctx_t* opt_ctx);
 static int tr31_opt_block_validate_iso8601(const char* ts_str, size_t ts_str_len);
 static int tr31_opt_block_export(const struct tr31_opt_ctx_t* opt_ctx, size_t remaining_len, size_t* opt_blk_len, struct tr31_opt_blk_t* opt_blk);
@@ -226,20 +226,16 @@ static int bin_to_hex(const void* bin, size_t bin_len, char* hex, size_t hex_len
 	return 0;
 }
 
-static int tr31_format_pa_to_bin(const char* buf, void* bin, size_t bin_len)
+static int tr31_validate_format_pa(const char* buf, size_t buf_len)
 {
-	while (bin_len--) {
-		uint8_t* ptr = bin;
-
+	while (buf_len--) {
 		// printable ASCII characters are in the range 0x20 to 0x7E
 		// see ANSI X9.143:2021, 4
 		if (*buf < 0x20 || *buf > 0x7E) {
 			return -1;
 		}
-		*ptr = *buf;
 
 		++buf;
-		++bin;
 	}
 
 	return 0;
@@ -744,6 +740,27 @@ int tr31_opt_block_add_KV(
 	}
 
 	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_KV, buf, sizeof(buf));
+}
+
+int tr31_opt_block_add_LB(
+	struct tr31_ctx_t* ctx,
+	const char* label
+)
+{
+	int r;
+
+	if (!ctx || !label) {
+		return -1;
+	}
+
+	// validate as printable ASCII (format PA)
+	// see ANSI X9.143:2021, 6.3.6.10, table 18
+	r = tr31_validate_format_pa(label, strlen(label));
+	if (r) {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+
+	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_LB, label, strlen(label));
 }
 
 int tr31_opt_block_add_TC(
@@ -1521,13 +1538,16 @@ static int tr31_opt_block_parse(
 			}
 			return 0;
 
+		// optional blocks to be validated as printable ASCII (format PA)
+		case TR31_OPT_BLOCK_LB:
 		case TR31_OPT_BLOCK_PB:
 			opt_ctx->data_length = (*opt_blk_len - 4);
 			opt_ctx->data = calloc(1, opt_ctx->data_length);
-			r = tr31_format_pa_to_bin(opt_blk->data, opt_ctx->data, opt_ctx->data_length);
+			r = tr31_validate_format_pa(opt_blk->data, opt_ctx->data_length);
 			if (r) {
 				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 			}
+			memcpy(opt_ctx->data, opt_blk->data, opt_ctx->data_length);
 			return 0;
 
 		// optional blocks to be validated as ISO 8601
@@ -2356,6 +2376,7 @@ const char* tr31_get_opt_block_id_string(unsigned int opt_block_id)
 		case TR31_OPT_BLOCK_KP:         return "Key Check Value (KCV) of KBPK";
 		case TR31_OPT_BLOCK_KS:         return "Initial Key Serial Number (KSN)";
 		case TR31_OPT_BLOCK_KV:         return "Key Block Values";
+		case TR31_OPT_BLOCK_LB:         return "Label";
 		case TR31_OPT_BLOCK_PB:         return "Padding Block";
 		case TR31_OPT_BLOCK_TC:         return "Time of Creation";
 		case TR31_OPT_BLOCK_TS:         return "Time Stamp";
