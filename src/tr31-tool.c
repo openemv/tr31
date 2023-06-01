@@ -64,6 +64,8 @@ struct tr31_tool_options_t {
 	size_t export_opt_block_KS_buf_len;
 	uint8_t export_opt_block_KS_buf[10];
 	const char* export_opt_block_LB_str;
+	size_t export_opt_block_PK_buf_len;
+	uint8_t export_opt_block_PK_buf[5];
 	const char* export_opt_block_TC_str;
 	const char* export_opt_block_TS_str;
 
@@ -95,6 +97,7 @@ enum tr31_tool_option_keys_t {
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KP,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KS,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_LB,
+	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_PK,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TC,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TS,
 	TR31_TOOL_OPTION_KBPK,
@@ -119,6 +122,7 @@ static struct argp_option argp_options[] = {
 	{ "export-opt-block-KP", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KP, NULL, 0, "Add optional block KP (KCV of KBPK) during TR-31 export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-KS", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KS, "IKSN", 0, "Add optional block KS (Initial Key Serial Number) during TR-31 export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-LB", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_LB, "ASCII", 0, "Add optinal block LB (Label) during TR-31 export. May be used with either --export-template or --export-header." },
+	{ "export-opt-block-PK", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_PK, "KCV", 0, "Add optional block PK (Protection Key Check Value). May be used with either --export-template or --export-header." },
 	{ "export-opt-block-TC", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TC, "ISO8601", 0, "Add optional block TC (Time of Creation in ISO 8601 UTC format) during TR-31 export. May be used with either --export-template or --export-header. Specify \"now\" for current date/time." },
 	{ "export-opt-block-TS", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TS, "ISO8601", 0, "Add optional block TS (Time Stamp in ISO 8601 UTC format) during TR-31 export. May be used with either --export-template or --export-header. Specify \"now\" for current date/time." },
 
@@ -352,6 +356,25 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 		case TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_LB:
 			options->export_opt_block_LB_str = arg;
 			return 0;
+
+		case TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_PK: {
+			size_t arg_len = strlen(arg);
+			if (arg_len % 2 != 0) {
+				argp_error(state, "Export optional block PK must have even number of digits");
+			}
+			if ((arg_len != 4 && arg_len != 6 && arg_len != 10) ||
+				arg_len / 2 > sizeof(options->export_opt_block_PK_buf)
+			) {
+				argp_error(state, "Export optional block PK must be 4 or 6 digits (thus 2 or 3 bytes) for TDES legacy KCV or 10 digits (thus 5 bytes) for AES CMAC KCV");
+			}
+			options->export_opt_block_PK_buf_len = arg_len / 2;
+
+			r = parse_hex(arg, options->export_opt_block_PK_buf, options->export_opt_block_PK_buf_len);
+			if (r) {
+				argp_error(state, "Export optional block PK must consist of hex digits");
+			}
+			return 0;
+		}
 
 		case TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TC:
 			options->export_opt_block_TC_str = arg;
@@ -624,6 +647,7 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 				case TR31_OPT_BLOCK_BI:
 				case TR31_OPT_BLOCK_KC:
 				case TR31_OPT_BLOCK_KP:
+				case TR31_OPT_BLOCK_PK:
 					// for some optional blocks, skip the first byte
 					// the first byte will be decoded by tr31_get_opt_block_data_string()
 					if (tr31_ctx.opt_blocks[i].data_length > 1) {
@@ -886,6 +910,36 @@ static int populate_opt_blocks(const struct tr31_tool_options_t* options, struct
 		r = tr31_opt_block_add_LB(tr31_ctx, options->export_opt_block_LB_str);
 		if (r) {
 			fprintf(stderr, "Failed to add optional block LB; error %d: %s\n", r, tr31_get_error_string(r));
+			return 1;
+		}
+	}
+
+	if (options->export_opt_block_PK_buf_len) {
+		uint8_t kcv_algorithm;
+
+		switch (options->export_opt_block_PK_buf_len) {
+			case 2:
+			case 3:
+				kcv_algorithm = TR31_OPT_BLOCK_KCV_LEGACY;
+				break;
+
+			case 5:
+				kcv_algorithm = TR31_OPT_BLOCK_KCV_CMAC;
+				break;
+
+			default:
+				fprintf(stderr, "Export optional block PK must be 4 or 6 digits (thus 2 or 3 bytes) for TDES legacy KCV or 10 digits (thus 5 bytes) for AES CMAC KCV\n");
+				return 1;
+		}
+
+		r = tr31_opt_block_add_PK(
+			tr31_ctx,
+			kcv_algorithm,
+			options->export_opt_block_PK_buf,
+			options->export_opt_block_PK_buf_len
+		);
+		if (r) {
+			fprintf(stderr, "Failed to add optional block PK; error %d: %s\n", r, tr31_get_error_string(r));
 			return 1;
 		}
 	}

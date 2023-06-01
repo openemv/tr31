@@ -124,6 +124,7 @@ enum tr31_key_version_t {
 #define TR31_OPT_BLOCK_KV               (0x4B56) ///< Optional Block KV: Key Block Values (deprecated)
 #define TR31_OPT_BLOCK_LB               (0x4C42) ///< Optional Block LB: Variable-length user defined label
 #define TR31_OPT_BLOCK_PB               (0x5042) ///< Optional Block PB: Padding Block
+#define TR31_OPT_BLOCK_PK               (0x504B) ///< Optional Block PK: Protection Key Check Value (KCV) of export KBPK
 #define TR31_OPT_BLOCK_TC               (0x5443) ///< Optional Block TC: Time of Creation (in ISO 8601 UTC format)
 #define TR31_OPT_BLOCK_TS               (0x5453) ///< Optional Block TS: Time Stamp (in ISO 8601 UTC format)
 
@@ -490,6 +491,25 @@ int tr31_opt_block_add_KV(
 int tr31_opt_block_add_LB(
 	struct tr31_ctx_t* ctx,
 	const char* label
+);
+
+/**
+ * Add optional block 'PK' for Key Check Value (KCV) of export protection key
+ * to TR-31 context object.
+ *
+ * @note This function requires an initialised TR-31 context object to be provided.
+ *
+ * @param ctx TR-31 context object
+ * @param kcv_algorithm KCV algorithm (@ref TR31_OPT_BLOCK_KCV_LEGACY or @ref TR31_OPT_BLOCK_KCV_CMAC)
+ * @param kcv Key Check Value (KCV) according to algoritm specified by @p kcv_algorithm
+ * @param kcv_len Length of @p kcv in bytes. Must comply with ANSI X9.24-1 Annex A.
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
+ */
+int tr31_opt_block_add_PK(
+	struct tr31_ctx_t* ctx,
+	uint8_t kcv_algorithm,
+	const void* kcv,
+	size_t kcv_len
 );
 
 /**

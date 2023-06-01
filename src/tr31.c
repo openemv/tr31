@@ -763,6 +763,43 @@ int tr31_opt_block_add_LB(
 	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_LB, label, strlen(label));
 }
 
+int tr31_opt_block_add_PK(
+	struct tr31_ctx_t* ctx,
+	uint8_t kcv_algorithm,
+	const void* kcv,
+	size_t kcv_len
+)
+{
+	uint8_t buf[6];
+
+	if (!ctx || !kcv) {
+		return -1;
+	}
+
+	// validate KCV length according to KCV algorithm
+	// KCV lengths should comply with ANSI X9.24-1, Annex A
+	// see ANSI X9.143:2021, 6.3.6.12, table 20
+	if (kcv_algorithm == TR31_OPT_BLOCK_KCV_LEGACY) {
+		if (kcv_len > 3) {
+			// Legacy KCV should be truncated to 3 bytes or less
+			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+		}
+	} else if (kcv_algorithm == TR31_OPT_BLOCK_KCV_CMAC) {
+		if (kcv_len > 5) {
+			// CMAC KCV should be truncated to 5 bytes or less
+			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+		}
+	} else {
+		// Unknown KCV algorithm
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+
+	// NOTE: tr31_opt_block_export() will hex encode this optional block
+	buf[0] = kcv_algorithm;
+	memcpy(&buf[1], kcv, kcv_len);
+	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_PK, buf, kcv_len + 1);
+}
+
 int tr31_opt_block_add_TC(
 	struct tr31_ctx_t* ctx,
 	const char* tc_str
@@ -1530,6 +1567,7 @@ static int tr31_opt_block_parse(
 		case TR31_OPT_BLOCK_KC:
 		case TR31_OPT_BLOCK_KP:
 		case TR31_OPT_BLOCK_KS:
+		case TR31_OPT_BLOCK_PK:
 			opt_ctx->data_length = (*opt_blk_len - 4) / 2;
 			opt_ctx->data = calloc(1, opt_ctx->data_length);
 			r = hex_to_bin(opt_blk->data, opt_ctx->data, opt_ctx->data_length);
@@ -1652,6 +1690,7 @@ static int tr31_opt_block_export(
 		case TR31_OPT_BLOCK_KC:
 		case TR31_OPT_BLOCK_KP:
 		case TR31_OPT_BLOCK_KS:
+		case TR31_OPT_BLOCK_PK:
 			*opt_blk_len = (opt_ctx->data_length * 2) + 4;
 			if (*opt_blk_len > remaining_len) {
 				// optional block length exceeds remaining key block length
@@ -2378,6 +2417,7 @@ const char* tr31_get_opt_block_id_string(unsigned int opt_block_id)
 		case TR31_OPT_BLOCK_KV:         return "Key Block Values";
 		case TR31_OPT_BLOCK_LB:         return "Label";
 		case TR31_OPT_BLOCK_PB:         return "Padding Block";
+		case TR31_OPT_BLOCK_PK:         return "Protection Key Check Value (KCV) of export KBPK";
 		case TR31_OPT_BLOCK_TC:         return "Time of Creation";
 		case TR31_OPT_BLOCK_TS:         return "Time Stamp";
 	}

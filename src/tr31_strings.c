@@ -69,6 +69,7 @@ int tr31_opt_block_data_get_desc(const struct tr31_opt_ctx_t* opt_block, char* s
 
 		case TR31_OPT_BLOCK_KC:
 		case TR31_OPT_BLOCK_KP:
+		case TR31_OPT_BLOCK_PK:
 			simple_str = tr31_opt_block_kcv_get_string(opt_block);
 			break;
 
@@ -173,13 +174,15 @@ static const char* tr31_opt_block_kcv_get_string(const struct tr31_opt_ctx_t* op
 		return NULL;
 	}
 	if (opt_block->id != TR31_OPT_BLOCK_KC &&
-		opt_block->id != TR31_OPT_BLOCK_KP
+		opt_block->id != TR31_OPT_BLOCK_KP &&
+		opt_block->id != TR31_OPT_BLOCK_PK
 	) {
 		return NULL;
 	}
 	data = opt_block->data;
 
 	// See ANSI X9.143:2021, 6.3.6.7, table 15
+	// See ANSI X9.143:2021, 6.3.6.12, table 20
 	switch (data[0]) {
 		case TR31_OPT_BLOCK_KCV_LEGACY: return "Legacy KCV algorithm";
 		case TR31_OPT_BLOCK_KCV_CMAC: return "CMAC based KCV";
