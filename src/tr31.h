@@ -127,6 +127,7 @@ enum tr31_key_version_t {
 #define TR31_OPT_BLOCK_PK               (0x504B) ///< Optional Block PK: Protection Key Check Value (KCV) of export KBPK
 #define TR31_OPT_BLOCK_TC               (0x5443) ///< Optional Block TC: Time of Creation (in ISO 8601 UTC format)
 #define TR31_OPT_BLOCK_TS               (0x5453) ///< Optional Block TS: Time Stamp (in ISO 8601 UTC format)
+#define TR31_OPT_BLOCK_WP               (0x5750) ///< Optional Block WP: Wrapping Pedigree
 
 // TR-31 Asymmetric Key Life (AKL) optional block format (see ANSI X9.143:2021, 6.3.6.1, table 8)
 #define TR31_OPT_BLOCK_AL_VERSION_1     (0x01) ///< Asymmetric Key Life version: 1
@@ -155,6 +156,9 @@ enum tr31_key_version_t {
 // TR-31 Key Check Value (KCV) optional block format (see ANSI X9.143:2021, 6.3.6.7, table 15)
 #define TR31_OPT_BLOCK_KCV_LEGACY       (0x00) ///< KCV algorithm: Legacy KCV algorithm
 #define TR31_OPT_BLOCK_KCV_CMAC         (0x01) ///< KCV algorithm: CMAC based KCV
+
+// TR-31 Wrapping Pedigree (WP) optional block format (see ANSI X9.143:2021, 6.3.6.15, table 23)
+#define TR31_OPT_BLOCK_WP_VERSION_0     (0x00) ///< Wrapping Pedigree (WP) version: 0
 
 /// TR-31 key object
 struct tr31_key_t {
@@ -540,6 +544,20 @@ int tr31_opt_block_add_TC(
 int tr31_opt_block_add_TS(
 	struct tr31_ctx_t* ctx,
 	const char* ts_str
+);
+
+/**
+ * Add optional block 'WP' for wrapping pedigree to TR-31 context object.
+ *
+ * @note This function requires an initialised TR-31 context object to be provided.
+ *
+ * @param ctx TR-31 context object
+ * @param wrapping_pedigree Wrapping Pedigree. Must be a value from 0 to 3 (see ANSI X9.143:2021, 6.3.6.15, table 23)
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
+ */
+int tr31_opt_block_add_WP(
+	struct tr31_ctx_t* ctx,
+	uint8_t wrapping_pedigree
 );
 
 /**

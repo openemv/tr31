@@ -842,6 +842,27 @@ int tr31_opt_block_add_TS(
 	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_TS, ts_str, strlen(ts_str));
 }
 
+int tr31_opt_block_add_WP(
+	struct tr31_ctx_t* ctx,
+	uint8_t wrapping_pedigree
+)
+{
+	char buf[3];
+
+	if (wrapping_pedigree > 3) {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+
+	// assume wrapping pedigree optional block version 00
+	// unfortunately optional block WP carries an odd number of hex digits and
+	// therefore the digits must be encoded here instead of in
+	// tr31_opt_block_export()
+	// see ANSI X9.143:2021, 6.3.6.15, table 23
+	int_to_hex(TR31_OPT_BLOCK_WP_VERSION_0, buf, 2);
+	int_to_hex(wrapping_pedigree, buf + 2, 1);
+	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_WP, buf, sizeof(buf));
+}
+
 int tr31_import(
 	const char* key_block,
 	const struct tr31_key_t* kbpk,
@@ -2420,6 +2441,7 @@ const char* tr31_get_opt_block_id_string(unsigned int opt_block_id)
 		case TR31_OPT_BLOCK_PK:         return "Protection Key Check Value (KCV) of export KBPK";
 		case TR31_OPT_BLOCK_TC:         return "Time of Creation";
 		case TR31_OPT_BLOCK_TS:         return "Time Stamp";
+		case TR31_OPT_BLOCK_WP:         return "Wrapping Pedigree";
 	}
 
 	return "Unknown";

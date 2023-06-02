@@ -68,6 +68,8 @@ struct tr31_tool_options_t {
 	uint8_t export_opt_block_PK_buf[5];
 	const char* export_opt_block_TC_str;
 	const char* export_opt_block_TS_str;
+	bool export_opt_block_WP;
+	uint8_t export_opt_block_WP_value;
 
 	// kbpk parameters
 	// valid if kbpk is true
@@ -100,6 +102,7 @@ enum tr31_tool_option_keys_t {
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_PK,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TC,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TS,
+	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_WP,
 	TR31_TOOL_OPTION_KBPK,
 	TR31_TOOL_OPTION_VERSION,
 };
@@ -125,6 +128,7 @@ static struct argp_option argp_options[] = {
 	{ "export-opt-block-PK", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_PK, "KCV", 0, "Add optional block PK (Protection Key Check Value). May be used with either --export-template or --export-header." },
 	{ "export-opt-block-TC", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TC, "ISO8601", 0, "Add optional block TC (Time of Creation in ISO 8601 UTC format) during TR-31 export. May be used with either --export-template or --export-header. Specify \"now\" for current date/time." },
 	{ "export-opt-block-TS", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TS, "ISO8601", 0, "Add optional block TS (Time Stamp in ISO 8601 UTC format) during TR-31 export. May be used with either --export-template or --export-header. Specify \"now\" for current date/time." },
+	{ "export-opt-block-WP", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_WP, "0-3", 0, "Add optional block WP (Wrapping Pedigree) during TR-31 export. May be used with either --export-template or --export-header." },
 
 	{ NULL, 0, NULL, 0, "Options for decrypting/encrypting TR-31 key blocks:", 3 },
 	{ "kbpk", TR31_TOOL_OPTION_KBPK, "KEY", 0, "TR-31 key block protection key. Use - to read raw bytes from stdin." },
@@ -384,6 +388,17 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			options->export_opt_block_TS_str = arg;
 			return 0;
 
+		case TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_WP:
+			if (strlen(arg) != 1) {
+				argp_error(state, "Export optional block WP must be a single digit");
+			}
+			if (arg[0] < 0x30 || arg[0] > 0x33) {
+				argp_error(state, "Export optional block WP must be a value from 0 to 3");
+			}
+			options->export_opt_block_WP = true;
+			options->export_opt_block_WP_value = arg[0] - 0x30; // convert ASCII number to integer
+			return 0;
+
 		case TR31_TOOL_OPTION_KBPK:
 			if (buf_len > sizeof(options->kbpk_buf)) {
 				argp_error(state, "KEY string may not have more than %zu digits (thus %zu bytes)",
@@ -520,7 +535,7 @@ static void print_hex(const void* buf, size_t length)
 	}
 }
 
-static void print_str_with_quotes(const void* buf, size_t length)
+static void print_str(const void* buf, size_t length)
 {
 	char* str;
 
@@ -531,8 +546,15 @@ static void print_str_with_quotes(const void* buf, size_t length)
 	str = malloc(length + 1);
 	memcpy(str, buf, length);
 	str[length] = 0;
-	printf("\"%s\"", str);
+	printf("%s", str);
 	free(str);
+}
+
+static void print_str_with_quotes(const void* buf, size_t length)
+{
+	printf("\"");
+	print_str(buf, length);
+	printf("\"");
 }
 
 // TR-31 KBPK populating helper function
@@ -652,6 +674,13 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 					// the first byte will be decoded by tr31_get_opt_block_data_string()
 					if (tr31_ctx.opt_blocks[i].data_length > 1) {
 						print_hex(tr31_ctx.opt_blocks[i].data + 1, tr31_ctx.opt_blocks[i].data_length - 1);
+					}
+					break;
+
+				case TR31_OPT_BLOCK_WP:
+					// for some optional blocks, skip the first two bytes
+					if (tr31_ctx.opt_blocks[i].data_length > 2) {
+						print_str(tr31_ctx.opt_blocks[i].data + 2, tr31_ctx.opt_blocks[i].data_length - 2);
 					}
 					break;
 
@@ -1010,6 +1039,19 @@ static int populate_opt_blocks(const struct tr31_tool_options_t* options, struct
 		r = tr31_opt_block_add_TS(tr31_ctx, export_opt_block_TS_str);
 		if (r) {
 			fprintf(stderr, "Failed to add optional block TS; error %d: %s\n", r, tr31_get_error_string(r));
+			return 1;
+		}
+	}
+
+	if (options->export_opt_block_WP) {
+		if (options->export_opt_block_WP_value > 3) {
+			fprintf(stderr, "Export optional block WP must be a value from 0 to 3\n");
+			return 1;
+		}
+
+		r = tr31_opt_block_add_WP(tr31_ctx, options->export_opt_block_WP_value);
+		if (r) {
+			fprintf(stderr, "Failed to add optional block WP; error %d: %s\n", r, tr31_get_error_string(r));
 			return 1;
 		}
 	}

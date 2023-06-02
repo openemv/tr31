@@ -44,6 +44,7 @@ static const char* tr31_opt_block_BI_get_string(const struct tr31_opt_ctx_t* opt
 static const char* tr31_opt_block_hmac_get_string(const struct tr31_opt_ctx_t* opt_block);
 static const char* tr31_opt_block_kcv_get_string(const struct tr31_opt_ctx_t* opt_block);
 static int tr31_opt_block_iso8601_get_string(const struct tr31_opt_ctx_t* opt_block, char* str, size_t str_len);
+static const char* tr31_opt_block_wrapping_pedigree_get_string(const struct tr31_opt_ctx_t* opt_block);
 
 int tr31_opt_block_data_get_desc(const struct tr31_opt_ctx_t* opt_block, char* str, size_t str_len)
 {
@@ -76,6 +77,10 @@ int tr31_opt_block_data_get_desc(const struct tr31_opt_ctx_t* opt_block, char* s
 		case TR31_OPT_BLOCK_TC:
 		case TR31_OPT_BLOCK_TS:
 			return tr31_opt_block_iso8601_get_string(opt_block, str, str_len);
+
+		case TR31_OPT_BLOCK_WP:
+			simple_str =  tr31_opt_block_wrapping_pedigree_get_string(opt_block);
+			break;
 	}
 
 	if (simple_str) {
@@ -315,4 +320,31 @@ static int tr31_opt_block_iso8601_get_string(const struct tr31_opt_ctx_t* opt_bl
 	str[0] = 0;
 	return 0;
 #endif
+}
+
+static const char* tr31_opt_block_wrapping_pedigree_get_string(const struct tr31_opt_ctx_t* opt_block)
+{
+	const uint8_t* data;
+
+	if (!opt_block ||
+		opt_block->id != TR31_OPT_BLOCK_WP ||
+		opt_block->data_length != 3
+	) {
+		return NULL;
+	}
+	data = opt_block->data;
+
+	if (data[0] != '0' || data[1] != '0') {
+		return "Unknown wrapping pedigree version";
+	}
+
+	// See ANSI X9.143:2021, 6.3.6.15, table 23
+	switch (data[2]) {
+		case 0x30: return "Equal or greater effective strength";
+		case 0x31: return "Lesser effective strength";
+		case 0x32: return "Asymmetric key at risk of quantum computing";
+		case 0x33: return "Asymmetric key at risk of quantum computing and symmetric key of lesser effective strength";
+	}
+
+	return "Unknown";
 }
