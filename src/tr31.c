@@ -663,6 +663,32 @@ int tr31_opt_block_add_HM(
 	uint8_t hash_algorithm
 )
 {
+	if (!ctx) {
+		return -1;
+	}
+
+	// validate hash algorithm
+	// see ANSI X9.143:2021, 6.3.6.5, table 13
+	switch (hash_algorithm) {
+		case TR31_OPT_BLOCK_HM_SHA1:
+		case TR31_OPT_BLOCK_HM_SHA224:
+		case TR31_OPT_BLOCK_HM_SHA256:
+		case TR31_OPT_BLOCK_HM_SHA384:
+		case TR31_OPT_BLOCK_HM_SHA512:
+		case TR31_OPT_BLOCK_HM_SHA512_224:
+		case TR31_OPT_BLOCK_HM_SHA512_256:
+		case TR31_OPT_BLOCK_HM_SHA3_224:
+		case TR31_OPT_BLOCK_HM_SHA3_256:
+		case TR31_OPT_BLOCK_HM_SHA3_384:
+		case TR31_OPT_BLOCK_HM_SHA3_512:
+		case TR31_OPT_BLOCK_HM_SHAKE128:
+		case TR31_OPT_BLOCK_HM_SHAKE256:
+			break;
+
+		default:
+			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+
 	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_HM, &hash_algorithm, 1);
 }
 

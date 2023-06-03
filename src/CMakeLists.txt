@@ -495,4 +495,34 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 		PROPERTIES
 			PASS_REGULAR_EXPRESSION ${tr31_tool_test32_regex}
 	)
+
+	add_test(NAME tr31_tool_test33
+		COMMAND tr31-tool --kbpk 88E1AB2A2E3DD38C1FA039A536500CC8A87AB9D62DC92C01058FA79F44657DE6 --export 3F419E1CB7079442AA37474C2EFBF8B8 --export-header D0000M7HG00N0000 --export-opt-block-HM 21
+	)
+	set_tests_properties(tr31_tool_test33
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^D0128M7HG00N0200HM0621PB0A"
+	)
+
+	add_test(NAME tr31_tool_test34
+		COMMAND tr31-tool --kbpk 88E1AB2A2E3DD38C1FA039A536500CC8A87AB9D62DC92C01058FA79F44657DE6 --import D0128M7HG00N0200HM0621PB0A5V5E8F634619D84C6040EAC3C1CA6A5FE60C5292E778FC95ABBECE94C3AD060C5F4C128796A100FF035A4BFB16C36449550131
+	)
+	string(CONCAT tr31_tool_test34_regex
+		"^Key block format version: D[\r\n]"
+		"Key block length: 128 bytes[\r\n]"
+		"Key usage: \\[M7\\] HMAC[\r\n]"
+		"Key algorithm: \\[H\\] HMAC[\r\n]"
+		"Key mode of use: \\[G\\] MAC Generate Only[\r\n]"
+		"Key version: Unused[\r\n]"
+		"Key exportability: \\[N\\] Not exportable[\r\n]"
+		"Optional blocks \\[2\\]:[\r\n]"
+		"\t\\[HM\\] Hash algorithm for HMAC: 21 \\(SHA-256\\)[\r\n]"
+		"\t\\[PB\\] Padding Block: \"5V5E8F\"[\r\n]"
+		"Key length: 16[\r\n]"
+		"Key value: 3F419E1CB7079442AA37474C2EFBF8B8[\r\n]"
+	)
+	set_tests_properties(tr31_tool_test34
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION ${tr31_tool_test34_regex}
+	)
 endif()

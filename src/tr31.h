@@ -400,7 +400,7 @@ int tr31_opt_block_add_BI(
  * @note This function requires an initialised TR-31 context object to be provided.
  *
  * @param ctx TR-31 context object
- * @param hash_algorithm TR-31 HMAC hash algorithm (see TR-31:2018, A.5.9)
+ * @param hash_algorithm TR-31 HMAC hash algorithm (see ANSI X9.143:2021, 6.3.6.5, table 13)
  * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
  */
 int tr31_opt_block_add_HM(

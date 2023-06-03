@@ -57,6 +57,7 @@ struct tr31_tool_options_t {
 	uint8_t export_opt_block_AL_akl;
 	size_t export_opt_block_BI_buf_len;
 	uint8_t export_opt_block_BI_buf[5];
+	uint8_t export_opt_block_HM;
 	size_t export_opt_block_IK_buf_len;
 	uint8_t export_opt_block_IK_buf[8];
 	bool export_opt_block_KC;
@@ -94,6 +95,7 @@ enum tr31_tool_option_keys_t {
 	TR31_TOOL_OPTION_EXPORT_HEADER,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_AL,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_BI,
+	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_HM,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_IK,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KC,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KP,
@@ -120,6 +122,7 @@ static struct argp_option argp_options[] = {
 	{ "export-header", TR31_TOOL_OPTION_EXPORT_HEADER, "KEYBLOCK-HEADER", 0, "TR-31 key block header to use for export. Key block length field in the header will be ignored." },
 	{ "export-opt-block-AL", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_AL, "Ephemeral|Static", 0, "Add optional block AL (Asymmetric Key Life) during TR-31 export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-BI", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_BI, "BDK-ID", 0, "Add optional block BI (Base Derivation Key Identifier) during TR-31 export. May be used with either --export-template or --export-header." },
+	{ "export-opt-block-HM", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_HM, "Hash-ID", 0, "Add optional block HM (HMAC algorithm) during TR-31 export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-IK", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_IK, "IKID", 0, "Add optional block IK (Initial Key Identifier) during TR-31 export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-KC", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KC, NULL, 0, "Add optional block KC (KCV of wrapped key) during TR-31 export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-KP", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KP, NULL, 0, "Add optional block KP (KCV of KBPK) during TR-31 export. May be used with either --export-template or --export-header." },
@@ -307,6 +310,18 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			r = parse_hex(arg, options->export_opt_block_BI_buf, options->export_opt_block_BI_buf_len);
 			if (r) {
 				argp_error(state, "Export optional block BI must consist of hex digits");
+			}
+			return 0;
+		}
+
+		case TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_HM: {
+			if (strlen(arg) != 2) {
+				argp_error(state, "Export optional block HM must be 2 digits (thus 1 byte)");
+			}
+
+			r = parse_hex(arg, &options->export_opt_block_HM, sizeof(options->export_opt_block_HM));
+			if (r) {
+				argp_error(state, "Export optional block HM must consist of hex digits");
 			}
 			return 0;
 		}
@@ -883,6 +898,26 @@ static int populate_opt_blocks(const struct tr31_tool_options_t* options, struct
 			fprintf(stderr, "Failed to add optional block BI; error %d: %s\n", r, tr31_get_error_string(r));
 			return 1;
 		}
+	}
+
+	if (options->export_opt_block_HM) {
+		if (tr31_ctx->key.usage != TR31_KEY_USAGE_HMAC ||
+			tr31_ctx->key.algorithm != TR31_KEY_ALGORITHM_HMAC
+		) {
+			fprintf(stderr, "Export optional block HM is only allowed for HMAC keys (key usage M7, algorithm H)\n");
+			return 1;
+		}
+
+		r = tr31_opt_block_add_HM(tr31_ctx, options->export_opt_block_HM);
+		if (r) {
+			fprintf(stderr, "Failed to add optional block HM; error %d: %s\n", r, tr31_get_error_string(r));
+			return 1;
+		}
+	} else if (tr31_ctx->key.usage == TR31_KEY_USAGE_HMAC ||
+		tr31_ctx->key.algorithm == TR31_KEY_ALGORITHM_HMAC
+	) {
+		fprintf(stderr, "HMAC keys (key usage M7, algorithm H) must specify the hash algorithm using optional block HM (--export-opt-block-HM)\n");
+		return 1;
 	}
 
 	if (options->export_opt_block_IK_buf_len) {
