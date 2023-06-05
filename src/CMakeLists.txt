@@ -159,41 +159,100 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 	add_test(NAME tr31_tool_test1
 		COMMAND tr31-tool --import B0128B1TX00N0300KS18FFFF00A0200001E00000KC0C000169E3KP0C00ECAD626F9F1A826814AA066D86C8C18BD0E14033E1EBEC75BEDF586E6E325F3AA8C0E5 --kbpk AB2E09DB3EF0BA71E0CE6CD755C23A3B
 	)
+	string(CONCAT tr31_tool_test1_regex
+		"^Key block format version: B[\r\n]"
+		"Key block length: 128 bytes[\r\n]"
+		"Key usage: \\[B1\\] Initial DUKPT Key \\(IK/IPEK\\)[\r\n]"
+		"Key algorithm: \\[T\\] TDES[\r\n]"
+		"Key mode of use: \\[X\\] Key Derivation[\r\n]"
+		"Key version: Unused[\r\n]"
+		"Key exportability: \\[N\\] Not exportable[\r\n]"
+		"Optional blocks \\[3\\]:[\r\n]"
+		"\t\\[KS\\] Initial Key Serial Number \\(KSN\\): FFFF00A0200001E00000[\r\n]"
+		"\t\\[KC\\] Key Check Value \\(KCV\\) of wrapped key: 0169E3 \\(Legacy KCV algorithm\\)[\r\n]"
+		"\t\\[KP\\] Key Check Value \\(KCV\\) of KBPK: ECAD62 \\(Legacy KCV algorithm\\)[\r\n]"
+		"Key length: 16[\r\n]"
+		"Key value: BF82DAC6A33DF92CE66E15B70E5DCEB6 \\(KCV: 0169E3\\)[\r\n]"
+	)
 	set_tests_properties(tr31_tool_test1
 		PROPERTIES
-			PASS_REGULAR_EXPRESSION "Key value: BF82DAC6A33DF92CE66E15B70E5DCEB6 \\(KCV: 0169E3\\)"
+			PASS_REGULAR_EXPRESSION ${tr31_tool_test1_regex}
 	)
 
 	add_test(NAME tr31_tool_test2
 		COMMAND tr31-tool --import D0112B0TN00N000037DB9B046B7B0048785690759580ABC3B9842AB4BB7717B49E92528E575785D8123559376A2553B27BE94F054F4E971C --kbpk 4141414141414141414141414141414141414141414141414141414141414141
 	)
+	string(CONCAT tr31_tool_test2_regex
+		"^Key block format version: D[\r\n]"
+		"Key block length: 112 bytes[\r\n]"
+		"Key usage: \\[B0\\] Base Derivation Key \\(BDK\\)[\r\n]"
+		"Key algorithm: \\[T\\] TDES[\r\n]"
+		"Key mode of use: \\[N\\] No special restrictions[\r\n]"
+		"Key version: Unused[\r\n]"
+		"Key exportability: \\[N\\] Not exportable[\r\n]"
+		"Key length: 16[\r\n]"
+		"Key value: 1FA1F7CEC798D91545DA8AE0C7796BD9 \\(KCV: FF5087\\)[\r\n]"
+	)
 	set_tests_properties(tr31_tool_test2
 		PROPERTIES
-			PASS_REGULAR_EXPRESSION "Key value: 1FA1F7CEC798D91545DA8AE0C7796BD9 \\(KCV: FF5087\\)"
+			PASS_REGULAR_EXPRESSION ${tr31_tool_test2_regex}
 	)
 
 	add_test(NAME tr31_tool_test3
 		COMMAND tr31-tool --import D0144B0AN00N0000DCD6D7E8108277E3304831A744F741A51A30695A2F764C6E42A1F54086FF0C3F5F9BEC889F20C6F613EF790A09381A5855B9464E598CBE24E537B6FE0F602297 --kbpk 4141414141414141414141414141414141414141414141414141414141414141
 	)
+	string(CONCAT tr31_tool_test3_regex
+		"^Key block format version: D[\r\n]"
+		"Key block length: 144 bytes[\r\n]"
+		"Key usage: \\[B0\\] Base Derivation Key \\(BDK\\)[\r\n]"
+		"Key algorithm: \\[A\\] AES[\r\n]"
+		"Key mode of use: \\[N\\] No special restrictions[\r\n]"
+		"Key version: Unused[\r\n]"
+		"Key exportability: \\[N\\] Not exportable[\r\n]"
+		"Key length: 32[\r\n]"
+		"Key value: 6189A1111AAB43DC8BEAEEAE29799C4212070D66F8933EFACE8879C7DB609DEA \\(KCV: 69EBA40B13\\)[\r\n]"
+	)
 	set_tests_properties(tr31_tool_test3
 		PROPERTIES
-			PASS_REGULAR_EXPRESSION "Key value: 6189A1111AAB43DC8BEAEEAE29799C4212070D66F8933EFACE8879C7DB609DEA \\(KCV: 69EBA40B13\\)"
+			PASS_REGULAR_EXPRESSION ${tr31_tool_test3_regex}
 	)
 
 	add_test(NAME tr31_tool_test4
 		COMMAND tr31-tool --import D0144B0AN00N000004E08A6000D7B21A5CFFE0F24E449A21D9BE3F975D33DB02D50CF9A6CCD2F6B6DB375CBCCCA648E0FB991432CA3957E810B087CDA7FA44538CC94C97FFF6D696 --kbpk 4141414141414141414141414141414141414141414141414141414141414141
 	)
+	string(CONCAT tr31_tool_test4_regex
+		"^Key block format version: D[\r\n]"
+		"Key block length: 144 bytes[\r\n]"
+		"Key usage: \\[B0\\] Base Derivation Key \\(BDK\\)[\r\n]"
+		"Key algorithm: \\[A\\] AES[\r\n]"
+		"Key mode of use: \\[N\\] No special restrictions[\r\n]"
+		"Key version: Unused[\r\n]"
+		"Key exportability: \\[N\\] Not exportable[\r\n]"
+		"Key length: 32[\r\n]"
+		"Key value: 6189A1111AAB43DC8BEAEEAE29799C4212070D66F8933EFACE8879C7DB609DEA \\(KCV: 69EBA40B13\\)[\r\n]"
+	)
 	set_tests_properties(tr31_tool_test4
 		PROPERTIES
-			PASS_REGULAR_EXPRESSION "Key value: 6189A1111AAB43DC8BEAEEAE29799C4212070D66F8933EFACE8879C7DB609DEA \\(KCV: 69EBA40B13\\)"
+			PASS_REGULAR_EXPRESSION ${tr31_tool_test4_regex}
 	)
 
 	add_test(NAME tr31_tool_test5
 		COMMAND tr31-tool --import D0144D0AN00N0000127862F945C2DED04530FAF7CDBC8B0BA10C7AA79BD5E0C2C5D6AC173BF588E4B19ACF1357178D50EA0AB193228E13958304FC6149632DFDCADF3A5B3D57E814 --kbpk 4141414141414141414141414141414141414141414141414141414141414141
 	)
+	string(CONCAT tr31_tool_test5_regex
+		"^Key block format version: D[\r\n]"
+		"Key block length: 144 bytes[\r\n]"
+		"Key usage: \\[D0\\] Symmetric Data Encryption Key[\r\n]"
+		"Key algorithm: \\[A\\] AES[\r\n]"
+		"Key mode of use: \\[N\\] No special restrictions[\r\n]"
+		"Key version: Unused[\r\n]"
+		"Key exportability: \\[N\\] Not exportable[\r\n]"
+		"Key length: 32[\r\n]"
+		"Key value: BE19E6A07A760F10EF8E83A226B63AAD141F463FDDD4F47DB244B4023EC3CACC \\(KCV: 0A00E31EEB\\)[\r\n]"
+	)
 	set_tests_properties(tr31_tool_test5
 		PROPERTIES
-			PASS_REGULAR_EXPRESSION "Key value: BE19E6A07A760F10EF8E83A226B63AAD141F463FDDD4F47DB244B4023EC3CACC \\(KCV: 0A00E31EEB\\)"
+			PASS_REGULAR_EXPRESSION ${tr31_tool_test5_regex}
 	)
 
 	add_test(NAME tr31_tool_test6
