@@ -36,26 +36,30 @@ enum tr31_version_t {
 	TR31_VERSION_E = 'E', ///< TR-31 format version E as defined in ISO 20038:2017; uses AES Key Derivation Binding Method
 };
 
-// TR-31 key usage (see TR-31:2018, A.5.1, table 6)
+// TR-31 key usage (see ANSI X9.143:2021, 6.3.1, table 2)
 #define TR31_KEY_USAGE_BDK              (0x4230) ///< Key Usage B0: Base Derivation Key (BDK)
 #define TR31_KEY_USAGE_DUKPT_IK         (0x4231) ///< Key Usage B1: Initial DUKPT Key (IK/IPEK)
-#define TR31_KEY_USAGE_BKV              (0x4232) ///< Key Usage B2: Base Key Variant
+#define TR31_KEY_USAGE_BKV              (0x4232) ///< Key Usage B2: Base Key Variant Key (deprecated)
+#define TR31_KEY_USAGE_KDK              (0x4233) ///< Key Usage B3: Key Derivation Key (Non ANSI X9.24)
 #define TR31_KEY_USAGE_CVK              (0x4330) ///< Key Usage C0: Card Verification Key (CVK)
-#define TR31_KEY_USAGE_DATA             (0x4430) ///< Key Usage D0: Symmetric Data Encryption Key
-#define TR31_KEY_USAGE_ASYMMETRIC_DATA  (0x4431) ///< Key Usage D1: Asymmetric Data Encryption Key
-#define TR31_KEY_USAGE_DATA_DEC_TABLE   (0x4432) ///< Key Usage D2: Decimalization Table Data Encryption Key
-#define TR31_KEY_USAGE_EMV_MKAC         (0x4530) ///< Key Usage E0: EMV/chip Issuer Master Key: Application cryptograms (MKAC)
-#define TR31_KEY_USAGE_EMV_MKSMC        (0x4531) ///< Key Usage E1: EMV/chip Issuer Master Key: Secure Messaging for Confidentiality (MKSMC)
-#define TR31_KEY_USAGE_EMV_MKSMI        (0x4532) ///< Key Usage E2: EMV/chip Issuer Master Key: Secure Messaging for Integrity (MKSMI)
-#define TR31_KEY_USAGE_EMV_MKDAC        (0x4533) ///< Key Usage E3: EMV/chip Issuer Master Key: Data Authentication Code (MKDAC)
-#define TR31_KEY_USAGE_EMV_MKDN         (0x4534) ///< Key Usage E4: EMV/chip Issuer Master Key: Dynamic Numbers (MKDN)
-#define TR31_KEY_USAGE_EMV_CP           (0x4535) ///< Key Usage E5: EMV/chip Issuer Master Key: Card Personalization (CP)
-#define TR31_KEY_USAGE_EMV_OTHER        (0x4536) ///< Key Usage E6: EMV/chip Issuer Master Key: Other
-#define TR31_KEY_USAGE_IV               (0x4930) ///< Key Usage I0: Initialization Vector
+#define TR31_KEY_USAGE_DATA             (0x4430) ///< Key Usage D0: Symmetric Key for Data Encryption
+#define TR31_KEY_USAGE_ASYMMETRIC_DATA  (0x4431) ///< Key Usage D1: Asymmetric Key for Data Encryption
+#define TR31_KEY_USAGE_DATA_DEC_TABLE   (0x4432) ///< Key Usage D2: Data Encryption Key for Decimalization Table
+#define TR31_KEY_USAGE_DATA_SENSITIVE   (0x4433) ///< Key Usage D3: Data Encryption Key for Sensitive Data
+#define TR31_KEY_USAGE_EMV_MKAC         (0x4530) ///< Key Usage E0: EMV/Chip Issuer Master Key: Application Cryptograms (MKAC)
+#define TR31_KEY_USAGE_EMV_MKSMC        (0x4531) ///< Key Usage E1: EMV/Chip Issuer Master Key: Secure Messaging for Confidentiality (MKSMC)
+#define TR31_KEY_USAGE_EMV_MKSMI        (0x4532) ///< Key Usage E2: EMV/Chip Issuer Master Key: Secure Messaging for Integrity (MKSMI)
+#define TR31_KEY_USAGE_EMV_MKDAC        (0x4533) ///< Key Usage E3: EMV/Chip Issuer Master Key: Data Authentication Code (MKDAC)
+#define TR31_KEY_USAGE_EMV_MKDN         (0x4534) ///< Key Usage E4: EMV/Chip Issuer Master Key: Dynamic Numbers (MKDN)
+#define TR31_KEY_USAGE_EMV_CP           (0x4535) ///< Key Usage E5: EMV/Chip Issuer Master Key: Card Personalization (CP)
+#define TR31_KEY_USAGE_EMV_OTHER        (0x4536) ///< Key Usage E6: EMV/Chip Issuer Master Key: Other
+#define TR31_KEY_USAGE_EMV_AKP_PIN      (0x4537) ///< Key Usage E7: EMV/Chip Asymmetric Key Pair for PIN Encryption
+#define TR31_KEY_USAGE_IV               (0x4930) ///< Key Usage I0: Initialization Vector (IV)
 #define TR31_KEY_USAGE_KEK              (0x4B30) ///< Key Usage K0: Key Encryption or Wrapping Key (KEK)
 #define TR31_KEY_USAGE_TR31_KBPK        (0x4B31) ///< Key Usage K1: TR-31 Key Block Protection Key (KBPK)
-#define TR31_KEY_USAGE_TR34_KEK         (0x4B32) ///< Key Usage K2: TR-34 Asymmetric Key Exchange Key (KEK)
-#define TR31_KEY_USAGE_ASYMMETRIC_KEK   (0x4B33) ///< Key Usage K3: Asymmetric Key Agreement or Wrapping Key
+#define TR31_KEY_USAGE_TR34_APK_KRD     (0x4B32) ///< Key Usage K2: TR-34 Asymmetric Key Pair for Key Receiving Device
+#define TR31_KEY_USAGE_APK              (0x4B33) ///< Key Usage K3: Asymmetric Key Pair for Key Wrapping or Key Agreement
+#define TR31_KEY_USAGE_ISO20038_KBPK    (0x4B34) ///< Key Usage K4: ISO 20038 Key Block Protection Key (KBPK)
 #define TR31_KEY_USAGE_ISO16609_MAC_1   (0x4D30) ///< Key Usage M0: ISO 16609 MAC algorithm 1 (using TDES)
 #define TR31_KEY_USAGE_ISO9797_1_MAC_1  (0x4D31) ///< Key Usage M1: ISO 9797-1 MAC Algorithm 1 (CBC-MAC)
 #define TR31_KEY_USAGE_ISO9797_1_MAC_2  (0x4D32) ///< Key Usage M2: ISO 9797-1 MAC Algorithm 2
@@ -63,20 +67,19 @@ enum tr31_version_t {
 #define TR31_KEY_USAGE_ISO9797_1_MAC_4  (0x4D34) ///< Key Usage M4: ISO 9797-1 MAC Algorithm 4
 #define TR31_KEY_USAGE_ISO9797_1_MAC_5  (0x4D35) ///< Key Usage M5: ISO 9797-1:1999 MAC Algorithm 5 (legacy)
 #define TR31_KEY_USAGE_ISO9797_1_CMAC   (0x4D36) ///< Key Usage M6: ISO 9797-1:2011 MAC Algorithm 5 (CMAC)
-#define TR31_KEY_USAGE_HMAC             (0x4D37) ///< Key Usage M7: HMAC
+#define TR31_KEY_USAGE_HMAC             (0x4D37) ///< Key Usage M7: HMAC Key
 #define TR31_KEY_USAGE_ISO9797_1_MAC_6  (0x4D38) ///< Key Usage M8: ISO 9797-1 MAC Algorithm 6
-#define TR31_KEY_USAGE_PIN              (0x5030) ///< Key Usage P0: PIN Encryption Key
-#define TR31_KEY_USAGE_ASYMMETRIC_SIG   (0x5330) ///< Key Usage S0: Asymmetric key pair for digital signature
-#define TR31_KEY_USAGE_ASYMMETRIC_CA    (0x5331) ///< Key Usage S1: Asymmetric key pair for CA use
-#define TR31_KEY_USAGE_ASYMMETRIC_OTHER (0x5332) ///< Key Usage S2: Asymmetric key pair for non-X9.24 use
-#define TR31_KEY_USAGE_PV               (0x5630) ///< Key Usage V0: PIN Verification Key (Other)
-#define TR31_KEY_USAGE_PV_IBM3624       (0x5631) ///< Key Usage V1: PIN Verification Key (IBM 3624)
-#define TR31_KEY_USAGE_PV_VISA          (0x5632) ///< Key Usage V2: PIN Verification Key (VISA PVV)
-#define TR31_KEY_USAGE_PV_X9_132_1      (0x5633) ///< Key Usage V3: PIN Verification Key (X9-132 algorithm 1)
-#define TR31_KEY_USAGE_PV_X9_132_2      (0x5634) ///< Key Usage V4: PIN Verification Key (X9-132 algorithm 2)
-
-/// Key Usage B1: Initial DUKPT Key (IK/IPEK). This definition is for backward compatibility and will be removed in future.
-#define TR31_KEY_USAGE_DUKPT_IPEK       TR31_KEY_USAGE_DUKPT_IK
+#define TR31_KEY_USAGE_PEK              (0x5030) ///< Key Usage P0: PIN Encryption Key
+#define TR31_KEY_USAGE_PGK              (0x5031) ///< Key Usage P1: PIN Generation Key
+#define TR31_KEY_USAGE_AKP_SIG          (0x5330) ///< Key Usage S0: Asymmetric Key Pair for Digital Signature
+#define TR31_KEY_USAGE_AKP_CA           (0x5331) ///< Key Usage S1: Asymmetric Key Pair for CA use
+#define TR31_KEY_USAGE_AKP_OTHER        (0x5332) ///< Key Usage S2: Asymmetric Key Pair for non-X9.24 use
+#define TR31_KEY_USAGE_PVK              (0x5630) ///< Key Usage V0: PIN Verification Key (Other)
+#define TR31_KEY_USAGE_PVK_IBM3624      (0x5631) ///< Key Usage V1: PIN Verification Key (IBM 3624)
+#define TR31_KEY_USAGE_PVK_VISA_PVV     (0x5632) ///< Key Usage V2: PIN Verification Key (VISA PVV)
+#define TR31_KEY_USAGE_PVK_X9_132_ALG_1 (0x5633) ///< Key Usage V3: PIN Verification Key (ANSI X9.132 algorithm 1)
+#define TR31_KEY_USAGE_PVK_X9_132_ALG_2 (0x5634) ///< Key Usage V4: PIN Verification Key (ANSI X9.132 algorithm 2)
+#define TR31_KEY_USAGE_PVK_X9_132_ALG_3 (0x5635) ///< Key Usage V5: PIN Verification Key (ANSI X9.132 algorithm 3)
 
 // TR-31 algorithm (see TR-31:2018, A.5.2, table 7)
 #define TR31_KEY_ALGORITHM_AES          ('A') ///< Key Algorithm A: AES

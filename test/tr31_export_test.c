@@ -35,7 +35,7 @@ static struct tr31_key_t test1_kbpk = {
 };
 static const uint8_t test1_key_raw[] = { 0xED, 0xB3, 0x80, 0xDD, 0x34, 0x0B, 0xC2, 0x62, 0x02, 0x47, 0xD4, 0x45, 0xF5, 0xB8, 0xD6, 0x78 };
 static const struct tr31_key_t test1_key = {
-	.usage = TR31_KEY_USAGE_PIN,
+	.usage = TR31_KEY_USAGE_PEK,
 	.algorithm = TR31_KEY_ALGORITHM_TDES,
 	.mode_of_use = TR31_KEY_MODE_OF_USE_ENC,
 	.key_version = TR31_KEY_VERSION_IS_UNUSED,
@@ -120,7 +120,7 @@ static struct tr31_key_t test4_kbpk = {
 };
 static const uint8_t test4_key_raw[] = { 0x3F, 0x41, 0x9E, 0x1C, 0xB7, 0x07, 0x94, 0x42, 0xAA, 0x37, 0x47, 0x4C, 0x2E, 0xFB, 0xF8, 0xB8 };
 static const struct tr31_key_t test4_key = {
-	.usage = TR31_KEY_USAGE_PIN,
+	.usage = TR31_KEY_USAGE_PEK,
 	.algorithm = TR31_KEY_ALGORITHM_TDES,
 	.mode_of_use = TR31_KEY_MODE_OF_USE_ENC,
 	.key_version = TR31_KEY_VERSION_IS_UNUSED,

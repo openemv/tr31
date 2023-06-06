@@ -242,7 +242,7 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 	string(CONCAT tr31_tool_test5_regex
 		"^Key block format version: D[\r\n]"
 		"Key block length: 144 bytes[\r\n]"
-		"Key usage: \\[D0\\] Symmetric Data Encryption Key[\r\n]"
+		"Key usage: \\[D0\\] Symmetric Key for Data Encryption[\r\n]"
 		"Key algorithm: \\[A\\] AES[\r\n]"
 		"Key mode of use: \\[N\\] No special restrictions[\r\n]"
 		"Key version: Unused[\r\n]"
@@ -537,7 +537,7 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 	string(CONCAT tr31_tool_test32_regex
 		"^Key block format version: D[\r\n]"
 		"Key block length: 160 bytes[\r\n]"
-		"Key usage: \\[B2\\] Base Key Variant[\r\n]"
+		"Key usage: \\[B2\\] Base Key Variant Key[\r\n]"
 		"Key algorithm: \\[A\\] AES[\r\n]"
 		"Key mode of use: \\[X\\] Key Derivation[\r\n]"
 		"Key version: Unused[\r\n]"
@@ -569,7 +569,7 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 	string(CONCAT tr31_tool_test34_regex
 		"^Key block format version: D[\r\n]"
 		"Key block length: 128 bytes[\r\n]"
-		"Key usage: \\[M7\\] HMAC[\r\n]"
+		"Key usage: \\[M7\\] HMAC Key[\r\n]"
 		"Key algorithm: \\[H\\] HMAC[\r\n]"
 		"Key mode of use: \\[G\\] MAC Generate Only[\r\n]"
 		"Key version: Unused[\r\n]"
