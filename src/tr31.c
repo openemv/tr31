@@ -320,7 +320,7 @@ int tr31_key_init(
 	}
 
 	// validate algorithm field
-	// see TR-31:2018, A.5.2, table 7
+	// see ANSI X9.143:2021, 6.3.2, table 3
 	key->algorithm = algorithm;
 	switch (algorithm) {
 		case TR31_KEY_ALGORITHM_AES:
@@ -338,7 +338,7 @@ int tr31_key_init(
 	}
 
 	// validate mode of use field
-	// see TR-31:2018, A.5.3, table 8
+	// see ANSI X9.143:2021, 6.3.3, table 4
 	key->mode_of_use = mode_of_use;
 	switch (mode_of_use) {
 		case TR31_KEY_MODE_OF_USE_ENC_DEC:
@@ -359,7 +359,7 @@ int tr31_key_init(
 	}
 
 	// validate key version number field
-	// see TR-31:2018, A.5.4, table 9
+	// see ANSI X9.143:2021, 6.3.4, table 5
 	r = tr31_key_set_key_version(key, key_version);
 	if (r) {
 		// return error value as-is
@@ -367,7 +367,7 @@ int tr31_key_init(
 	}
 
 	// validate exportability field
-	// see TR-31:2018, A.5.5, table 10
+	// see ANSI X9.143:2021, 6.3.5, table 6
 	key->exportability = exportability;
 	switch (exportability) {
 		case TR31_KEY_EXPORT_TRUSTED:
@@ -485,7 +485,7 @@ int tr31_key_set_key_version(struct tr31_key_t* key, const char* key_version)
 	}
 
 	// decode key version number field
-	// see TR-31:2018, A.5.4, table 9
+	// see ANSI X9.143:2021, 6.3.4, table 5
 	if (key_version[0] == '0' && key_version[1] == '0') {
 		key->key_version = TR31_KEY_VERSION_IS_UNUSED;
 		key->key_version_value = 0;
@@ -512,7 +512,7 @@ int tr31_key_get_key_version(const struct tr31_key_t* key, char* key_version)
 	}
 
 	// encode key version number field
-	// see TR-31:2018, A.5.4, table 9
+	// see ANSI X9.143:2021, 6.3.4, table 5
 	switch (key->key_version) {
 		case TR31_KEY_VERSION_IS_UNUSED:
 			memset(key_version, '0', sizeof_field(struct tr31_header_t, key_version));
@@ -2391,7 +2391,7 @@ const char* tr31_get_key_usage_string(unsigned int usage)
 
 const char* tr31_get_key_algorithm_string(unsigned int algorithm)
 {
-	// see TR-31:2018, A.5.2, table 7
+	// see ANSI X9.143:2021, 6.3.2, table 3
 	switch (algorithm) {
 		case TR31_KEY_ALGORITHM_AES:    return "AES";
 		case TR31_KEY_ALGORITHM_DES:    return "DES";
@@ -2407,12 +2407,12 @@ const char* tr31_get_key_algorithm_string(unsigned int algorithm)
 
 const char* tr31_get_key_mode_of_use_string(unsigned int mode_of_use)
 {
-	// see TR-31:2018, A.5.3, table 8
+	// see ANSI X9.143:2021, 6.3.3, table 4
 	switch (mode_of_use) {
-		case TR31_KEY_MODE_OF_USE_ENC_DEC:      return "Encrypt and Decrypt (Wrap and Unwrap)";
-		case TR31_KEY_MODE_OF_USE_MAC:          return "MAC Calculate (Generate and Verify)";
-		case TR31_KEY_MODE_OF_USE_DEC:          return "Decrypt / Unwrap Only";
-		case TR31_KEY_MODE_OF_USE_ENC:          return "Encrypt / Wrap Only";
+		case TR31_KEY_MODE_OF_USE_ENC_DEC:      return "Encrypt/Wrap and Decrypt/Unwrap";
+		case TR31_KEY_MODE_OF_USE_MAC:          return "MAC Generate and Verify";
+		case TR31_KEY_MODE_OF_USE_DEC:          return "Decrypt/Unwrap Only";
+		case TR31_KEY_MODE_OF_USE_ENC:          return "Encrypt/Wrap Only";
 		case TR31_KEY_MODE_OF_USE_MAC_GEN:      return "MAC Generate Only";
 		case TR31_KEY_MODE_OF_USE_ANY:          return "No special restrictions";
 		case TR31_KEY_MODE_OF_USE_SIG:          return "Signature Only";
@@ -2426,7 +2426,7 @@ const char* tr31_get_key_mode_of_use_string(unsigned int mode_of_use)
 
 const char* tr31_get_key_exportability_string(unsigned int exportability)
 {
-	// see TR-31:2018, A.5.5, table 10
+	// see ANSI X9.143:2021, 6.3.5, table 6
 	switch (exportability) {
 		case TR31_KEY_EXPORT_TRUSTED:           return "Exportable in a trusted key block only";
 		case TR31_KEY_EXPORT_NONE:              return "Not exportable";

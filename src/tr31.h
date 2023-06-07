@@ -81,7 +81,7 @@ enum tr31_version_t {
 #define TR31_KEY_USAGE_PVK_X9_132_ALG_2 (0x5634) ///< Key Usage V4: PIN Verification Key (ANSI X9.132 algorithm 2)
 #define TR31_KEY_USAGE_PVK_X9_132_ALG_3 (0x5635) ///< Key Usage V5: PIN Verification Key (ANSI X9.132 algorithm 3)
 
-// TR-31 algorithm (see TR-31:2018, A.5.2, table 7)
+// TR-31 algorithm (see ANSI X9.143:2021, 6.3.2, table 3)
 #define TR31_KEY_ALGORITHM_AES          ('A') ///< Key Algorithm A: AES
 #define TR31_KEY_ALGORITHM_DES          ('D') ///< Key Algorithm D: DES
 #define TR31_KEY_ALGORITHM_EC           ('E') ///< Key Algorithm E: Elliptic Curve
@@ -90,11 +90,11 @@ enum tr31_version_t {
 #define TR31_KEY_ALGORITHM_DSA          ('S') ///< Key Algorithm S: DSA
 #define TR31_KEY_ALGORITHM_TDES         ('T') ///< Key Algorithm T: Triple DES
 
-// TR-31 mode of use (see TR-31:2018, A.5.3, table 8)
-#define TR31_KEY_MODE_OF_USE_ENC_DEC    ('B') ///< Key Mode of Use B: Encrypt and Decrypt (Wrap and Unwrap)
-#define TR31_KEY_MODE_OF_USE_MAC        ('C') ///< Key Mode of Use C: MAC Calculate (Generate and Verify)
-#define TR31_KEY_MODE_OF_USE_DEC        ('D') ///< Key Mode of Use D: Decrypt / Unwrap Only
-#define TR31_KEY_MODE_OF_USE_ENC        ('E') ///< Key Mode of Use E: Encrypt / Wrap Only
+// TR-31 mode of use (see ANSI X9.143:2021, 6.3.3, table 4)
+#define TR31_KEY_MODE_OF_USE_ENC_DEC    ('B') ///< Key Mode of Use B: Encrypt/Wrap and Decrypt/Unwrap
+#define TR31_KEY_MODE_OF_USE_MAC        ('C') ///< Key Mode of Use C: MAC Generate and Verify
+#define TR31_KEY_MODE_OF_USE_DEC        ('D') ///< Key Mode of Use D: Decrypt/Unwrap Only
+#define TR31_KEY_MODE_OF_USE_ENC        ('E') ///< Key Mode of Use E: Encrypt/Wrap Only
 #define TR31_KEY_MODE_OF_USE_MAC_GEN    ('G') ///< Key Mode of Use G: MAC Generate Only
 #define TR31_KEY_MODE_OF_USE_ANY        ('N') ///< Key Mode of Use N: No special restrictions or not applicable (other than restrictions implied by the Key Usage)
 #define TR31_KEY_MODE_OF_USE_SIG        ('S') ///< Key Mode of Use S: Signature Only
@@ -102,14 +102,14 @@ enum tr31_version_t {
 #define TR31_KEY_MODE_OF_USE_DERIVE     ('X') ///< Key Mode of Use X: Key Derivation
 #define TR31_KEY_MODE_OF_USE_VARIANT    ('Y') ///< Key Mode of Use Y: Create Key Variants
 
-/// TR-31 key version field interpretation (see TR-31:2018, A.5.4, table 9)
+/// TR-31 key version field interpretation (see ANSI X9.143:2021, 6.3.4, table 5)
 enum tr31_key_version_t {
 	TR31_KEY_VERSION_IS_UNUSED = 0, ///< Key version field unused
 	TR31_KEY_VERSION_IS_COMPONENT, ///< key version field is component number
 	TR31_KEY_VERSION_IS_VALID, ///< Key version field is valid
 };
 
-// TR-31 exportability (see TR-31:2018, A.5.5, table 10)
+// TR-31 exportability (see ANSI X9.143:2021, 6.3.5, table 6)
 #define TR31_KEY_EXPORT_TRUSTED         ('E') ///< Exportability E: Exportable in a trusted key block in accordance with ANSI X9.24
 #define TR31_KEY_EXPORT_NONE            ('N') ///< Exportability N: Not exportable
 #define TR31_KEY_EXPORT_SENSITIVE       ('S') ///< Exportability S: Sensitive; exportable in forms not in accordance with ANSI X9.24; eg ANSI X9.17
@@ -259,7 +259,7 @@ const char* tr31_lib_version_string(void);
  * @param usage TR-31 key usage
  * @param algorithm TR-31 key algorithm
  * @param mode_of_use TR-31 key mode of use
- * @param key_version TR-31 key version; two bytes (see TR-31:2018, A.5.4, table 9)
+ * @param key_version TR-31 key version; two bytes (see ANSI X9.143:2021, 6.3.4, table 5)
  * @param exportability TR-31 key exportability
  * @param data Key data. If NULL, use @ref tr31_key_set_data() to populate key data later.
  * @param length Length of key data in bytes
@@ -315,7 +315,7 @@ int tr31_key_set_data(struct tr31_key_t* key, const void* data, size_t length);
 /**
  * Decode TR-31 key version field and populate it in TR-31 key object
  * @param key TR-31 key object
- * @param key_version TR-31 key version; two bytes (see TR-31:2018, A.5.4, table 9)
+ * @param key_version TR-31 key version; two bytes (see ANSI X9.143:2021, 6.3.4, table 5)
  * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
  */
 int tr31_key_set_key_version(struct tr31_key_t* key, const char* key_version);
@@ -323,7 +323,7 @@ int tr31_key_set_key_version(struct tr31_key_t* key, const char* key_version);
 /**
  * Retrieve key version from TR-31 key object and encode as TR-31 key version field
  * @param key TR-31 key object
- * @param key_version TR-31 key version; two bytes (see TR-31:2018, A.5.4, table 9)
+ * @param key_version TR-31 key version; two bytes (see ANSI X9.143:2021, 6.3.4, table 5)
  * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
  */
 int tr31_key_get_key_version(const struct tr31_key_t* key, char* key_version);
