@@ -57,6 +57,7 @@ struct tr31_tool_options_t {
 	uint8_t export_opt_block_AL_akl;
 	size_t export_opt_block_BI_buf_len;
 	uint8_t export_opt_block_BI_buf[5];
+	const char* export_opt_block_DA;
 	uint8_t export_opt_block_HM;
 	size_t export_opt_block_IK_buf_len;
 	uint8_t export_opt_block_IK_buf[8];
@@ -95,6 +96,7 @@ enum tr31_tool_option_keys_t {
 	TR31_TOOL_OPTION_EXPORT_HEADER,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_AL,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_BI,
+	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_DA,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_HM,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_IK,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KC,
@@ -122,6 +124,7 @@ static struct argp_option argp_options[] = {
 	{ "export-header", TR31_TOOL_OPTION_EXPORT_HEADER, "KEYBLOCK-HEADER", 0, "TR-31 key block header to use for export. Key block length field in the header will be ignored." },
 	{ "export-opt-block-AL", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_AL, "Ephemeral|Static", 0, "Add optional block AL (Asymmetric Key Life) during TR-31 export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-BI", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_BI, "BDK-ID", 0, "Add optional block BI (Base Derivation Key Identifier) during TR-31 export. May be used with either --export-template or --export-header." },
+	{ "export-opt-block-DA", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_DA, "DA-sets", 0, "Add optional block DA (Derivations Allowed) during TR-31 export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-HM", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_HM, "Hash-ID", 0, "Add optional block HM (HMAC algorithm) during TR-31 export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-IK", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_IK, "IKID", 0, "Add optional block IK (Initial Key Identifier) during TR-31 export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-KC", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KC, NULL, 0, "Add optional block KC (KCV of wrapped key) during TR-31 export. May be used with either --export-template or --export-header." },
@@ -311,6 +314,20 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			if (r) {
 				argp_error(state, "Export optional block BI must consist of hex digits");
 			}
+			return 0;
+		}
+
+		case TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_DA: {
+			size_t arg_len = strlen(arg);
+			if (arg_len % 5 != 0) {
+				argp_error(state, "Export optional block DA must be a multiple of 5 bytes");
+			}
+			for (size_t i = 0; i < strlen(arg); ++i) {
+				if (!isprint(arg[i]) || isspace(arg[i])) {
+					argp_error(state, "Export header must consist of printable characters (invalid character '%c' is not allowed)", arg[i]);
+				}
+			}
+			options->export_opt_block_DA = arg;
 			return 0;
 		}
 
@@ -692,6 +709,7 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 					}
 					break;
 
+				case TR31_OPT_BLOCK_DA:
 				case TR31_OPT_BLOCK_WP:
 					// for some optional blocks, skip the first two bytes
 					if (tr31_ctx.opt_blocks[i].data_length > 2) {
@@ -896,6 +914,23 @@ static int populate_opt_blocks(const struct tr31_tool_options_t* options, struct
 		);
 		if (r) {
 			fprintf(stderr, "Failed to add optional block BI; error %d: %s\n", r, tr31_get_error_string(r));
+			return 1;
+		}
+	}
+
+	if (options->export_opt_block_DA) {
+		if (tr31_ctx->key.usage != TR31_KEY_USAGE_KDK) {
+			fprintf(stderr, "Export optional block DA is only allowed for Key Derivation Keys (key usage B3)\n");
+			return 1;
+		}
+
+		r = tr31_opt_block_add_DA(
+			tr31_ctx,
+			options->export_opt_block_DA,
+			strlen(options->export_opt_block_DA)
+		);
+		if (r) {
+			fprintf(stderr, "Failed to add optional block DA; error %d: %s\n", r, tr31_get_error_string(r));
 			return 1;
 		}
 	}

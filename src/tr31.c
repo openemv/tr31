@@ -79,6 +79,7 @@ static int hex_to_int(const char* str, size_t str_len);
 static void int_to_hex(unsigned int value, char* str, size_t str_len);
 static int hex_to_bin(const char* hex, void* bin, size_t bin_len);
 static int bin_to_hex(const void* bin, size_t bin_len, char* str, size_t str_len);
+static int tr31_validate_format_an(const char* buf, size_t buf_len);
 static int tr31_validate_format_pa(const char* buf, size_t buf_len);
 static int tr31_opt_block_parse(const struct tr31_opt_blk_t* opt_blk, size_t remaining_len, size_t* opt_block_len, struct tr31_opt_ctx_t* opt_ctx);
 static int tr31_opt_block_validate_iso8601(const char* ts_str, size_t ts_str_len);
@@ -221,6 +222,25 @@ static int bin_to_hex(const void* bin, size_t bin_len, char* hex, size_t hex_len
 		} else {
 			hex[(i * 2) + 1] = digit - 0xA + 'A';
 		}
+	}
+
+	return 0;
+}
+
+static int tr31_validate_format_an(const char* buf, size_t buf_len)
+{
+	while (buf_len--) {
+		// alphanumeric characters are in the ranges 0x30 - 0x39, 0x41 - 0x5A
+		// and 0x61 - 0x7A
+		// see ANSI X9.143:2021, 4
+		if ((*buf < 0x30 || *buf > 0x39) &&
+			(*buf < 0x41 || *buf > 0x5A) &&
+			(*buf < 0x61 || *buf > 0x7A)
+		) {
+			return -1;
+		}
+
+		++buf;
 	}
 
 	return 0;
@@ -662,6 +682,40 @@ int tr31_opt_block_add_BI(
 	buf[0] = key_type;
 	memcpy(&buf[1], bdkid, bdkid_len);
 	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_BI, buf, bdkid_len + 1);
+}
+
+int tr31_opt_block_add_DA(
+	struct tr31_ctx_t* ctx,
+	const void* da,
+	size_t da_len
+)
+{
+	int r;
+	char* buf;
+
+	if (!ctx || !da) {
+		return -1;
+	}
+
+	if (!da_len || (da_len % 5 != 0)) {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+
+	// validate as alphanumeric (format AN)
+	// see ANSI X9.143:2021, 6.3.6.4, table 12
+	r = tr31_validate_format_an(da, da_len);
+	if (r) {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+
+	// NOTE: tr31_opt_block_export() copies this optional block verbatim
+	buf = malloc(da_len + 2);
+	int_to_hex(TR31_OPT_BLOCK_DA_VERSION_1, buf, 2);
+	memcpy(buf + 2, da, da_len);
+	r = tr31_opt_block_add(ctx, TR31_OPT_BLOCK_DA, buf, da_len + 2);
+	free(buf);
+
+	return r;
 }
 
 int tr31_opt_block_add_HM(
@@ -1629,6 +1683,17 @@ static int tr31_opt_block_parse(
 			}
 			return 0;
 
+		// optional blocks to be validated as alphanumeric (format AN)
+		case TR31_OPT_BLOCK_DA:
+			opt_ctx->data_length = (*opt_blk_len - 4);
+			opt_ctx->data = calloc(1, opt_ctx->data_length);
+			r = tr31_validate_format_an(opt_blk->data, opt_ctx->data_length);
+			if (r) {
+				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+			}
+			memcpy(opt_ctx->data, opt_blk->data, opt_ctx->data_length);
+			return 0;
+
 		// optional blocks to be validated as printable ASCII (format PA)
 		case TR31_OPT_BLOCK_LB:
 		case TR31_OPT_BLOCK_PB:
@@ -2467,6 +2532,7 @@ const char* tr31_get_opt_block_id_string(unsigned int opt_block_id)
 		case TR31_OPT_BLOCK_AL:         return "Asymmetric Key Life (AKL)";
 		case TR31_OPT_BLOCK_BI:         return "Base Derivation Key (BDK) Identifier";
 		case TR31_OPT_BLOCK_CT:         return "Public Key Certificate";
+		case TR31_OPT_BLOCK_DA:         return "Derivation(s) Allowed for Derivation Keys";
 		case TR31_OPT_BLOCK_FL:         return "Flags";
 		case TR31_OPT_BLOCK_HM:         return "Hash algorithm for HMAC";
 		case TR31_OPT_BLOCK_IK:         return "Initial Key Identifier (IKID)";

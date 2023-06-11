@@ -524,25 +524,26 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 	)
 
 	add_test(NAME tr31_tool_test31
-		COMMAND tr31-tool --kbpk 88E1AB2A2E3DD38C1FA039A536500CC8A87AB9D62DC92C01058FA79F44657DE6 --export 3F419E1CB7079442AA37474C2EFBF8B8 --export-header D0000B2AX00E0000 --export-opt-block-LB "My Great Key" --export-opt-block-PK 9876543210 --export-opt-block-WP 3
+		COMMAND tr31-tool --kbpk 88E1AB2A2E3DD38C1FA039A536500CC8A87AB9D62DC92C01058FA79F44657DE6 --export 3F419E1CB7079442AA37474C2EFBF8B8 --export-header D0000B3AX00E0000 --export-opt-block-DA D2ABND3AEN --export-opt-block-LB "My Great Key" --export-opt-block-PK 9876543210 --export-opt-block-WP 3
 	)
 	set_tests_properties(tr31_tool_test31
 		PROPERTIES
-			PASS_REGULAR_EXPRESSION "^D0160B2AX00E0400LB10My Great KeyPK10019876543210WP07003PB09"
+			PASS_REGULAR_EXPRESSION "^D0176B3AX00E0500DA1001D2ABND3AENLB10My Great KeyPK10019876543210WP07003PB09"
 	)
 
 	add_test(NAME tr31_tool_test32
-		COMMAND tr31-tool --kbpk 88E1AB2A2E3DD38C1FA039A536500CC8A87AB9D62DC92C01058FA79F44657DE6 --import "D0160B2AX00E0400LB10My Great KeyPK10019876543210WP07003PB09Acsov86B1E51B7B1E2DD6D6A738EED73C96D1230739B102B21FDF3EC7FD131CBE374C6E91D8517F1D447A393B16AC26C09A9E"
+		COMMAND tr31-tool --kbpk 88E1AB2A2E3DD38C1FA039A536500CC8A87AB9D62DC92C01058FA79F44657DE6 --import "D0176B3AX00E0500DA1001D2ABND3AENLB10My Great KeyPK10019876543210WP07003PB09Acsov0CB68D911DFE624A4DE1661EC5E6E0B9233A2511CCF78ED0FAF6F41E367780C362D96874CB3861BD07E7FD7BA7D9B416"
 	)
 	string(CONCAT tr31_tool_test32_regex
 		"^Key block format version: D[\r\n]"
-		"Key block length: 160 bytes[\r\n]"
-		"Key usage: \\[B2\\] Base Key Variant Key[\r\n]"
+		"Key block length: 176 bytes[\r\n]"
+		"Key usage: \\[B3\\] Key Derivation Key[\r\n]"
 		"Key algorithm: \\[A\\] AES[\r\n]"
 		"Key mode of use: \\[X\\] Key Derivation[\r\n]"
 		"Key version: Unused[\r\n]"
 		"Key exportability: \\[E\\] Exportable in a trusted key block only[\r\n]"
-		"Optional blocks \\[4\\]:[\r\n]"
+		"Optional blocks \\[5\\]:[\r\n]"
+		"\t\\[DA\\] Derivation\\(s\\) Allowed for Derivation Keys: D2ABND3AEN[\r\n]"
 		"\t\\[LB\\] Label: \"My Great Key\"[\r\n]"
 		"\t\\[PK\\] Protection Key Check Value \\(KCV\\) of export KBPK: 9876543210 \\(CMAC based KCV\\)[\r\n]"
 		"\t\\[WP\\] Wrapping Pedigree: 3 \\(Asymmetric key at risk of quantum computing and symmetric key of lesser effective strength\\)[\r\n]"

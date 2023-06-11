@@ -118,6 +118,7 @@ enum tr31_key_version_t {
 #define TR31_OPT_BLOCK_AL               (0x414C) ///< Optional Block AL: Asymmetric Key Life (AKL) attribute
 #define TR31_OPT_BLOCK_BI               (0x4249) ///< Optional Block BI: Base Derivation Key Identifier (BDK) for DUKPT (see ANSI X9.24-3:2017, 4.7)
 #define TR31_OPT_BLOCK_CT               (0x4354) ///< Optional Block CT: Public Key Certificate
+#define TR31_OPT_BLOCK_DA               (0x4441) ///< Optional Block DA: Derivation(s) Allowed for Derivation Keys
 #define TR31_OPT_BLOCK_FL               (0x464C) ///< Optional Block FL: Flags
 #define TR31_OPT_BLOCK_HM               (0x484D) ///< Optional Block HM: Hash algorithm for HMAC
 #define TR31_OPT_BLOCK_IK               (0x494B) ///< Optional Block IK: Initial Key Identifier (IKID) for Initial AES DUKPT Key (see ANSI X9.24-3:2017, 4.17)
@@ -140,6 +141,9 @@ enum tr31_key_version_t {
 // TR-31 Base Derivation Key Identifier (BDK ID) for DUKPT optional block format (see ANSI X9.143:2021, 6.3.6.2, table 9)
 #define TR31_OPT_BLOCK_BI_TDES_DUKPT    (0x00) ///< TDES DUKPT Key Set ID (KSI)
 #define TR31_OPT_BLOCK_BI_AES_DUKPT     (0x01) ///< AES DUKPT Base Derivation Key ID (BDK ID)
+
+// TR-31 Derivation(s) Allowed optional block format (see ANSI X9.143:2021, 6.3.6.4, table 12)
+#define TR31_OPT_BLOCK_DA_VERSION_1     (0x01) ///< Derivation(s) Allowed version: 1
 
 // TR-31 HMAC optional block format (see ANSI X9.143:2021, 6.3.6.5, table 13)
 #define TR31_OPT_BLOCK_HM_SHA1          (0x10) ///< HMAC Hash Algorithm 10: SHA-1
@@ -394,6 +398,23 @@ int tr31_opt_block_add_BI(
 	uint8_t key_type,
 	const void* bdkid,
 	size_t bdkid_len
+);
+
+/**
+ * Add optional block 'DA' for Derivation(s) Allowed for Derivation Keys to
+ * TR-31 context object.
+ *
+ * @note This function requires an initialised TR-31 context object to be provided.
+ *
+ * @param ctx TR-31 context object
+ * @param da Derivation sets (without version) as specified in ANSI X9.143:2021, 6.3.6.4
+ * @param da_len Length of @p da in bytes. Must be a multiple of 5 bytes.
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
+ */
+int tr31_opt_block_add_DA(
+	struct tr31_ctx_t* ctx,
+	const void* da,
+	size_t da_len
 );
 
 /**
