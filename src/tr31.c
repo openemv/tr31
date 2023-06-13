@@ -1135,6 +1135,7 @@ int tr31_import(
 
 	switch (ctx->version) {
 		case TR31_VERSION_A:
+		case TR31_VERSION_B:
 		case TR31_VERSION_C: {
 			// only allow TDES key block protection keys
 			if (kbpk->algorithm != TR31_KEY_ALGORITHM_TDES) {
@@ -1143,59 +1144,54 @@ int tr31_import(
 			}
 
 			// validate payload length
-			if (ctx->payload_length != TR31_TDES2_KEY_UNDER_DES_LENGTH &&
-				ctx->payload_length != TR31_TDES3_KEY_UNDER_DES_LENGTH
-			) {
-				r = TR31_ERROR_INVALID_KEY_LENGTH;
-				goto error;
+			switch (ctx->key.algorithm) {
+				case TR31_KEY_ALGORITHM_TDES:
+					if (ctx->payload_length != TR31_TDES2_KEY_UNDER_DES_LENGTH &&
+						ctx->payload_length != TR31_TDES3_KEY_UNDER_DES_LENGTH
+					) {
+						r = TR31_ERROR_INVALID_KEY_LENGTH;
+						goto error;
+					}
+					break;
+
+				default:
+					if (ctx->payload_length & (DES_BLOCK_SIZE-1)) {
+						// payload length must be a multiple of TDES block size
+						// for format version A, B, C
+						r = TR31_ERROR_INVALID_KEY_LENGTH;
+						goto error;
+					}
 			}
 
-			// verify and decrypt payload
-			r = tr31_tdes_decrypt_verify_variant_binding(ctx, kbpk);
+			if (ctx->version == TR31_VERSION_A || ctx->version == TR31_VERSION_C) {
+				// verify and decrypt payload
+				r = tr31_tdes_decrypt_verify_variant_binding(ctx, kbpk);
+			} else if (ctx->version == TR31_VERSION_B) {
+				// decrypt and verify payload
+				r = tr31_tdes_decrypt_verify_derivation_binding(ctx, kbpk);
+			} else {
+				// invalid format version
+				return -1;
+			}
 			if (r) {
 				// return error value as-is
 				goto error;
 			}
 
 			// validate payload length field
-			if (ctx->key.length != TDES2_KEY_SIZE &&
-				ctx->key.length != TDES3_KEY_SIZE
-			) {
-				r = TR31_ERROR_INVALID_KEY_LENGTH;
-				goto error;
-			}
+			switch (ctx->key.algorithm) {
+				case TR31_KEY_ALGORITHM_TDES:
+					if (ctx->key.length != TDES2_KEY_SIZE &&
+						ctx->key.length != TDES3_KEY_SIZE
+					) {
+						r = TR31_ERROR_INVALID_KEY_LENGTH;
+						goto error;
+					}
+					break;
 
-			break;
-		}
-
-		case TR31_VERSION_B: {
-			// only allow TDES key block protection keys
-			if (kbpk->algorithm != TR31_KEY_ALGORITHM_TDES) {
-				r = TR31_ERROR_UNSUPPORTED_KBPK_ALGORITHM;
-				goto error;
-			}
-
-			// validate payload length
-			if (ctx->payload_length != TR31_TDES2_KEY_UNDER_DES_LENGTH &&
-				ctx->payload_length != TR31_TDES3_KEY_UNDER_DES_LENGTH
-			) {
-				r = TR31_ERROR_INVALID_KEY_LENGTH;
-				goto error;
-			}
-
-			// decrypt and verify payload
-			r = tr31_tdes_decrypt_verify_derivation_binding(ctx, kbpk);
-			if (r) {
-				// return error value as-is
-				goto error;
-			}
-
-			// validate payload length field
-			if (ctx->key.length != TDES2_KEY_SIZE &&
-				ctx->key.length != TDES3_KEY_SIZE
-			) {
-				r = TR31_ERROR_INVALID_KEY_LENGTH;
-				goto error;
+				default:
+					// unsupported; continue
+					break;
 			}
 
 			break;
@@ -1209,14 +1205,33 @@ int tr31_import(
 			}
 
 			// validate payload length
-			if (ctx->payload_length != TR31_TDES2_KEY_UNDER_AES_LENGTH &&
-				ctx->payload_length != TR31_TDES3_KEY_UNDER_AES_LENGTH &&
-				ctx->payload_length != TR31_AES128_KEY_UNDER_AES_LENGTH &&
-				ctx->payload_length != TR31_AES192_KEY_UNDER_AES_LENGTH &&
-				ctx->payload_length != TR31_AES256_KEY_UNDER_AES_LENGTH
-			) {
-				r = TR31_ERROR_INVALID_KEY_LENGTH;
-				goto error;
+			switch (ctx->key.algorithm) {
+				case TR31_KEY_ALGORITHM_TDES:
+					if (ctx->payload_length != TR31_TDES2_KEY_UNDER_AES_LENGTH &&
+						ctx->payload_length != TR31_TDES3_KEY_UNDER_AES_LENGTH
+					) {
+						r = TR31_ERROR_INVALID_KEY_LENGTH;
+						goto error;
+					}
+					break;
+
+				case TR31_KEY_ALGORITHM_AES:
+					if (ctx->payload_length != TR31_AES128_KEY_UNDER_AES_LENGTH &&
+						ctx->payload_length != TR31_AES192_KEY_UNDER_AES_LENGTH &&
+						ctx->payload_length != TR31_AES256_KEY_UNDER_AES_LENGTH
+					) {
+						r = TR31_ERROR_INVALID_KEY_LENGTH;
+						goto error;
+					}
+					break;
+
+				default:
+					if (ctx->payload_length & (AES_BLOCK_SIZE-1)) {
+						// payload length must be a multiple of AES block size
+						// for format version D
+						r = TR31_ERROR_INVALID_KEY_LENGTH;
+						goto error;
+					}
 			}
 
 			// decrypt and verify payload
