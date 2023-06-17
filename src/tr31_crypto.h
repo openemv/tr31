@@ -38,19 +38,6 @@ __BEGIN_DECLS
 #define AES256_KEY_SIZE (32) ///< AES-256 key size in bytes
 #define AES_CIPHERTEXT_LENGTH(plen) (((plen) + AES_BLOCK_SIZE-1) & ~(AES_BLOCK_SIZE-1)) ///< AES ciphertext length at next block boundary
 
-#define TR31_DES_KEY_UNDER_DES_LENGTH DES_CIPHERTEXT_LENGTH(2 + DES_KEY_SIZE) ///< 2-byte length + DES key + DES padding, in bytes
-#define TR31_DES_KEY_UNDER_AES_LENGTH AES_CIPHERTEXT_LENGTH(2 + DES_KEY_SIZE) ///< 2-byte length + DES key + AES padding, in bytes
-
-#define TR31_TDES2_KEY_UNDER_DES_LENGTH DES_CIPHERTEXT_LENGTH(2 + TDES2_KEY_SIZE) ///< 2-byte length + TDES2 key + DES padding, in bytes
-#define TR31_TDES2_KEY_UNDER_AES_LENGTH AES_CIPHERTEXT_LENGTH(2 + TDES2_KEY_SIZE) ///< 2-byte length + TDES2 key + AES padding, in bytes
-
-#define TR31_TDES3_KEY_UNDER_DES_LENGTH DES_CIPHERTEXT_LENGTH(2 + TDES3_KEY_SIZE) ///< 2-byte length + TDES3 key + DES padding, in bytes
-#define TR31_TDES3_KEY_UNDER_AES_LENGTH AES_CIPHERTEXT_LENGTH(2 + TDES3_KEY_SIZE) ///< 2-byte length + TDES3 key + AES padding, in bytes
-
-#define TR31_AES128_KEY_UNDER_AES_LENGTH AES_CIPHERTEXT_LENGTH(2 + AES128_KEY_SIZE) ///< 2-byte length + AES-128 key + AES padding, in bytes
-#define TR31_AES192_KEY_UNDER_AES_LENGTH AES_CIPHERTEXT_LENGTH(2 + AES192_KEY_SIZE) ///< 2-byte length + AES-192 key + AES padding, in bytes
-#define TR31_AES256_KEY_UNDER_AES_LENGTH AES_CIPHERTEXT_LENGTH(2 + AES256_KEY_SIZE) ///< 2-byte length + AES-256 key + AES padding, in bytes
-
 /// TR-31 AES block mode
 enum tr31_aes_mode_t {
 	TR31_AES_MODE_CBC = 1,

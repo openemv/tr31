@@ -85,6 +85,7 @@ static int tr31_opt_block_parse(const struct tr31_opt_blk_t* opt_blk, size_t rem
 static int tr31_opt_block_validate_iso8601(const char* ts_str, size_t ts_str_len);
 static int tr31_opt_block_export(const struct tr31_opt_ctx_t* opt_ctx, size_t remaining_len, size_t* opt_blk_len, struct tr31_opt_blk_t* opt_blk);
 static int tr31_opt_block_export_PB(size_t pb_len, struct tr31_opt_blk_t* opt_blk);
+static int tr31_compute_final_lengths(struct tr31_ctx_t* ctx);
 static int tr31_tdes_decrypt_verify_variant_binding(struct tr31_ctx_t* ctx, const struct tr31_key_t* kbpk);
 static int tr31_tdes_encrypt_sign_variant_binding(struct tr31_ctx_t* ctx, const struct tr31_key_t* kbpk);
 static int tr31_tdes_decrypt_verify_derivation_binding(struct tr31_ctx_t* ctx, const struct tr31_key_t* kbpk);
@@ -402,6 +403,23 @@ int tr31_key_init(
 
 	// if key data is available, copy it
 	if (data && length) {
+		// validate key length by algorithm
+		switch (algorithm) {
+			case TR31_KEY_ALGORITHM_TDES:
+				if (length > 24) {
+					// invalid TDES key length
+					return TR31_ERROR_INVALID_KEY_LENGTH;
+				}
+				break;
+
+			case TR31_KEY_ALGORITHM_AES:
+				if (length > 32) {
+					// invalid AES key length
+					return TR31_ERROR_INVALID_KEY_LENGTH;
+				}
+				break;
+		}
+
 		r = tr31_key_set_data(key, data, length);
 		if (r) {
 			// return error value as-is
@@ -1144,23 +1162,16 @@ int tr31_import(
 			}
 
 			// validate payload length
-			switch (ctx->key.algorithm) {
-				case TR31_KEY_ALGORITHM_TDES:
-					if (ctx->payload_length != TR31_TDES2_KEY_UNDER_DES_LENGTH &&
-						ctx->payload_length != TR31_TDES3_KEY_UNDER_DES_LENGTH
-					) {
-						r = TR31_ERROR_INVALID_KEY_LENGTH;
-						goto error;
-					}
-					break;
-
-				default:
-					if (ctx->payload_length & (DES_BLOCK_SIZE-1)) {
-						// payload length must be a multiple of TDES block size
-						// for format version A, B, C
-						r = TR31_ERROR_INVALID_KEY_LENGTH;
-						goto error;
-					}
+			// ANSI X9.143:2021 requires key length obfuscation padding up to
+			// the maximum key length for the algorithm while TR-31:2018 does
+			// not appear to indicate a minimum or maximum for key length
+			// padding, and therefore this implementation only enforces the
+			// cipher block size
+			if (ctx->payload_length & (DES_BLOCK_SIZE-1)) {
+				// payload length must be a multiple of TDES block size
+				// for format version A, B, C
+				r = TR31_ERROR_INVALID_KEY_LENGTH;
+				goto error;
 			}
 
 			if (ctx->version == TR31_VERSION_A || ctx->version == TR31_VERSION_C) {
@@ -1205,33 +1216,16 @@ int tr31_import(
 			}
 
 			// validate payload length
-			switch (ctx->key.algorithm) {
-				case TR31_KEY_ALGORITHM_TDES:
-					if (ctx->payload_length != TR31_TDES2_KEY_UNDER_AES_LENGTH &&
-						ctx->payload_length != TR31_TDES3_KEY_UNDER_AES_LENGTH
-					) {
-						r = TR31_ERROR_INVALID_KEY_LENGTH;
-						goto error;
-					}
-					break;
-
-				case TR31_KEY_ALGORITHM_AES:
-					if (ctx->payload_length != TR31_AES128_KEY_UNDER_AES_LENGTH &&
-						ctx->payload_length != TR31_AES192_KEY_UNDER_AES_LENGTH &&
-						ctx->payload_length != TR31_AES256_KEY_UNDER_AES_LENGTH
-					) {
-						r = TR31_ERROR_INVALID_KEY_LENGTH;
-						goto error;
-					}
-					break;
-
-				default:
-					if (ctx->payload_length & (AES_BLOCK_SIZE-1)) {
-						// payload length must be a multiple of AES block size
-						// for format version D
-						r = TR31_ERROR_INVALID_KEY_LENGTH;
-						goto error;
-					}
+			// ANSI X9.143:2021 requires key length obfuscation padding up to
+			// the maximum key length for the algorithm while neither
+			// TR-31:2018 nor ISO 20038:2017 appear to indicate a minimum or
+			// maximum for key length padding, and therefore this
+			// implementation only enforces the cipher block size
+			if (ctx->payload_length & (AES_BLOCK_SIZE-1)) {
+				// payload length must be a multiple of AES block size
+				// for format version D
+				r = TR31_ERROR_INVALID_KEY_LENGTH;
+				goto error;
 			}
 
 			// decrypt and verify payload
@@ -1357,35 +1351,26 @@ int tr31_export(
 	memset(key_block, 0, key_block_len);
 
 	// validate key block format version
-	// set associated payload length and authenticator length
 	// set encryption block size for header padding
 	switch (ctx->version) {
 		case TR31_VERSION_A:
 		case TR31_VERSION_C:
 			// supported
-			ctx->payload_length = DES_CIPHERTEXT_LENGTH(sizeof(struct tr31_payload_t) + ctx->key.length);
-			ctx->authenticator_length = 4; // 4 bytes; 8 ASCII hex digits
 			enc_block_size = DES_BLOCK_SIZE;
 			break;
 
 		case TR31_VERSION_B:
 			// supported
-			ctx->payload_length = DES_CIPHERTEXT_LENGTH(sizeof(struct tr31_payload_t) + ctx->key.length);
-			ctx->authenticator_length = 8; // 8 bytes; 16 ASCII hex digits
 			enc_block_size = DES_BLOCK_SIZE;
 			break;
 
 		case TR31_VERSION_D:
 			// supported
-			ctx->payload_length = AES_CIPHERTEXT_LENGTH(sizeof(struct tr31_payload_t) + ctx->key.length);
-			ctx->authenticator_length = 16; // 16 bytes; 32 ASCII hex digits
 			enc_block_size = AES_BLOCK_SIZE;
 			break;
 
 		case TR31_VERSION_E:
 			// supported
-			ctx->payload_length = sizeof(struct tr31_payload_t) + ctx->key.length; // no padding required
-			ctx->authenticator_length = 16; // 16 bytes; 32 ASCII hex digits
 			enc_block_size = AES_BLOCK_SIZE;
 			break;
 
@@ -1521,18 +1506,21 @@ int tr31_export(
 	ctx->header_length = ptr - (void*)header;
 	ctx->header = (void*)header;
 
-	// determine final key block length
-	// this is required before authenticator can be generated
-	size_t final_key_block_len =
-		+ ctx->header_length
-		+ (ctx->payload_length * 2)
-		+ (ctx->authenticator_length * 2);
-	if (final_key_block_len > key_block_len) {
+	// determine final key block lengths, including key obfuscation padding
+	// this will populate these fields:
+	// - ctx->length
+	// - ctx->payload_length
+	// - ctx->authenticator_length
+	r = tr31_compute_final_lengths(ctx);
+	if (r) {
+		// return error value as-is
+		return r;
+	}
+	if (ctx->length > key_block_len) {
 		return TR31_ERROR_INVALID_LENGTH;
 	}
 
 	// update key block length in header
-	ctx->length = final_key_block_len;
 	int_to_dec(ctx->length, header->length, sizeof(header->length));
 
 	// free internal buffers that my be populated due to reuse of the context object
@@ -1893,6 +1881,80 @@ static int tr31_opt_block_export_PB(size_t pb_len, struct tr31_opt_blk_t* opt_bl
 			return -1;
 		}
 	}
+
+	return 0;
+}
+
+static int tr31_compute_final_lengths(struct tr31_ctx_t* ctx)
+{
+	size_t padded_key_length;
+
+	// validate key length by algorithm
+	// this ensures that key length cannot exceed padded key length
+	switch (ctx->key.algorithm) {
+		case TR31_KEY_ALGORITHM_TDES:
+			if (ctx->key.length > 24) {
+				// invalid TDES key length
+				return TR31_ERROR_INVALID_KEY_LENGTH;
+			}
+			break;
+
+		case TR31_KEY_ALGORITHM_AES:
+			if (ctx->key.length > 32) {
+				// invalid AES key length
+				return TR31_ERROR_INVALID_KEY_LENGTH;
+			}
+			break;
+	}
+
+	// use key length as-is by default
+	padded_key_length = ctx->key.length;
+
+	// apply key length obfuscation
+	// see ANSI X9.143:2021, 5 and 6.1
+	switch (ctx->key.algorithm) {
+		case TR31_KEY_ALGORITHM_TDES:
+			// use maximum TDES length
+			padded_key_length = 24;
+			break;
+
+		case TR31_KEY_ALGORITHM_AES:
+			// use maximum AES length
+			padded_key_length = 32;
+			break;
+	}
+
+	switch (ctx->version) {
+		case TR31_VERSION_A:
+		case TR31_VERSION_C:
+			ctx->payload_length = DES_CIPHERTEXT_LENGTH(sizeof(struct tr31_payload_t) + padded_key_length);
+			ctx->authenticator_length = 4; // 4 bytes; 8 ASCII hex digits
+			break;
+
+		case TR31_VERSION_B:
+			ctx->payload_length = DES_CIPHERTEXT_LENGTH(sizeof(struct tr31_payload_t) + padded_key_length);
+			ctx->authenticator_length = 8; // 8 bytes; 16 ASCII hex digits
+			break;
+
+		case TR31_VERSION_D:
+			ctx->payload_length = AES_CIPHERTEXT_LENGTH(sizeof(struct tr31_payload_t) + padded_key_length);
+			ctx->authenticator_length = 16; // 16 bytes; 32 ASCII hex digits
+			break;
+
+		case TR31_VERSION_E:
+			ctx->payload_length = sizeof(struct tr31_payload_t) + padded_key_length; // no additional padding required
+			ctx->authenticator_length = 16; // 16 bytes; 32 ASCII hex digits
+			break;
+
+		default:
+			// unsupported
+			return TR31_ERROR_UNSUPPORTED_VERSION;
+	}
+
+	ctx->length =
+		+ ctx->header_length
+		+ (ctx->payload_length * 2)
+		+ (ctx->authenticator_length * 2);
 
 	return 0;
 }
