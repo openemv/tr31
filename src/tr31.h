@@ -167,6 +167,9 @@ enum tr31_key_version_t {
 // TR-31 Wrapping Pedigree (WP) optional block format (see ANSI X9.143:2021, 6.3.6.15, table 23)
 #define TR31_OPT_BLOCK_WP_VERSION_0     (0x00) ///< Wrapping Pedigree (WP) version: 0
 
+// TR-31 export flags
+#define TR31_EXPORT_NO_KEY_LENGTH_OBFUSCATION   (0x01) ///< Disable ANSI X9.143 key length obfuscation during key block export
+
 /// TR-31 key object
 struct tr31_key_t {
 	unsigned int usage; ///< TR-31 key usage
@@ -225,6 +228,8 @@ struct tr31_ctx_t {
 
 	size_t authenticator_length; ///< TR-31 authenticator data length in bytes
 	void* authenticator; ///< Decoded TR-31 authenticator data for internal use only. @warning For internal use only!
+
+	uint32_t export_flags; ///< Flags used during TR-31 export
 };
 
 /// TR-31 library errors

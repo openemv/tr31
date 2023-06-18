@@ -264,7 +264,7 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 	)
 
 	add_test(NAME tr31_tool_test7
-		COMMAND tr31-tool --kbpk B8ED59E0A279A295E9F5ED7944FD06B9 --export EDB380DD340BC2620247D445F5B8D678 --export-key-algorithm TDES --export-format-version C --export-template BDK
+		COMMAND tr31-tool --kbpk B8ED59E0A279A295E9F5ED7944FD06B9 --export EDB380DD340BC2620247D445F5B8D678 --export-key-algorithm TDES --export-format-version C --export-template BDK --export-no-key-length-obfuscation
 	)
 	set_tests_properties(tr31_tool_test7
 		PROPERTIES
@@ -272,7 +272,7 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 	)
 
 	add_test(NAME tr31_tool_test8
-		COMMAND tr31-tool --kbpk 88E1AB2A2E3DD38C1FA039A536500CC8A87AB9D62DC92C01058FA79F44657DE6 --export 3F419E1CB7079442AA37474C2EFBF8B8 --export-key-algorithm AES --export-format-version D --export-template KEK
+		COMMAND tr31-tool --kbpk 88E1AB2A2E3DD38C1FA039A536500CC8A87AB9D62DC92C01058FA79F44657DE6 --export 3F419E1CB7079442AA37474C2EFBF8B8 --export-key-algorithm AES --export-format-version D --export-template KEK --export-no-key-length-obfuscation
 	)
 	set_tests_properties(tr31_tool_test8
 		PROPERTIES
@@ -280,7 +280,7 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 	)
 
 	add_test(NAME tr31_tool_test9
-		COMMAND tr31-tool --kbpk 1D22BF32387C600AD97F9B97A51311AC --export E8BC63E5479455E26577F715D587FE68 --export-header B0080B1TX00N0000
+		COMMAND tr31-tool --kbpk 1D22BF32387C600AD97F9B97A51311AC --export E8BC63E5479455E26577F715D587FE68 --export-header B0080B1TX00N0000 --export-no-key-length-obfuscation
 	)
 	set_tests_properties(tr31_tool_test9
 		PROPERTIES
@@ -288,7 +288,7 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 	)
 
 	add_test(NAME tr31_tool_test10
-		COMMAND tr31-tool --kbpk B8ED59E0A279A295E9F5ED7944FD06B9 --export EDB380DD340BC2620247D445F5B8D678 --export-header C0072B0TX00E0000
+		COMMAND tr31-tool --kbpk B8ED59E0A279A295E9F5ED7944FD06B9 --export EDB380DD340BC2620247D445F5B8D678 --export-header C0072B0TX00E0000 --export-no-key-length-obfuscation
 	)
 	set_tests_properties(tr31_tool_test10
 		PROPERTIES
@@ -296,7 +296,7 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 	)
 
 	add_test(NAME tr31_tool_test11
-		COMMAND tr31-tool --kbpk 88E1AB2A2E3DD38C1FA039A536500CC8A87AB9D62DC92C01058FA79F44657DE6 --export 3F419E1CB7079442AA37474C2EFBF8B8 --export-header D0112K0AB00E0000
+		COMMAND tr31-tool --kbpk 88E1AB2A2E3DD38C1FA039A536500CC8A87AB9D62DC92C01058FA79F44657DE6 --export 3F419E1CB7079442AA37474C2EFBF8B8 --export-header D0112K0AB00E0000 --export-no-key-length-obfuscation
 	)
 	set_tests_properties(tr31_tool_test11
 		PROPERTIES
@@ -304,7 +304,7 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 	)
 
 	add_test(NAME tr31_tool_test12
-		COMMAND tr31-tool --kbpk 1D22BF32387C600AD97F9B97A51311AC --export E8BC63E5479455E26577F715D587FE68 --export-key-algorithm TDES --export-format-version B --export-template IK --export-opt-block-KS FFFF00A0200001E00000
+		COMMAND tr31-tool --kbpk 1D22BF32387C600AD97F9B97A51311AC --export E8BC63E5479455E26577F715D587FE68 --export-key-algorithm TDES --export-format-version B --export-template IK --export-opt-block-KS FFFF00A0200001E00000 --export-no-key-length-obfuscation
 	)
 	set_tests_properties(tr31_tool_test12
 		PROPERTIES
@@ -312,7 +312,7 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 	)
 
 	add_test(NAME tr31_tool_test13
-		COMMAND tr31-tool --kbpk 1D22BF32387C600AD97F9B97A51311AC --export E8BC63E5479455E26577F715D587FE68 --export-header B0000B1TX00N0000 --export-opt-block-KS FFFF00A0200001E00000
+		COMMAND tr31-tool --kbpk 1D22BF32387C600AD97F9B97A51311AC --export E8BC63E5479455E26577F715D587FE68 --export-header B0000B1TX00N0000 --export-opt-block-KS FFFF00A0200001E00000 --export-no-key-length-obfuscation
 	)
 	set_tests_properties(tr31_tool_test13
 		PROPERTIES
@@ -320,7 +320,7 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 	)
 
 	add_test(NAME tr31_tool_test14
-		COMMAND tr31-tool --kbpk B8ED59E0A279A295E9F5ED7944FD06B9 --export EDB380DD340BC2620247D445F5B8D678 --export-key-algorithm TDES --export-format-version C --export-template BDK --export-opt-block-KC --export-opt-block-KP
+		COMMAND tr31-tool --kbpk B8ED59E0A279A295E9F5ED7944FD06B9 --export EDB380DD340BC2620247D445F5B8D678 --export-key-algorithm TDES --export-format-version C --export-template BDK --export-opt-block-KC --export-opt-block-KP --export-no-key-length-obfuscation
 	)
 	set_tests_properties(tr31_tool_test14
 		PROPERTIES
@@ -328,7 +328,7 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 	)
 
 	add_test(NAME tr31_tool_test15
-		COMMAND tr31-tool --kbpk 88E1AB2A2E3DD38C1FA039A536500CC8A87AB9D62DC92C01058FA79F44657DE6 --export 3F419E1CB7079442AA37474C2EFBF8B8 --export-key-algorithm AES --export-format-version D --export-template KEK --export-opt-block-KC --export-opt-block-KP
+		COMMAND tr31-tool --kbpk 88E1AB2A2E3DD38C1FA039A536500CC8A87AB9D62DC92C01058FA79F44657DE6 --export 3F419E1CB7079442AA37474C2EFBF8B8 --export-key-algorithm AES --export-format-version D --export-template KEK --export-opt-block-KC --export-opt-block-KP --export-no-key-length-obfuscation
 	)
 	set_tests_properties(tr31_tool_test15
 		PROPERTIES
@@ -336,7 +336,7 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 	)
 
 	add_test(NAME tr31_tool_test16
-		COMMAND tr31-tool --kbpk 4141414141414141414141414141414141414141414141414141414141414141 --export 1273671EA26AC29AFA4D1084127652A1 --export-key-algorithm AES --export-format-version D --export-template IK --export-opt-block-IK 1234567890123456
+		COMMAND tr31-tool --kbpk 4141414141414141414141414141414141414141414141414141414141414141 --export 1273671EA26AC29AFA4D1084127652A1 --export-key-algorithm AES --export-format-version D --export-template IK --export-opt-block-IK 1234567890123456 --export-no-key-length-obfuscation
 	)
 	set_tests_properties(tr31_tool_test16
 		PROPERTIES
@@ -344,7 +344,7 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 	)
 
 	add_test(NAME tr31_tool_test17
-		COMMAND tr31-tool --kbpk 4141414141414141414141414141414141414141414141414141414141414141 --export 1273671EA26AC29AFA4D1084127652A1 --export-header D0000B1AX00N0000 --export-opt-block-IK 1234567890123456
+		COMMAND tr31-tool --kbpk 4141414141414141414141414141414141414141414141414141414141414141 --export 1273671EA26AC29AFA4D1084127652A1 --export-header D0000B1AX00N0000 --export-opt-block-IK 1234567890123456 --export-no-key-length-obfuscation
 	)
 	set_tests_properties(tr31_tool_test17
 		PROPERTIES
@@ -352,7 +352,7 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 	)
 
 	add_test(NAME tr31_tool_test18
-		COMMAND tr31-tool --kbpk 3235362D62697420414553207772617070696E67202849534F20323030333829 --export 777261707065642033444553206B6579 --export-header E0084B0TV16N0000
+		COMMAND tr31-tool --kbpk 3235362D62697420414553207772617070696E67202849534F20323030333829 --export 777261707065642033444553206B6579 --export-header E0084B0TV16N0000 --export-no-key-length-obfuscation
 	)
 	set_tests_properties(tr31_tool_test18
 		PROPERTIES
@@ -360,7 +360,7 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 	)
 
 	add_test(NAME tr31_tool_test19
-		COMMAND tr31-tool --kbpk 3235362D62697420414553207772617070696E67202849534F20323030333829 --export 777261707065642033444553206B6579 --export-key-algorithm TDES --export-format-version E --export-template BDK
+		COMMAND tr31-tool --kbpk 3235362D62697420414553207772617070696E67202849534F20323030333829 --export 777261707065642033444553206B6579 --export-key-algorithm TDES --export-format-version E --export-template BDK --export-no-key-length-obfuscation
 	)
 	set_tests_properties(tr31_tool_test19
 		PROPERTIES

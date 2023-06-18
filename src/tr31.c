@@ -1910,18 +1910,20 @@ static int tr31_compute_final_lengths(struct tr31_ctx_t* ctx)
 	// use key length as-is by default
 	padded_key_length = ctx->key.length;
 
-	// apply key length obfuscation
-	// see ANSI X9.143:2021, 5 and 6.1
-	switch (ctx->key.algorithm) {
-		case TR31_KEY_ALGORITHM_TDES:
-			// use maximum TDES length
-			padded_key_length = 24;
-			break;
+	if ((ctx->export_flags & TR31_EXPORT_NO_KEY_LENGTH_OBFUSCATION) == 0) {
+		// apply key length obfuscation
+		// see ANSI X9.143:2021, 5 and 6.1
+		switch (ctx->key.algorithm) {
+			case TR31_KEY_ALGORITHM_TDES:
+				// use maximum TDES length
+				padded_key_length = 24;
+				break;
 
-		case TR31_KEY_ALGORITHM_AES:
-			// use maximum AES length
-			padded_key_length = 32;
-			break;
+			case TR31_KEY_ALGORITHM_AES:
+				// use maximum AES length
+				padded_key_length = 32;
+				break;
+		}
 	}
 
 	switch (ctx->version) {

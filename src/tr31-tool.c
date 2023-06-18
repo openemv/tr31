@@ -73,6 +73,9 @@ struct tr31_tool_options_t {
 	bool export_opt_block_WP;
 	uint8_t export_opt_block_WP_value;
 
+	// export flags
+	bool export_flags;
+
 	// kbpk parameters
 	// valid if kbpk is true
 	size_t kbpk_buf_len;
@@ -107,6 +110,7 @@ enum tr31_tool_option_keys_t {
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TC,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TS,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_WP,
+	TR31_TOOL_OPTION_EXPORT_NO_KEY_LENGTH_OBFUSCATION,
 	TR31_TOOL_OPTION_KBPK,
 	TR31_TOOL_OPTION_VERSION,
 };
@@ -135,6 +139,7 @@ static struct argp_option argp_options[] = {
 	{ "export-opt-block-TC", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TC, "ISO8601", 0, "Add optional block TC (Time of Creation in ISO 8601 UTC format) during TR-31 export. May be used with either --export-template or --export-header. Specify \"now\" for current date/time." },
 	{ "export-opt-block-TS", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TS, "ISO8601", 0, "Add optional block TS (Time Stamp in ISO 8601 UTC format) during TR-31 export. May be used with either --export-template or --export-header. Specify \"now\" for current date/time." },
 	{ "export-opt-block-WP", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_WP, "0-3", 0, "Add optional block WP (Wrapping Pedigree) during TR-31 export. May be used with either --export-template or --export-header." },
+	{ "export-no-key-length-obfuscation", TR31_TOOL_OPTION_EXPORT_NO_KEY_LENGTH_OBFUSCATION, NULL, 0, "Disable ANSI X9.143 key length obfuscation during TR-31 export." },
 
 	{ NULL, 0, NULL, 0, "Options for decrypting/encrypting TR-31 key blocks:", 3 },
 	{ "kbpk", TR31_TOOL_OPTION_KBPK, "KEY", 0, "TR-31 key block protection key. Use - to read raw bytes from stdin." },
@@ -429,6 +434,10 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			}
 			options->export_opt_block_WP = true;
 			options->export_opt_block_WP_value = arg[0] - 0x30; // convert ASCII number to integer
+			return 0;
+
+		case TR31_TOOL_OPTION_EXPORT_NO_KEY_LENGTH_OBFUSCATION:
+			options->export_flags |= TR31_EXPORT_NO_KEY_LENGTH_OBFUSCATION;
 			return 0;
 
 		case TR31_TOOL_OPTION_KBPK:
@@ -1167,6 +1176,9 @@ static int do_tr31_export(const struct tr31_tool_options_t* options)
 	if (r) {
 		return r;
 	}
+
+	// apply export flags
+	tr31_ctx.export_flags = options->export_flags;
 
 	// populate key block protection key
 	r = populate_kbpk(options, export_format_version, &kbpk);
