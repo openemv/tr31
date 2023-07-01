@@ -1,7 +1,7 @@
 /**
  * @file tr31_decrypt_test.c
  *
- * Copyright (c) 2020, 2021, 2022 Leon Lynch
+ * Copyright (c) 2020, 2021, 2022, 2023 Leon Lynch
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -114,6 +114,67 @@ static const uint8_t test10_tr31_key_verify[] = {
 };
 static const uint8_t test10_tr31_kcv_verify[] = { 0xB2, 0x9D, 0x42 };
 
+// ANSI X9.143:2021, 8.1
+static const uint8_t test11_kbpk[] = {
+	0x88, 0xE1, 0xAB, 0x2A, 0x2E, 0x3D, 0xD3, 0x8C, 0x1F, 0xA0, 0x39, 0xA5, 0x36, 0x50, 0x0C, 0xC8,
+	0xA8, 0x7A, 0xB9, 0xD6, 0x2D, 0xC9, 0x2C, 0x01, 0x05, 0x8F, 0xA7, 0x9F, 0x44, 0x65, 0x7D, 0xE6,
+};
+static const char test11_tr31_ascii[] = "D0144P0AE00E00002C77FA3F4A553BED6E88AE5C172A4166E3D4ACA8E2AC71C158A476FAC12C13C3829DE55D3AB54C48F4C4FEF7AC75E90FC47F1B77E7B19A73ED46E64410082557";
+static const uint8_t test11_tr31_key_verify[] = { 0x3F, 0x41, 0x9E, 0x1C, 0xB7, 0x07, 0x94, 0x42, 0xAA, 0x37, 0x47, 0x4C, 0x2E, 0xFB, 0xF8, 0xB8 };
+static const uint8_t test11_tr31_kcv_verify[] = { 0x08, 0x79, 0x3E, 0x25, 0xAB };
+
+// ANSI X9.143:2021, 8.2
+// Unfortunately the key block provided by ANSI X9.143:2021 for this test is
+// invalid because optional block KS contains invalid characters
+/*
+static const uint8_t test12_kbpk[] = {
+	0xE3, 0x83, 0x31, 0xFB, 0xAC, 0xE3, 0x3F, 0x0B, 0x86, 0x94, 0xAB, 0xA5, 0xDC, 0x61, 0x1C, 0xA2,
+	0x08, 0x31, 0x94, 0x9F, 0xEB, 0x89, 0x88, 0x10, 0x21, 0x47, 0x29, 0x15, 0x78, 0xF7, 0x04, 0xE1,
+};
+static const char test12_tr31_ascii[] = "D0192C0AVA1N0300KS08VM9ATS1A2018-06-18T20:42:39.22PB0E00000000005FDAFA00A1E84F599C2EB51A1F7A767D5E42314F0E84A3FC1A7B84C1DE81114659E6306AD544208F68F15602BD3E12DA0C7F9FC551F1C8E6385FAFC1F7B499F5";
+static const char test12_tr31_ksn_verify[] = "VM9A";
+static const char test12_tr31_ts_verify[] = "2018-06-18T20:42:39.22";
+static const uint8_t test12_tr31_key_verify[] = {
+	0x8C, 0x32, 0x60, 0x37, 0xF8, 0x91, 0x0B, 0xBF, 0xDB, 0xC2, 0x67, 0xE5, 0x10, 0x1D, 0xFB, 0xF9,
+	0x48, 0x04, 0x33, 0x02, 0x8D, 0x5E, 0x67, 0xB3, 0x46, 0x73, 0x44, 0x0F, 0x8A, 0xCE, 0xC9, 0x72,
+};
+static const uint8_t test12_tr31_kcv_verify[] = { 0x00, 0x00, 0x00, 0x00, 0x00 };
+*/
+
+// ANSI X9.143:2021, 8.3.2.1
+// Unfortunately the key block provided by ANSI X9.143:2021 for this test is
+// invalid because the header length is incorrect
+/*
+static const uint8_t test13_kbpk[] = { 0x89, 0xE8, 0x8C, 0xF7, 0x93, 0x14, 0x44, 0xF3, 0x34, 0xBD, 0x75, 0x47, 0xFC, 0x3F, 0x38, 0x0C };
+static const char test13_tr31_ascii[] = "A0072P0TE00E0000A8974C06DBFD58D197101A28DEC1A6C7C23F00A3B18EC6D538DE4A5B5F49A542D61A8A8B";
+static const uint8_t test13_tr31_key_verify[] = { 0xF0, 0x39, 0x12, 0x1B, 0xEC, 0x83, 0xD2, 0x6B, 0x16, 0x9B, 0xDC, 0xD5, 0xB2, 0x2A, 0xAF, 0x8F };
+static const uint8_t test13_tr31_kcv_verify[] = { 0xCB, 0x9D, 0xEA };
+*/
+
+// ANSI X9.143:2021, 8.3.2.2
+// Unfortunately the key block provided by ANSI X9.143:2021 for this test is
+// invalid because the header length is incorrect
+/*
+static const uint8_t test14_kbpk[] = { 0xDD, 0x75, 0x15, 0xF2, 0xBF, 0xC1, 0x7F, 0x85, 0xCE, 0x48, 0xF3, 0xCA, 0x25, 0xCB, 0x21, 0xF6 };
+static const char test14_tr31_ascii[] = "B0080P0TE00E000094B420079CC80BA3461F86FE26EFC4A38C6B0A146BF1B0BE0D3277F17A3AD5146EED7B727B8A248E";
+static const uint8_t test14_tr31_key_verify[] = { 0x3F, 0x41, 0x9E, 0x1C, 0xB7, 0x07, 0x94, 0x42, 0xAA, 0x37, 0x47, 0x4C, 0x2E, 0xFB, 0xF8, 0xB8 };
+static const uint8_t test14_tr31_kcv_verify[] = { 0x57, 0xC4, 0x09 };
+*/
+
+// ANSI X9.143:2021, 8.4.1
+static const uint8_t test15_kbpk[] = { 0xB8, 0xED, 0x59, 0xE0, 0xA2, 0x79, 0xA2, 0x95, 0xE9, 0xF5, 0xED, 0x79, 0x44, 0xFD, 0x06, 0xB9 };
+static const char test15_tr31_ascii[] = "C0112B0TX12S0100KS1800604B120F929280000042B758A2400AB598AE37782823DAF0BA4BDB0DAFF34915345CA169AE1F976A429EB139E5";
+static const uint8_t test15_tr31_ksn_verify[] = { 0x00, 0x60, 0x4B, 0x12, 0x0F, 0x92, 0x92, 0x80, 0x00, 0x00 };
+static const uint8_t test15_tr31_key_verify[] = { 0xED, 0xB3, 0x80, 0xDD, 0x34, 0x0B, 0xC2, 0x62, 0x02, 0x47, 0xD4, 0x45, 0xF5, 0xB8, 0xD6, 0x78 };
+static const uint8_t test15_tr31_kcv_verify[] = { 0xF4, 0xB0, 0x8D };
+
+// ANSI X9.143:2021, 8.4.2
+static const uint8_t test16_kbpk[] = { 0x1D, 0x22, 0xBF, 0x32, 0x38, 0x7C, 0x60, 0x0A, 0xD9, 0x7F, 0x9B, 0x97, 0xA5, 0x13, 0x11, 0xAC };
+static const char test16_tr31_ascii[] = "B0120B0TX12S0100KS1800604B120F929280000015CEB14B76D551F21EC43A75390FA118A98C6CB049E3B9E864A5F4A8B9A5108A6DB5635C95B042D7";
+static const uint8_t test16_tr31_ksn_verify[] = { 0x00, 0x60, 0x4B, 0x12, 0x0F, 0x92, 0x92, 0x80, 0x00, 0x00 };
+static const uint8_t test16_tr31_key_verify[] = { 0xE8, 0xBC, 0x63, 0xE5, 0x47, 0x94, 0x55, 0xE2, 0x65, 0x77, 0xF7, 0x15, 0xD5, 0x87, 0xFE, 0x68 };
+static const uint8_t test16_tr31_kcv_verify[] = { 0x9A, 0x42, 0x12 };
+
 int main(void)
 {
 	int r;
@@ -129,6 +190,7 @@ int main(void)
 	test_kbpk.data = (void*)test1_kbpk;
 
 	// test key block decryption for format version A
+	printf("Test 1 (Basic format version A)...\n");
 	r = tr31_import(test1_tr31_format_a, &test_kbpk, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
@@ -168,6 +230,7 @@ int main(void)
 	tr31_release(&test_tr31);
 
 	// test key block decryption for format version B
+	printf("Test 1 (Basic format version B)...\n");
 	r = tr31_import(test1_tr31_format_b, &test_kbpk, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
@@ -207,6 +270,7 @@ int main(void)
 	tr31_release(&test_tr31);
 
 	// test key block decryption for format version C
+	printf("Test 1 (Basic format version C)...\n");
 	r = tr31_import(test1_tr31_format_c, &test_kbpk, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
@@ -246,6 +310,7 @@ int main(void)
 	tr31_release(&test_tr31);
 
 	// TR-31:2018, A.7.2.1
+	printf("Test 2 (TR-31:2018, A.7.2.1)...\n");
 	memset(&test_kbpk, 0, sizeof(test_kbpk));
 	test_kbpk.usage = TR31_KEY_USAGE_KEK;
 	test_kbpk.algorithm = TR31_KEY_ALGORITHM_TDES;
@@ -291,6 +356,7 @@ int main(void)
 	tr31_release(&test_tr31);
 
 	// TR-31:2018, A.7.2.2
+	printf("Test 3 (TR-31:2018, A.7.2.2)...\n");
 	memset(&test_kbpk, 0, sizeof(test_kbpk));
 	test_kbpk.usage = TR31_KEY_USAGE_KEK;
 	test_kbpk.algorithm = TR31_KEY_ALGORITHM_TDES;
@@ -336,6 +402,7 @@ int main(void)
 	tr31_release(&test_tr31);
 
 	// TR-31:2018, A.7.3.1
+	printf("Test 4 (TR-31:2018, A.7.3.1)...\n");
 	memset(&test_kbpk, 0, sizeof(test_kbpk));
 	test_kbpk.usage = TR31_KEY_USAGE_KEK;
 	test_kbpk.algorithm = TR31_KEY_ALGORITHM_TDES;
@@ -385,6 +452,7 @@ int main(void)
 	tr31_release(&test_tr31);
 
 	// TR-31:2018, A.7.3.2
+	printf("Test 5 (TR-31:2018, A.7.3.2)...\n");
 	memset(&test_kbpk, 0, sizeof(test_kbpk));
 	test_kbpk.usage = TR31_KEY_USAGE_KEK;
 	test_kbpk.algorithm = TR31_KEY_ALGORITHM_TDES;
@@ -434,6 +502,7 @@ int main(void)
 	tr31_release(&test_tr31);
 
 	// TR-31:2018, A.7.4
+	printf("Test 6 (TR-31:2018, A.7.4)...\n");
 	memset(&test_kbpk, 0, sizeof(test_kbpk));
 	test_kbpk.usage = TR31_KEY_USAGE_KEK;
 	test_kbpk.algorithm = TR31_KEY_ALGORITHM_AES;
@@ -479,6 +548,7 @@ int main(void)
 	tr31_release(&test_tr31);
 
 	// test key block decryption for format version D containing TDES key
+	printf("Test 7 (Format version D containing TDES key)...\n");
 	memset(&test_kbpk, 0, sizeof(test_kbpk));
 	test_kbpk.usage = TR31_KEY_USAGE_KEK;
 	test_kbpk.algorithm = TR31_KEY_ALGORITHM_AES;
@@ -524,6 +594,7 @@ int main(void)
 	tr31_release(&test_tr31);
 
 	// test key block decryption for format version D containing AES key
+	printf("Test 8 (Format version D containing AES key)...\n");
 	memset(&test_kbpk, 0, sizeof(test_kbpk));
 	test_kbpk.usage = TR31_KEY_USAGE_KEK;
 	test_kbpk.algorithm = TR31_KEY_ALGORITHM_AES;
@@ -568,7 +639,8 @@ int main(void)
 	}
 	tr31_release(&test_tr31);
 
-	// test key block decryption for format version E containing TDES key
+	// ISO 20038:2017, B.2
+	printf("Test 9 (ISO 20038:2017, B.2)...\n");
 	memset(&test_kbpk, 0, sizeof(test_kbpk));
 	test_kbpk.usage = TR31_KEY_USAGE_KEK;
 	test_kbpk.algorithm = TR31_KEY_ALGORITHM_AES;
@@ -613,7 +685,8 @@ int main(void)
 	}
 	tr31_release(&test_tr31);
 
-	// test key block decryption for format version D containing TDES key
+	// ISO 20038:2017, B.3
+	printf("Test 10 (ISO 20038:2017, B.3)...\n");
 	memset(&test_kbpk, 0, sizeof(test_kbpk));
 	test_kbpk.usage = TR31_KEY_USAGE_KEK;
 	test_kbpk.algorithm = TR31_KEY_ALGORITHM_AES;
@@ -652,6 +725,152 @@ int main(void)
 		goto exit;
 	}
 	if (memcmp(test_tr31.key.kcv, test10_tr31_kcv_verify, sizeof(test10_tr31_kcv_verify)) != 0) {
+		fprintf(stderr, "TR-31 key data KCV is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	tr31_release(&test_tr31);
+
+	// ANSI X9.143:2021, 8.1
+	printf("Test 11 (ANSI X9.143:2021, 8.1)...\n");
+	memset(&test_kbpk, 0, sizeof(test_kbpk));
+	test_kbpk.usage = TR31_KEY_USAGE_KEK;
+	test_kbpk.algorithm = TR31_KEY_ALGORITHM_AES;
+	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
+	test_kbpk.length = sizeof(test11_kbpk);
+	test_kbpk.data = (void*)test11_kbpk;
+	r = tr31_import(test11_tr31_ascii, &test_kbpk, &test_tr31);
+	if (r) {
+		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		goto exit;
+	}
+	if (test_tr31.version != TR31_VERSION_D ||
+		test_tr31.length != 144 ||
+		test_tr31.key.usage != TR31_KEY_USAGE_PEK ||
+		test_tr31.key.algorithm != TR31_KEY_ALGORITHM_AES ||
+		test_tr31.key.mode_of_use != TR31_KEY_MODE_OF_USE_ENC ||
+		test_tr31.key.key_version != TR31_KEY_VERSION_IS_UNUSED ||
+		test_tr31.key.key_version_value != 0 ||
+		test_tr31.key.exportability != TR31_KEY_EXPORT_TRUSTED ||
+		test_tr31.key.length != sizeof(test11_tr31_key_verify) ||
+		test_tr31.key.data == NULL ||
+		test_tr31.opt_blocks_count != 0 ||
+		test_tr31.opt_blocks != NULL ||
+		test_tr31.payload_length != 48 ||
+		test_tr31.payload == NULL ||
+		test_tr31.authenticator_length != 16 ||
+		test_tr31.authenticator == NULL
+	) {
+		fprintf(stderr, "TR-31 context is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	if (memcmp(test_tr31.key.data, test11_tr31_key_verify, sizeof(test11_tr31_key_verify)) != 0) {
+		fprintf(stderr, "TR-31 key data is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	if (memcmp(test_tr31.key.kcv, test11_tr31_kcv_verify, sizeof(test11_tr31_kcv_verify)) != 0) {
+		fprintf(stderr, "TR-31 key data KCV is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	tr31_release(&test_tr31);
+
+	// ANSI X9.143:2021, 8.4.1
+	printf("Test 15 (ANSI X9.143:2021, 8.4.1)...\n");
+	memset(&test_kbpk, 0, sizeof(test_kbpk));
+	test_kbpk.usage = TR31_KEY_USAGE_KEK;
+	test_kbpk.algorithm = TR31_KEY_ALGORITHM_TDES;
+	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
+	test_kbpk.length = sizeof(test15_kbpk);
+	test_kbpk.data = (void*)test15_kbpk;
+	r = tr31_import(test15_tr31_ascii, &test_kbpk, &test_tr31);
+	if (r) {
+		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		goto exit;
+	}
+	if (test_tr31.version != TR31_VERSION_C ||
+		test_tr31.length != 112 ||
+		test_tr31.key.usage != TR31_KEY_USAGE_BDK ||
+		test_tr31.key.algorithm != TR31_KEY_ALGORITHM_TDES ||
+		test_tr31.key.mode_of_use != TR31_KEY_MODE_OF_USE_DERIVE ||
+		test_tr31.key.key_version != TR31_KEY_VERSION_IS_VALID ||
+		test_tr31.key.key_version_value != 12 ||
+		test_tr31.key.exportability != TR31_KEY_EXPORT_SENSITIVE ||
+		test_tr31.key.length != sizeof(test15_tr31_key_verify) ||
+		test_tr31.key.data == NULL ||
+		test_tr31.opt_blocks_count != 1 ||
+		test_tr31.opt_blocks == NULL ||
+		test_tr31.opt_blocks[0].id != TR31_OPT_BLOCK_KS ||
+		test_tr31.opt_blocks[0].data_length != sizeof(test15_tr31_ksn_verify) ||
+		test_tr31.opt_blocks[0].data == NULL ||
+		memcmp(test_tr31.opt_blocks[0].data, test15_tr31_ksn_verify, sizeof(test15_tr31_ksn_verify)) != 0 ||
+		test_tr31.payload_length != 32 ||
+		test_tr31.payload == NULL ||
+		test_tr31.authenticator_length != 4 ||
+		test_tr31.authenticator == NULL
+	) {
+		fprintf(stderr, "TR-31 context is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	if (memcmp(test_tr31.key.data, test15_tr31_key_verify, sizeof(test15_tr31_key_verify)) != 0) {
+		fprintf(stderr, "TR-31 key data is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	if (memcmp(test_tr31.key.kcv, test15_tr31_kcv_verify, sizeof(test15_tr31_kcv_verify)) != 0) {
+		fprintf(stderr, "TR-31 key data KCV is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	tr31_release(&test_tr31);
+
+	// ANSI X9.143:2021, 8.4.2
+	printf("Test 16 (ANSI X9.143:2021, 8.4.2)...\n");
+	memset(&test_kbpk, 0, sizeof(test_kbpk));
+	test_kbpk.usage = TR31_KEY_USAGE_KEK;
+	test_kbpk.algorithm = TR31_KEY_ALGORITHM_TDES;
+	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
+	test_kbpk.length = sizeof(test16_kbpk);
+	test_kbpk.data = (void*)test16_kbpk;
+	r = tr31_import(test16_tr31_ascii, &test_kbpk, &test_tr31);
+	if (r) {
+		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		goto exit;
+	}
+	if (test_tr31.version != TR31_VERSION_B ||
+		test_tr31.length != 120 ||
+		test_tr31.key.usage != TR31_KEY_USAGE_BDK ||
+		test_tr31.key.algorithm != TR31_KEY_ALGORITHM_TDES ||
+		test_tr31.key.mode_of_use != TR31_KEY_MODE_OF_USE_DERIVE ||
+		test_tr31.key.key_version != TR31_KEY_VERSION_IS_VALID ||
+		test_tr31.key.key_version_value != 12 ||
+		test_tr31.key.exportability != TR31_KEY_EXPORT_SENSITIVE ||
+		test_tr31.key.length != sizeof(test16_tr31_key_verify) ||
+		test_tr31.key.data == NULL ||
+		test_tr31.opt_blocks_count != 1 ||
+		test_tr31.opt_blocks == NULL ||
+		test_tr31.opt_blocks[0].id != TR31_OPT_BLOCK_KS ||
+		test_tr31.opt_blocks[0].data_length != sizeof(test16_tr31_ksn_verify) ||
+		test_tr31.opt_blocks[0].data == NULL ||
+		memcmp(test_tr31.opt_blocks[0].data, test16_tr31_ksn_verify, sizeof(test16_tr31_ksn_verify)) != 0 ||
+		test_tr31.payload_length != 32 ||
+		test_tr31.payload == NULL ||
+		test_tr31.authenticator_length != 8 ||
+		test_tr31.authenticator == NULL
+	) {
+		fprintf(stderr, "TR-31 context is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	if (memcmp(test_tr31.key.data, test16_tr31_key_verify, sizeof(test16_tr31_key_verify)) != 0) {
+		fprintf(stderr, "TR-31 key data is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	if (memcmp(test_tr31.key.kcv, test16_tr31_kcv_verify, sizeof(test16_tr31_kcv_verify)) != 0) {
 		fprintf(stderr, "TR-31 key data KCV is incorrect\n");
 		r = 1;
 		goto exit;
