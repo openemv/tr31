@@ -644,6 +644,7 @@ static int populate_kbpk(const struct tr31_tool_options_t* options, unsigned int
 // TR-31 import helper function
 static int do_tr31_import(const struct tr31_tool_options_t* options)
 {
+	int ret = 0;
 	int r;
 	struct tr31_key_t kbpk;
 	struct tr31_ctx_t tr31_ctx;
@@ -664,7 +665,8 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 	// check for errors
 	if (r) {
 		fprintf(stderr, "TR-31 import error %d: %s\n", r, tr31_get_error_string(r));
-		// continue to print key block details
+		// continue to print key block details, but remember import error
+		ret = r;
 	}
 
 	// print key block details
@@ -773,7 +775,7 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 	tr31_key_release(&kbpk);
 	tr31_release(&tr31_ctx);
 
-	return 0;
+	return ret;
 }
 
 // TR-31 export template helper function
