@@ -518,26 +518,29 @@ int tr31_key_set_data(struct tr31_key_t* key, const void* data, size_t length)
 
 int tr31_key_set_key_version(struct tr31_key_t* key, const char* key_version)
 {
+	int r;
+
 	if (!key || !key_version) {
 		return -1;
 	}
 
 	// decode key version number field
 	// see ANSI X9.143:2021, 6.3.4, table 5
+	r = tr31_validate_format_an(key_version, 2);
+	if (r) {
+		return TR31_ERROR_INVALID_KEY_VERSION_FIELD;
+	}
 	if (key_version[0] == '0' && key_version[1] == '0') {
 		key->key_version = TR31_KEY_VERSION_IS_UNUSED;
-		key->key_version_value = 0;
+		memset(key->key_version_str, 0, sizeof(key->key_version_str));
 	} else if (key_version[0] == 'c') {
 		key->key_version = TR31_KEY_VERSION_IS_COMPONENT;
-		key->key_component_number = dec_to_int(&key_version[1], 1);
+		memcpy(key->key_version_str, key_version, 2);
+		key->key_version_str[2] = 0;
 	} else {
-		int key_version_value = dec_to_int(key_version, 2);
-		if (key_version_value < 0) {
-			return TR31_ERROR_INVALID_KEY_VERSION_FIELD;
-		}
-
 		key->key_version = TR31_KEY_VERSION_IS_VALID;
-		key->key_version_value = key_version_value;
+		memcpy(key->key_version_str, key_version, 2);
+		key->key_version_str[2] = 0;
 	}
 
 	return 0;
@@ -558,11 +561,11 @@ int tr31_key_get_key_version(const struct tr31_key_t* key, char* key_version)
 
 		case TR31_KEY_VERSION_IS_COMPONENT:
 			key_version[0] = 'c';
-			int_to_dec(key->key_component_number, &key_version[1], sizeof(key_version[1]));
+			key_version[1] = key->key_version_str[1];
 			break;
 
 		case TR31_KEY_VERSION_IS_VALID:
-			int_to_dec(key->key_version_value, key_version, sizeof_field(struct tr31_header_t, key_version));
+			memcpy(key_version, key->key_version_str, sizeof_field(struct tr31_header_t, key_version));
 			break;
 
 		default:

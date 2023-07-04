@@ -687,8 +687,8 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 	);
 	switch (tr31_ctx.key.key_version) {
 		case TR31_KEY_VERSION_IS_UNUSED: printf("Key version: Unused\n"); break;
-		case TR31_KEY_VERSION_IS_VALID: printf("Key version: %u\n", tr31_ctx.key.key_version_value); break;
-		case TR31_KEY_VERSION_IS_COMPONENT: printf("Key component: %u\n", tr31_ctx.key.key_component_number); break;
+		case TR31_KEY_VERSION_IS_VALID: printf("Key version: %s\n", tr31_ctx.key.key_version_str); break;
+		case TR31_KEY_VERSION_IS_COMPONENT: printf("Key component: %c\n", tr31_ctx.key.key_version_str[1]); break;
 	}
 	printf("Key exportability: [%c] %s\n",
 		tr31_ctx.key.exportability,

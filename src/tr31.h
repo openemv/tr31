@@ -178,10 +178,7 @@ struct tr31_key_t {
 
 	// key version field information
 	enum tr31_key_version_t key_version; ///< TR-31 key version field interpretation
-	union {
-		unsigned int key_version_value; ///< TR-31 key version number
-		unsigned int key_component_number; ///< TR-31 key component number
-	};
+	char key_version_str[3]; ///< TR-31 key version string. Null terminated. Invalid if unused.
 
 	unsigned int exportability; ///< TR-31 key exportability
 

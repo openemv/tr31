@@ -54,7 +54,7 @@ int main(void)
 		test_tr31.key.algorithm != TR31_KEY_ALGORITHM_TDES ||
 		test_tr31.key.mode_of_use != TR31_KEY_MODE_OF_USE_DERIVE ||
 		test_tr31.key.key_version != TR31_KEY_VERSION_IS_UNUSED ||
-		test_tr31.key.key_version_value != 0 ||
+		test_tr31.key.key_version_str[0] != 0 ||
 		test_tr31.key.exportability != TR31_KEY_EXPORT_SENSITIVE ||
 		test_tr31.opt_blocks_count != 1 ||
 		test_tr31.opt_blocks == NULL ||
@@ -85,7 +85,7 @@ int main(void)
 		test_tr31.key.algorithm != TR31_KEY_ALGORITHM_TDES ||
 		test_tr31.key.mode_of_use != TR31_KEY_MODE_OF_USE_ANY ||
 		test_tr31.key.key_version != TR31_KEY_VERSION_IS_UNUSED ||
-		test_tr31.key.key_version_value != 0 ||
+		test_tr31.key.key_version_str[0] != 0 ||
 		test_tr31.key.exportability != TR31_KEY_EXPORT_NONE ||
 		test_tr31.opt_blocks_count != 0 ||
 		test_tr31.opt_blocks != NULL ||
@@ -112,7 +112,7 @@ int main(void)
 		test_tr31.key.algorithm != TR31_KEY_ALGORITHM_AES ||
 		test_tr31.key.mode_of_use != TR31_KEY_MODE_OF_USE_ANY ||
 		test_tr31.key.key_version != TR31_KEY_VERSION_IS_UNUSED ||
-		test_tr31.key.key_version_value != 0 ||
+		test_tr31.key.key_version_str[0] != 0 ||
 		test_tr31.key.exportability != TR31_KEY_EXPORT_NONE ||
 		test_tr31.opt_blocks_count != 0 ||
 		test_tr31.opt_blocks != NULL ||
@@ -139,7 +139,7 @@ int main(void)
 		test_tr31.key.algorithm != TR31_KEY_ALGORITHM_TDES ||
 		test_tr31.key.mode_of_use != TR31_KEY_MODE_OF_USE_DERIVE ||
 		test_tr31.key.key_version != TR31_KEY_VERSION_IS_UNUSED ||
-		test_tr31.key.key_version_value != 0 ||
+		test_tr31.key.key_version_str[0] != 0 ||
 		test_tr31.key.exportability != TR31_KEY_EXPORT_NONE ||
 		test_tr31.opt_blocks_count != 3 ||
 		test_tr31.opt_blocks == NULL ||

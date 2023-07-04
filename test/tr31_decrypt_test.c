@@ -202,7 +202,7 @@ int main(void)
 		test_tr31.key.algorithm != TR31_KEY_ALGORITHM_TDES ||
 		test_tr31.key.mode_of_use != TR31_KEY_MODE_OF_USE_ANY ||
 		test_tr31.key.key_version != TR31_KEY_VERSION_IS_UNUSED ||
-		test_tr31.key.key_version_value != 0 ||
+		test_tr31.key.key_version_str[0] != 0 ||
 		test_tr31.key.exportability != TR31_KEY_EXPORT_NONE ||
 		test_tr31.key.length != sizeof(test1_tr31_key_verify) ||
 		test_tr31.key.data == NULL ||
@@ -242,7 +242,7 @@ int main(void)
 		test_tr31.key.algorithm != TR31_KEY_ALGORITHM_TDES ||
 		test_tr31.key.mode_of_use != TR31_KEY_MODE_OF_USE_ANY ||
 		test_tr31.key.key_version != TR31_KEY_VERSION_IS_UNUSED ||
-		test_tr31.key.key_version_value != 0 ||
+		test_tr31.key.key_version_str[0] != 0 ||
 		test_tr31.key.exportability != TR31_KEY_EXPORT_NONE ||
 		test_tr31.key.length != sizeof(test1_tr31_key_verify) ||
 		test_tr31.key.data == NULL ||
@@ -282,7 +282,7 @@ int main(void)
 		test_tr31.key.algorithm != TR31_KEY_ALGORITHM_TDES ||
 		test_tr31.key.mode_of_use != TR31_KEY_MODE_OF_USE_ANY ||
 		test_tr31.key.key_version != TR31_KEY_VERSION_IS_UNUSED ||
-		test_tr31.key.key_version_value != 0 ||
+		test_tr31.key.key_version_str[0] != 0 ||
 		test_tr31.key.exportability != TR31_KEY_EXPORT_NONE ||
 		test_tr31.key.length != sizeof(test1_tr31_key_verify) ||
 		test_tr31.key.data == NULL ||
@@ -328,7 +328,7 @@ int main(void)
 		test_tr31.key.algorithm != TR31_KEY_ALGORITHM_TDES ||
 		test_tr31.key.mode_of_use != TR31_KEY_MODE_OF_USE_ENC ||
 		test_tr31.key.key_version != TR31_KEY_VERSION_IS_UNUSED ||
-		test_tr31.key.key_version_value != 0 ||
+		test_tr31.key.key_version_str[0] != 0 ||
 		test_tr31.key.exportability != TR31_KEY_EXPORT_TRUSTED ||
 		test_tr31.key.length != sizeof(test2_tr31_key_verify) ||
 		test_tr31.key.data == NULL ||
@@ -374,7 +374,7 @@ int main(void)
 		test_tr31.key.algorithm != TR31_KEY_ALGORITHM_TDES ||
 		test_tr31.key.mode_of_use != TR31_KEY_MODE_OF_USE_ENC ||
 		test_tr31.key.key_version != TR31_KEY_VERSION_IS_UNUSED ||
-		test_tr31.key.key_version_value != 0 ||
+		test_tr31.key.key_version_str[0] != 0 ||
 		test_tr31.key.exportability != TR31_KEY_EXPORT_TRUSTED ||
 		test_tr31.key.length != sizeof(test3_tr31_key_verify) ||
 		test_tr31.key.data == NULL ||
@@ -420,7 +420,7 @@ int main(void)
 		test_tr31.key.algorithm != TR31_KEY_ALGORITHM_TDES ||
 		test_tr31.key.mode_of_use != TR31_KEY_MODE_OF_USE_DERIVE||
 		test_tr31.key.key_version != TR31_KEY_VERSION_IS_VALID ||
-		test_tr31.key.key_version_value != 12 ||
+		memcmp(test_tr31.key.key_version_str, "12", 2) != 0 ||
 		test_tr31.key.exportability != TR31_KEY_EXPORT_SENSITIVE ||
 		test_tr31.key.length != sizeof(test4_tr31_key_verify) ||
 		test_tr31.key.data == NULL ||
@@ -470,7 +470,7 @@ int main(void)
 		test_tr31.key.algorithm != TR31_KEY_ALGORITHM_TDES ||
 		test_tr31.key.mode_of_use != TR31_KEY_MODE_OF_USE_DERIVE||
 		test_tr31.key.key_version != TR31_KEY_VERSION_IS_VALID ||
-		test_tr31.key.key_version_value != 12 ||
+		memcmp(test_tr31.key.key_version_str, "12", 2) != 0 ||
 		test_tr31.key.exportability != TR31_KEY_EXPORT_SENSITIVE ||
 		test_tr31.key.length != sizeof(test5_tr31_key_verify) ||
 		test_tr31.key.data == NULL ||
@@ -520,7 +520,7 @@ int main(void)
 		test_tr31.key.algorithm != TR31_KEY_ALGORITHM_AES ||
 		test_tr31.key.mode_of_use != TR31_KEY_MODE_OF_USE_ENC ||
 		test_tr31.key.key_version != TR31_KEY_VERSION_IS_UNUSED ||
-		test_tr31.key.key_version_value != 0 ||
+		test_tr31.key.key_version_str[0] != 0 ||
 		test_tr31.key.exportability != TR31_KEY_EXPORT_TRUSTED ||
 		test_tr31.key.length != sizeof(test6_tr31_key_verify) ||
 		test_tr31.key.data == NULL ||
@@ -566,7 +566,7 @@ int main(void)
 		test_tr31.key.algorithm != TR31_KEY_ALGORITHM_TDES ||
 		test_tr31.key.mode_of_use != TR31_KEY_MODE_OF_USE_ANY ||
 		test_tr31.key.key_version != TR31_KEY_VERSION_IS_UNUSED ||
-		test_tr31.key.key_version_value != 0 ||
+		test_tr31.key.key_version_str[0] != 0 ||
 		test_tr31.key.exportability != TR31_KEY_EXPORT_NONE ||
 		test_tr31.key.length != sizeof(test7_tr31_key_verify) ||
 		test_tr31.key.data == NULL ||
@@ -612,7 +612,7 @@ int main(void)
 		test_tr31.key.algorithm != TR31_KEY_ALGORITHM_AES ||
 		test_tr31.key.mode_of_use != TR31_KEY_MODE_OF_USE_ANY ||
 		test_tr31.key.key_version != TR31_KEY_VERSION_IS_UNUSED ||
-		test_tr31.key.key_version_value != 0 ||
+		test_tr31.key.key_version_str[0] != 0 ||
 		test_tr31.key.exportability != TR31_KEY_EXPORT_NONE ||
 		test_tr31.key.length != sizeof(test8_tr31_key_verify) ||
 		test_tr31.key.data == NULL ||
@@ -658,7 +658,7 @@ int main(void)
 		test_tr31.key.algorithm != TR31_KEY_ALGORITHM_TDES ||
 		test_tr31.key.mode_of_use != TR31_KEY_MODE_OF_USE_MAC_VERIFY ||
 		test_tr31.key.key_version != TR31_KEY_VERSION_IS_VALID ||
-		test_tr31.key.key_version_value != 16 ||
+		memcmp(test_tr31.key.key_version_str, "16", 2) != 0 ||
 		test_tr31.key.exportability != TR31_KEY_EXPORT_NONE ||
 		test_tr31.key.length != sizeof(test9_tr31_key_verify) ||
 		test_tr31.key.data == NULL ||
@@ -704,7 +704,7 @@ int main(void)
 		test_tr31.key.algorithm != TR31_KEY_ALGORITHM_TDES ||
 		test_tr31.key.mode_of_use != TR31_KEY_MODE_OF_USE_MAC_VERIFY ||
 		test_tr31.key.key_version != TR31_KEY_VERSION_IS_VALID ||
-		test_tr31.key.key_version_value != 16 ||
+		memcmp(test_tr31.key.key_version_str, "16", 2) != 0 ||
 		test_tr31.key.exportability != TR31_KEY_EXPORT_NONE ||
 		test_tr31.key.length != sizeof(test10_tr31_key_verify) ||
 		test_tr31.key.data == NULL ||
@@ -750,7 +750,7 @@ int main(void)
 		test_tr31.key.algorithm != TR31_KEY_ALGORITHM_AES ||
 		test_tr31.key.mode_of_use != TR31_KEY_MODE_OF_USE_ENC ||
 		test_tr31.key.key_version != TR31_KEY_VERSION_IS_UNUSED ||
-		test_tr31.key.key_version_value != 0 ||
+		test_tr31.key.key_version_str[0] != 0 ||
 		test_tr31.key.exportability != TR31_KEY_EXPORT_TRUSTED ||
 		test_tr31.key.length != sizeof(test11_tr31_key_verify) ||
 		test_tr31.key.data == NULL ||
@@ -796,7 +796,7 @@ int main(void)
 		test_tr31.key.algorithm != TR31_KEY_ALGORITHM_TDES ||
 		test_tr31.key.mode_of_use != TR31_KEY_MODE_OF_USE_DERIVE ||
 		test_tr31.key.key_version != TR31_KEY_VERSION_IS_VALID ||
-		test_tr31.key.key_version_value != 12 ||
+		memcmp(test_tr31.key.key_version_str, "12", 2) != 0 ||
 		test_tr31.key.exportability != TR31_KEY_EXPORT_SENSITIVE ||
 		test_tr31.key.length != sizeof(test15_tr31_key_verify) ||
 		test_tr31.key.data == NULL ||
@@ -846,7 +846,7 @@ int main(void)
 		test_tr31.key.algorithm != TR31_KEY_ALGORITHM_TDES ||
 		test_tr31.key.mode_of_use != TR31_KEY_MODE_OF_USE_DERIVE ||
 		test_tr31.key.key_version != TR31_KEY_VERSION_IS_VALID ||
-		test_tr31.key.key_version_value != 12 ||
+		memcmp(test_tr31.key.key_version_str, "12", 2) != 0 ||
 		test_tr31.key.exportability != TR31_KEY_EXPORT_SENSITIVE ||
 		test_tr31.key.length != sizeof(test16_tr31_key_verify) ||
 		test_tr31.key.data == NULL ||
