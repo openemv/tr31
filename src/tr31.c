@@ -1653,20 +1653,20 @@ static int tr31_opt_block_parse(
 	r = hex_to_int(opt_blk->length, sizeof(opt_blk->length));
 	if (r < 0) {
 		// parse error
-		return TR31_ERROR_INVALID_LENGTH;
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_LENGTH;
 	}
 	if (r == 0) {
 		// extended optional block length not supported
-		return TR31_ERROR_INVALID_LENGTH;
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_LENGTH;
 	}
 	*opt_blk_len = r;
 	if (*opt_blk_len < sizeof(struct tr31_opt_blk_t)) {
 		// optional block length must be at least 4 bytes (2 byte id + 2 byte length)
-		return TR31_ERROR_INVALID_LENGTH;
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_LENGTH;
 	}
 	if (*opt_blk_len > remaining_len) {
 		// optional block length exceeds remaining key block length
-		return TR31_ERROR_INVALID_LENGTH;
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_LENGTH;
 	}
 
 	opt_ctx->id = ntohs(opt_blk->id);
@@ -2447,6 +2447,7 @@ const char* tr31_get_error_string(enum tr31_error_t error)
 		case TR31_ERROR_INVALID_KEY_VERSION_FIELD: return "Invalid key version field";
 		case TR31_ERROR_UNSUPPORTED_EXPORTABILITY: return "Unsupported key exportability";
 		case TR31_ERROR_INVALID_NUMBER_OF_OPTIONAL_BLOCKS_FIELD: return "Invalid number of optional blocks field";
+		case TR31_ERROR_INVALID_OPTIONAL_BLOCK_LENGTH: return "Invalid optional block length";
 		case TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA: return "Invalid optional block data";
 		case TR31_ERROR_INVALID_PAYLOAD_FIELD: return "Invalid payload data field";
 		case TR31_ERROR_INVALID_AUTHENTICATOR_FIELD: return "Invalid authenticator data field";

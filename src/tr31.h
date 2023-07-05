@@ -240,6 +240,7 @@ enum tr31_error_t {
 	TR31_ERROR_INVALID_KEY_VERSION_FIELD, ///< Invalid key version field
 	TR31_ERROR_UNSUPPORTED_EXPORTABILITY, ///< Unsupported key exportability
 	TR31_ERROR_INVALID_NUMBER_OF_OPTIONAL_BLOCKS_FIELD, ///< Invalid number of optional blocks field
+	TR31_ERROR_INVALID_OPTIONAL_BLOCK_LENGTH, ///< Invalid optional block length
 	TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA, ///< Invalid optional block data
 	TR31_ERROR_INVALID_PAYLOAD_FIELD, ///< Invalid payload data field
 	TR31_ERROR_INVALID_AUTHENTICATOR_FIELD, ///< Invalid authenticator data field
