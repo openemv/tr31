@@ -54,11 +54,27 @@ struct tr31_header_t {
 	char reserved[2];
 } __attribute__((packed));
 
-// TR-31 optional block
-// see TR-31:2018, A.2, table 4
+// TR-31 optional block header with short length
+// see ANSI X9.143, 6.2, table 1
+struct tr31_opt_blk_hdr_t {
+	uint16_t id;
+	char length[2] __attribute__((nonstring));
+} __attribute__((packed));
+
+// TR-31 optional block header with extended length
+// see ANSI X9.143, 6.2, table 1
+struct tr31_opt_blk_hdr_ext_t {
+	uint16_t id;
+	char reserved[2];
+	char ext_length_byte_count[2] __attribute__((nonstring));
+	char ext_length[] __attribute__((nonstring));
+} __attribute__((packed));
+
+// TR-31 optional block with short length
+// see ANSI X9.143, 6.2, table 1
 struct tr31_opt_blk_t {
 	uint16_t id;
-	char length[2];
+	char length[2] __attribute__((nonstring));
 	char data[];
 } __attribute__((packed));
 
@@ -81,7 +97,7 @@ static int hex_to_bin(const char* hex, void* bin, size_t bin_len);
 static int bin_to_hex(const void* bin, size_t bin_len, char* str, size_t str_len);
 static int tr31_validate_format_an(const char* buf, size_t buf_len);
 static int tr31_validate_format_pa(const char* buf, size_t buf_len);
-static int tr31_opt_block_parse(const struct tr31_opt_blk_t* opt_blk, size_t remaining_len, size_t* opt_block_len, struct tr31_opt_ctx_t* opt_ctx);
+static int tr31_opt_block_parse(const void* ptr, size_t remaining_len, size_t* opt_block_len, struct tr31_opt_ctx_t* opt_ctx);
 static int tr31_opt_block_validate_iso8601(const char* ts_str, size_t ts_str_len);
 static int tr31_opt_block_export(const struct tr31_opt_ctx_t* opt_ctx, size_t remaining_len, size_t* opt_blk_len, struct tr31_opt_blk_t* opt_blk);
 static int tr31_opt_block_export_PB(size_t pb_len, struct tr31_opt_blk_t* opt_blk);
@@ -1636,40 +1652,87 @@ int tr31_export(
 }
 
 static int tr31_opt_block_parse(
-	const struct tr31_opt_blk_t* opt_blk,
+	const void* ptr,
 	size_t remaining_len,
 	size_t* opt_blk_len,
 	struct tr31_opt_ctx_t* opt_ctx
 )
 {
 	int r;
+	const struct tr31_opt_blk_hdr_t* opt_blk_hdr;
+	size_t opt_blk_hdr_len;
+	const void* opt_blk_data;
 
-	if (!opt_blk || !opt_blk_len || !opt_ctx) {
+	if (!ptr || !opt_blk_len || !opt_ctx) {
 		return -1;
 	}
+	opt_blk_hdr = ptr;
 	*opt_blk_len = 0;
 
-	// ensure that optional block length is valid
-	r = hex_to_int(opt_blk->length, sizeof(opt_blk->length));
+	// ensure that enough bytes remain for minimal optional block
+	if (remaining_len < sizeof(struct tr31_opt_blk_hdr_t)) {
+		return TR31_ERROR_INVALID_LENGTH;
+	}
+
+	// parse optional block id
+	opt_ctx->id = ntohs(opt_blk_hdr->id);
+
+	// parse optional block length
+	r = hex_to_int(opt_blk_hdr->length, sizeof(opt_blk_hdr->length));
 	if (r < 0) {
 		// parse error
 		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_LENGTH;
 	}
-	if (r == 0) {
-		// extended optional block length not supported
-		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_LENGTH;
+	if (r) {
+		// short optional block length
+		*opt_blk_len = r;
+
+		// remember header length for later computations
+		opt_blk_hdr_len = sizeof(struct tr31_opt_blk_hdr_t);
+
+	} else {
+		// extended optional block length
+		const struct tr31_opt_blk_hdr_ext_t* opt_blk_hdr_ext = ptr;
+		size_t opt_blk_len_byte_count;
+
+		// parse extended length byte count
+		if (sizeof(struct tr31_opt_blk_hdr_ext_t) > remaining_len) {
+			// optional block parsing exceeds remaining key block length
+			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_LENGTH;
+		}
+		r = hex_to_int(opt_blk_hdr_ext->ext_length_byte_count, sizeof(opt_blk_hdr_ext->ext_length_byte_count));
+		if (r < 0) {
+			// parse error
+			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_LENGTH;
+		}
+		opt_blk_len_byte_count = r;
+
+		// parse extended length field
+		if (sizeof(struct tr31_opt_blk_hdr_ext_t) + opt_blk_len_byte_count > remaining_len) {
+			// optional block parsing exceeds remaining key block length
+			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_LENGTH;
+		}
+		r = hex_to_int(opt_blk_hdr_ext->ext_length, opt_blk_len_byte_count);
+		if (r < 0) {
+			// parse error
+			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_LENGTH;
+		}
+		*opt_blk_len = r;
+
+		// remember header length for later computations
+		opt_blk_hdr_len = sizeof(struct tr31_opt_blk_hdr_ext_t) + opt_blk_len_byte_count;
 	}
-	*opt_blk_len = r;
-	if (*opt_blk_len < sizeof(struct tr31_opt_blk_t)) {
-		// optional block length must be at least 4 bytes (2 byte id + 2 byte length)
+
+	// ensure that optional block length is valid
+	if (*opt_blk_len < opt_blk_hdr_len) {
+		// optional block length is less than optional header length
 		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_LENGTH;
 	}
 	if (*opt_blk_len > remaining_len) {
 		// optional block length exceeds remaining key block length
 		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_LENGTH;
 	}
-
-	opt_ctx->id = ntohs(opt_blk->id);
+	opt_blk_data = ptr + opt_blk_hdr_len;
 
 	switch (opt_ctx->id) {
 		// optional blocks to be decoded as hex
@@ -1681,9 +1744,9 @@ static int tr31_opt_block_parse(
 		case TR31_OPT_BLOCK_KP:
 		case TR31_OPT_BLOCK_KS:
 		case TR31_OPT_BLOCK_PK:
-			opt_ctx->data_length = (*opt_blk_len - 4) / 2;
+			opt_ctx->data_length = (*opt_blk_len - opt_blk_hdr_len) / 2;
 			opt_ctx->data = calloc(1, opt_ctx->data_length);
-			r = hex_to_bin(opt_blk->data, opt_ctx->data, opt_ctx->data_length);
+			r = hex_to_bin(opt_blk_data, opt_ctx->data, opt_ctx->data_length);
 			if (r) {
 				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 			}
@@ -1691,44 +1754,44 @@ static int tr31_opt_block_parse(
 
 		// optional blocks to be validated as alphanumeric (format AN)
 		case TR31_OPT_BLOCK_DA:
-			opt_ctx->data_length = (*opt_blk_len - 4);
+			opt_ctx->data_length = (*opt_blk_len - opt_blk_hdr_len);
 			opt_ctx->data = calloc(1, opt_ctx->data_length);
-			r = tr31_validate_format_an(opt_blk->data, opt_ctx->data_length);
+			r = tr31_validate_format_an(opt_blk_data, opt_ctx->data_length);
 			if (r) {
 				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 			}
-			memcpy(opt_ctx->data, opt_blk->data, opt_ctx->data_length);
+			memcpy(opt_ctx->data, opt_blk_data, opt_ctx->data_length);
 			return 0;
 
 		// optional blocks to be validated as printable ASCII (format PA)
 		case TR31_OPT_BLOCK_LB:
 		case TR31_OPT_BLOCK_PB:
-			opt_ctx->data_length = (*opt_blk_len - 4);
+			opt_ctx->data_length = (*opt_blk_len - opt_blk_hdr_len);
 			opt_ctx->data = calloc(1, opt_ctx->data_length);
-			r = tr31_validate_format_pa(opt_blk->data, opt_ctx->data_length);
+			r = tr31_validate_format_pa(opt_blk_data, opt_ctx->data_length);
 			if (r) {
 				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 			}
-			memcpy(opt_ctx->data, opt_blk->data, opt_ctx->data_length);
+			memcpy(opt_ctx->data, opt_blk_data, opt_ctx->data_length);
 			return 0;
 
 		// optional blocks to be validated as ISO 8601
 		case TR31_OPT_BLOCK_TC:
 		case TR31_OPT_BLOCK_TS:
-			opt_ctx->data_length = (*opt_blk_len - 4);
+			opt_ctx->data_length = (*opt_blk_len - opt_blk_hdr_len);
 			opt_ctx->data = calloc(1, opt_ctx->data_length);
-			r = tr31_opt_block_validate_iso8601(opt_blk->data, opt_ctx->data_length);
+			r = tr31_opt_block_validate_iso8601(opt_blk_data, opt_ctx->data_length);
 			if (r) {
 				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 			}
-			memcpy(opt_ctx->data, opt_blk->data, opt_ctx->data_length);
+			memcpy(opt_ctx->data, opt_blk_data, opt_ctx->data_length);
 			return 0;
 
 		// copy all other optional blocks, including proprietary ones, verbatim
 		default:
-			opt_ctx->data_length = (*opt_blk_len - 4);
+			opt_ctx->data_length = (*opt_blk_len - opt_blk_hdr_len);
 			opt_ctx->data = calloc(1, opt_ctx->data_length);
-			memcpy(opt_ctx->data, opt_blk->data, opt_ctx->data_length);
+			memcpy(opt_ctx->data, opt_blk_data, opt_ctx->data_length);
 			return 0;
 	}
 }
