@@ -48,7 +48,7 @@ struct tr31_tool_options_t {
 	// export parameters
 	// valid if export is true
 	size_t export_key_buf_len;
-	uint8_t export_key_buf[32]; // max 256-bit wrapped key
+	uint8_t* export_key_buf;
 	const char* export_key_algorithm;
 	unsigned int export_format_version;
 	const char* export_template;
@@ -249,19 +249,9 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			return 0;
 
 		case TR31_TOOL_OPTION_EXPORT:
-			if (buf_len > sizeof(options->export_key_buf)) {
-				argp_error(state, "KEY string may not have more than %zu digits (thus %zu bytes)",
-					sizeof(options->export_key_buf) * 2,
-					sizeof(options->export_key_buf)
-				);
-			}
-			memcpy(options->export_key_buf, buf, buf_len);
+			options->export_key_buf = buf;
 			options->export_key_buf_len = buf_len;
 			options->export = true;
-
-			free(buf);
-			buf = NULL;
-
 			return 0;
 
 		case TR31_TOOL_OPTION_EXPORT_KEY_ALGORITHM:
@@ -1147,7 +1137,8 @@ static int do_tr31_export(const struct tr31_tool_options_t* options)
 	unsigned int export_format_version;
 	struct tr31_ctx_t tr31_ctx;
 	struct tr31_key_t kbpk;
-	char key_block[1024];
+	size_t key_block_len;
+	char* key_block;
 
 	// populate TR-31 context object
 	if (options->export_template) {
@@ -1189,7 +1180,9 @@ static int do_tr31_export(const struct tr31_tool_options_t* options)
 	}
 
 	// export TR-31 key block
-	r = tr31_export(&tr31_ctx, &kbpk, key_block, sizeof(key_block));
+	key_block_len = 16384;
+	key_block = malloc(key_block_len);
+	r = tr31_export(&tr31_ctx, &kbpk, key_block, key_block_len);
 	if (r) {
 		fprintf(stderr, "TR-31 export error %d: %s\n", r, tr31_get_error_string(r));
 		return 1;
@@ -1197,6 +1190,7 @@ static int do_tr31_export(const struct tr31_tool_options_t* options)
 	printf("%s\n", key_block);
 
 	// cleanup
+	free(key_block);
 	tr31_key_release(&kbpk);
 	tr31_release(&tr31_ctx);
 
@@ -1243,6 +1237,11 @@ exit:
 		free(options.key_block);
 		options.key_block = NULL;
 		options.key_block_len = 0;
+	}
+	if (options.export_key_buf) {
+		free(options.export_key_buf);
+		options.export_key_buf = NULL;
+		options.export_key_buf_len = 0;
 	}
 
 	return r;
