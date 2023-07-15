@@ -722,6 +722,130 @@ int tr31_opt_block_add_BI(
 	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_BI, buf, bdkid_len + 1);
 }
 
+int tr31_opt_block_add_CT(
+	struct tr31_ctx_t* ctx,
+	uint8_t cert_format,
+	const char* cert_base64,
+	size_t cert_base64_len
+)
+{
+	int r;
+	struct tr31_opt_ctx_t* opt_block_ct;
+
+	if (!ctx || !cert_base64) {
+		return -1;
+	}
+
+	// validate certificate format
+	// see ANSI X9.143:2021, 6.3.6.3, table 10
+	switch (cert_format) {
+		case TR31_OPT_BLOCK_CT_X509:
+			break;
+
+		case TR31_OPT_BLOCK_CT_EMV:
+			break;
+
+		default:
+			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+
+	if (cert_base64[cert_base64_len-1] == 0) {
+		// if already null-terminated, determine exact string length which
+		// must be shorter than the given length due to the null-termination
+		cert_base64_len = strlen(cert_base64);
+	}
+
+	// find existing optional block CT
+	opt_block_ct = NULL;
+	for (size_t i = 0; i < ctx->opt_blocks_count; ++i) {
+		if (ctx->opt_blocks[i].id == TR31_OPT_BLOCK_CT) {
+			opt_block_ct = &ctx->opt_blocks[i];
+			break;
+		}
+	}
+
+	if (opt_block_ct) {
+		struct tr31_opt_ctx_t old = *opt_block_ct;
+		const char* old_data = old.data;
+
+		if (old.data_length < 2) {
+			// existing optional block CT is invalid
+			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+		}
+
+		// update existing optional block CT
+
+		if ((old_data[0] == '0' && old_data[1] == '0') ||
+			(old_data[0] == '0' && old_data[1] == '1')
+		) {
+			char* data;
+
+			// compute cert chain length
+			// - 2 bytes for certificate chain format
+			// - 2 bytes for first certificate format (included in first certificate data length)
+			// - 4 bytes for first certificate length
+			// - first certificate data
+			// - 2 bytes for second certificate format (not included in second certificate data length)
+			// - 4 bytes for second certificate length
+			// - second certificate data
+			opt_block_ct->data_length = 2 + 4 + old.data_length + 2 + 4 + cert_base64_len;
+
+			// convert to cert chain
+			opt_block_ct->data = malloc(opt_block_ct->data_length);
+			data = opt_block_ct->data;
+			int_to_hex(TR31_OPT_BLOCK_CT_CERT_CHAIN, data, 2);
+			memcpy(data + 2, old.data, 2); // copy first certificate format
+			int_to_hex(old.data_length - 2, data + 4, 4); // copy first certificate length
+			memcpy(data + 8, old.data + 2, old.data_length - 2);
+
+			// add new cert to chain
+			data += 6 + old.data_length;
+			int_to_hex(cert_format, data, 2); // copy second certificate format
+			int_to_hex(cert_base64_len, data + 2, 4); // copy second certificate length
+			memcpy(data + 6, cert_base64, cert_base64_len);
+
+			// cleanup optional block CT data
+			free(old.data);
+			old.data = NULL;
+			old.data_length = 0;
+
+		} else if (old_data[0] == '0' && old_data[1] == '2') {
+			char* data;
+
+			// extend existing certificate chain
+			// - 2 bytes for next certificate format
+			// - 4 bytes for next certificate length
+			// - next certificate data
+			opt_block_ct->data_length += 2 + 4 + cert_base64_len;
+			opt_block_ct->data = realloc(opt_block_ct->data, opt_block_ct->data_length);
+			data = opt_block_ct->data + opt_block_ct->data_length - 2 - 4 - cert_base64_len;
+
+			// add new cert to chain
+			int_to_hex(cert_format, data, 2); // copy certificate format
+			int_to_hex(cert_base64_len, data + 2, 4); // copy certificate length
+			memcpy(data + 6, cert_base64, cert_base64_len);
+
+		} else {
+			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+		}
+		r = 0;
+
+	} else {
+		char* buf;
+
+		// add new optional block CT
+
+		// NOTE: tr31_opt_block_export() copies this optional block verbatim
+		buf = malloc(cert_base64_len + 2);
+		int_to_hex(cert_format, buf, 2);
+		memcpy(buf + 2, cert_base64, cert_base64_len);
+		r = tr31_opt_block_add(ctx, TR31_OPT_BLOCK_CT, buf, cert_base64_len + 2);
+		free(buf);
+	}
+
+	return r;
+}
+
 int tr31_opt_block_add_DA(
 	struct tr31_ctx_t* ctx,
 	const void* da,

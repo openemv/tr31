@@ -33,6 +33,13 @@
 #include <ctype.h> // for isalnum and friends
 #include <time.h> // for time, gmtime and strftime
 
+// optional block CT parameters
+struct tr31_opt_block_CT {
+	uint8_t cert_format;
+	const void* cert_base64;
+	size_t cert_base64_len;
+};
+
 // command line options
 struct tr31_tool_options_t {
 	bool found_stdin_arg;
@@ -57,6 +64,8 @@ struct tr31_tool_options_t {
 	uint8_t export_opt_block_AL_akl;
 	size_t export_opt_block_BI_buf_len;
 	uint8_t export_opt_block_BI_buf[5];
+	size_t export_opt_block_CT_count;
+	struct tr31_opt_block_CT* export_opt_block_CT;
 	const char* export_opt_block_DA;
 	uint8_t export_opt_block_HM;
 	size_t export_opt_block_IK_buf_len;
@@ -99,6 +108,8 @@ enum tr31_tool_option_keys_t {
 	TR31_TOOL_OPTION_EXPORT_HEADER,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_AL,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_BI,
+	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_CT_X509,
+	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_CT_EMV,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_DA,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_HM,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_IK,
@@ -128,6 +139,8 @@ static struct argp_option argp_options[] = {
 	{ "export-header", TR31_TOOL_OPTION_EXPORT_HEADER, "KEYBLOCK-HEADER", 0, "TR-31 key block header to use for export. Key block length field in the header will be ignored." },
 	{ "export-opt-block-AL", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_AL, "Ephemeral|Static", 0, "Add optional block AL (Asymmetric Key Life) during TR-31 export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-BI", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_BI, "BDK-ID", 0, "Add optional block BI (Base Derivation Key Identifier) during TR-31 export. May be used with either --export-template or --export-header." },
+	{ "export-opt-block-CT-X509", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_CT_X509, "base64", 0, "Add optional block CT (X.509 Public Key Certificate) during TR-31 export. May be used with either --export-template or --export-header." },
+	{ "export-opt-block-CT-EMV", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_CT_EMV, "base64", 0, "Add optional block CT (EMV Public Key Certificate) during TR-31 export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-DA", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_DA, "DA-sets", 0, "Add optional block DA (Derivations Allowed) during TR-31 export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-HM", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_HM, "Hash-ID", 0, "Add optional block HM (HMAC algorithm) during TR-31 export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-IK", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_IK, "IKID", 0, "Add optional block IK (Initial Key Identifier) during TR-31 export. May be used with either --export-template or --export-header." },
@@ -309,6 +322,56 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			if (r) {
 				argp_error(state, "Export optional block BI must consist of hex digits");
 			}
+			return 0;
+		}
+
+		case TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_CT_X509: {
+			size_t arg_len = strlen(arg);
+			if (arg_len % 4 != 0) {
+				argp_error(state, "Export optional block CT base64 string must be a multiple of 4 bytes");
+			}
+			for (size_t i = 0; i < strlen(arg); ++i) {
+				if (!isalnum(arg[i]) && arg[i] != '+' && arg[i] != '/' && arg[i] != '=') {
+					argp_error(state, "Export optional block CT base64 string contains invalid character '%c')", arg[i]);
+				}
+			}
+			struct tr31_opt_block_CT ct = {
+				.cert_format = TR31_OPT_BLOCK_CT_X509,
+				.cert_base64 = arg,
+				.cert_base64_len = arg_len
+			};
+
+			options->export_opt_block_CT_count++;
+			options->export_opt_block_CT = realloc(
+				options->export_opt_block_CT,
+				options->export_opt_block_CT_count * sizeof(*options->export_opt_block_CT)
+			);
+			options->export_opt_block_CT[options->export_opt_block_CT_count-1] = ct;
+			return 0;
+		}
+
+		case TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_CT_EMV: {
+			size_t arg_len = strlen(arg);
+			if (arg_len % 4 != 0) {
+				argp_error(state, "Export optional block CT base64 string must be a multiple of 4 bytes");
+			}
+			for (size_t i = 0; i < strlen(arg); ++i) {
+				if (!isalnum(arg[i]) && arg[i] != '+' && arg[i] != '/' && arg[i] != '=') {
+					argp_error(state, "Export optional block CT base64 string contains invalid character '%c')", arg[i]);
+				}
+			}
+			struct tr31_opt_block_CT ct = {
+				.cert_format = TR31_OPT_BLOCK_CT_EMV,
+				.cert_base64 = arg,
+				.cert_base64_len = arg_len
+			};
+
+			options->export_opt_block_CT_count++;
+			options->export_opt_block_CT = realloc(
+				options->export_opt_block_CT,
+				options->export_opt_block_CT_count * sizeof(*options->export_opt_block_CT)
+			);
+			options->export_opt_block_CT[options->export_opt_block_CT_count-1] = ct;
 			return 0;
 		}
 
@@ -718,6 +781,12 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 					}
 					break;
 
+				case TR31_OPT_BLOCK_CT:
+					// for certificates and certificate chains, skip the first two bytes and use quotes
+					// the first byte will be decoded by tr31_get_opt_block_data_string()
+					print_str_with_quotes(tr31_ctx.opt_blocks[i].data + 2, tr31_ctx.opt_blocks[i].data_length - 2);
+					break;
+
 				case TR31_OPT_BLOCK_KV:
 				case TR31_OPT_BLOCK_LB:
 				case TR31_OPT_BLOCK_PB:
@@ -916,6 +985,21 @@ static int populate_opt_blocks(const struct tr31_tool_options_t* options, struct
 		if (r) {
 			fprintf(stderr, "Failed to add optional block BI; error %d: %s\n", r, tr31_get_error_string(r));
 			return 1;
+		}
+	}
+
+	if (options->export_opt_block_CT_count) {
+		for (size_t i = 0; i < options->export_opt_block_CT_count; ++i) {
+			r = tr31_opt_block_add_CT(
+				tr31_ctx,
+				options->export_opt_block_CT[i].cert_format,
+				options->export_opt_block_CT[i].cert_base64,
+				options->export_opt_block_CT[i].cert_base64_len
+			);
+			if (r) {
+				fprintf(stderr, "Failed to add optional block CT; error %d: %s\n", r, tr31_get_error_string(r));
+			return 1;
+		}
 		}
 	}
 
@@ -1242,6 +1326,11 @@ exit:
 		free(options.export_key_buf);
 		options.export_key_buf = NULL;
 		options.export_key_buf_len = 0;
+	}
+	if (options.export_opt_block_CT) {
+		free(options.export_opt_block_CT);
+		options.export_opt_block_CT = NULL;
+		options.export_opt_block_CT_count = 0;
 	}
 
 	return r;

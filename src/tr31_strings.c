@@ -41,6 +41,7 @@
 // Helper functions
 static const char* tr31_opt_block_alf_get_string(const struct tr31_opt_ctx_t* opt_block);
 static const char* tr31_opt_block_BI_get_string(const struct tr31_opt_ctx_t* opt_block);
+static const char* tr31_opt_block_CT_get_string(const struct tr31_opt_ctx_t* opt_block);
 static const char* tr31_opt_block_hmac_get_string(const struct tr31_opt_ctx_t* opt_block);
 static const char* tr31_opt_block_kcv_get_string(const struct tr31_opt_ctx_t* opt_block);
 static int tr31_opt_block_iso8601_get_string(const struct tr31_opt_ctx_t* opt_block, char* str, size_t str_len);
@@ -62,6 +63,10 @@ int tr31_opt_block_data_get_desc(const struct tr31_opt_ctx_t* opt_block, char* s
 
 		case TR31_OPT_BLOCK_BI:
 			simple_str = tr31_opt_block_BI_get_string(opt_block);
+			break;
+
+		case TR31_OPT_BLOCK_CT:
+			simple_str = tr31_opt_block_CT_get_string(opt_block);
 			break;
 
 		case TR31_OPT_BLOCK_HM:
@@ -135,6 +140,31 @@ static const char* tr31_opt_block_BI_get_string(const struct tr31_opt_ctx_t* opt
 	}
 
 	return "Unknown";
+}
+
+static const char* tr31_opt_block_CT_get_string(const struct tr31_opt_ctx_t* opt_block)
+{
+	const char* data;
+
+	if (!opt_block ||
+		opt_block->id != TR31_OPT_BLOCK_CT ||
+		opt_block->data_length < 2
+	) {
+		return NULL;
+	}
+	data = opt_block->data;
+
+	// See ANSI X9.143:2021, 6.3.6.3, table 10/11
+	if (data[0] == '0' && data[1] == '0') {
+		return "X.509 certificate";
+	} else if (data[0] == '0' && data[1] == '1') {
+		return "EMV certificate";
+	} else if (data[0] == '0' && data[1] == '2') {
+		return "Certificate chain";
+	} else {
+		// Unknown certificate format
+		return "Unknown";
+	}
 }
 
 static const char* tr31_opt_block_hmac_get_string(const struct tr31_opt_ctx_t* opt_block)

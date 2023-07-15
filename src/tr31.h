@@ -142,6 +142,11 @@ enum tr31_key_version_t {
 #define TR31_OPT_BLOCK_BI_TDES_DUKPT    (0x00) ///< TDES DUKPT Key Set ID (KSI)
 #define TR31_OPT_BLOCK_BI_AES_DUKPT     (0x01) ///< AES DUKPT Base Derivation Key ID (BDK ID)
 
+// TR-31 Certificate Format for Public Key Certificate optional block format (see ANSI X9.143:2021, 6.3.6.3, table 10/11)
+#define TR31_OPT_BLOCK_CT_X509          (0x00) ///< Certificate Format: X.509
+#define TR31_OPT_BLOCK_CT_EMV           (0x01) ///< Certificate Format: EMV
+#define TR31_OPT_BLOCK_CT_CERT_CHAIN    (0x02) ///< Certificate Format: Certificate Chain
+
 // TR-31 Derivation(s) Allowed optional block format (see ANSI X9.143:2021, 6.3.6.4, table 12)
 #define TR31_OPT_BLOCK_DA_VERSION_1     (0x01) ///< Derivation(s) Allowed version: 1
 
@@ -401,6 +406,28 @@ int tr31_opt_block_add_BI(
 	uint8_t key_type,
 	const void* bdkid,
 	size_t bdkid_len
+);
+
+/**
+ * Add optional block 'CT' for asymmetric public key certificate or chain of
+ * certificates to TR-31 context object. Multiple calls to this function will
+ * result in a certificate chain inside a singular optional block 'CT'. It is
+ * the caller's responsibility to ensure that the certificates and resulting
+ * certificate chain comply with ANSI X9.143.
+ *
+ * @note This function requires an initialised TR-31 context object to be provided.
+ *
+ * @param ctx TR-31 context object
+ * @param cert_format Certificate format. Either @ref TR31_OPT_BLOCK_CT_X509 or @ref TR31_OPT_BLOCK_CT_EMV.
+ * @param cert_base64 Base64 encoded certificate data
+ * @param cert_base64_len Length of @p cert_base64 in bytes.
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
+ */
+int tr31_opt_block_add_CT(
+	struct tr31_ctx_t* ctx,
+	uint8_t cert_format,
+	const char* cert_base64,
+	size_t cert_base64_len
 );
 
 /**
