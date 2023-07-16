@@ -98,6 +98,7 @@ static int hex_to_bin(const char* hex, void* bin, size_t bin_len);
 static int bin_to_hex(const void* bin, size_t bin_len, char* str, size_t str_len);
 static int tr31_validate_format_an(const char* buf, size_t buf_len);
 static int tr31_validate_format_pa(const char* buf, size_t buf_len);
+static struct tr31_opt_ctx_t* tr31_opt_block_alloc(struct tr31_ctx_t* ctx, unsigned int id, size_t length);
 static int tr31_opt_block_parse(const void* ptr, size_t remaining_len, size_t* opt_block_len, struct tr31_opt_ctx_t* opt_ctx);
 static int tr31_opt_block_validate_iso8601(const char* ts_str, size_t ts_str_len);
 static int tr31_opt_block_export(const struct tr31_opt_ctx_t* opt_ctx, size_t remaining_len, size_t* opt_blk_len, void* ptr);
@@ -632,6 +633,35 @@ int tr31_init(
 	return 0;
 }
 
+static struct tr31_opt_ctx_t* tr31_opt_block_alloc(
+	struct tr31_ctx_t* ctx,
+	unsigned int id,
+	size_t length
+)
+{
+	struct tr31_opt_ctx_t* opt_ctx;
+
+	if (!ctx) {
+		return NULL;
+	}
+
+	// grow optional block array
+	ctx->opt_blocks_count++;
+	ctx->opt_blocks = realloc(ctx->opt_blocks, ctx->opt_blocks_count * sizeof(struct tr31_opt_ctx_t));
+
+	// copy optional block fields and allocate optional block data
+	opt_ctx = &ctx->opt_blocks[ctx->opt_blocks_count - 1];
+	opt_ctx->id = id;
+	opt_ctx->data_length = length;
+	if (length) {
+		opt_ctx->data = malloc(opt_ctx->data_length);
+	} else {
+		opt_ctx->data = NULL;
+	}
+
+	return opt_ctx;
+}
+
 int tr31_opt_block_add(
 	struct tr31_ctx_t* ctx,
 	unsigned int id,
@@ -639,26 +669,23 @@ int tr31_opt_block_add(
 	size_t length
 )
 {
-	struct tr31_opt_ctx_t* opt_blk;
+	struct tr31_opt_ctx_t* opt_ctx;
 
 	if (!ctx) {
 		return -1;
 	}
+	if (!data && length) {
+		return -2;
+	}
 
-	// grow optional block array
-	ctx->opt_blocks_count++;
-	ctx->opt_blocks = realloc(ctx->opt_blocks, ctx->opt_blocks_count * sizeof(struct tr31_opt_ctx_t));
+	opt_ctx = tr31_opt_block_alloc(ctx, id, length);
+	if (!opt_ctx) {
+		return -3;
+	}
 
-	// add optional block
-	opt_blk = &ctx->opt_blocks[ctx->opt_blocks_count - 1];
-	opt_blk->id = id;
 	if (data && length) {
-		opt_blk->data_length = length;
-		opt_blk->data = calloc(1, opt_blk->data_length);
-		memcpy(opt_blk->data, data, opt_blk->data_length);
-	} else {
-		opt_blk->data_length = 0;
-		opt_blk->data = NULL;
+		// copy optional block data
+		memcpy(opt_ctx->data, data, length);
 	}
 
 	return 0;
@@ -729,7 +756,6 @@ int tr31_opt_block_add_CT(
 	size_t cert_base64_len
 )
 {
-	int r;
 	struct tr31_opt_ctx_t* opt_block_ct;
 
 	if (!ctx || !cert_base64) {
@@ -809,6 +835,8 @@ int tr31_opt_block_add_CT(
 			old.data = NULL;
 			old.data_length = 0;
 
+			return 0;
+
 		} else if (old_data[0] == '0' && old_data[1] == '2') {
 			char* data;
 
@@ -825,25 +853,26 @@ int tr31_opt_block_add_CT(
 			int_to_hex(cert_base64_len, data + 2, 4); // copy certificate length
 			memcpy(data + 6, cert_base64, cert_base64_len);
 
+			return 0;
+
 		} else {
 			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 		}
-		r = 0;
 
 	} else {
-		char* buf;
+		struct tr31_opt_ctx_t* opt_ctx;
 
 		// add new optional block CT
-
 		// NOTE: tr31_opt_block_export() copies this optional block verbatim
-		buf = malloc(cert_base64_len + 2);
-		int_to_hex(cert_format, buf, 2);
-		memcpy(buf + 2, cert_base64, cert_base64_len);
-		r = tr31_opt_block_add(ctx, TR31_OPT_BLOCK_CT, buf, cert_base64_len + 2);
-		free(buf);
-	}
+		opt_ctx = tr31_opt_block_alloc(ctx, TR31_OPT_BLOCK_CT, cert_base64_len + 2);
+		if (!opt_ctx) {
+			return -2;
+		}
+		int_to_hex(cert_format, opt_ctx->data, 2);
+		memcpy(opt_ctx->data + 2, cert_base64, cert_base64_len);
 
-	return r;
+		return 0;
+	}
 }
 
 int tr31_opt_block_add_DA(
@@ -853,7 +882,7 @@ int tr31_opt_block_add_DA(
 )
 {
 	int r;
-	char* buf;
+	struct tr31_opt_ctx_t* opt_ctx;
 
 	if (!ctx || !da) {
 		return -1;
@@ -871,11 +900,12 @@ int tr31_opt_block_add_DA(
 	}
 
 	// NOTE: tr31_opt_block_export() copies this optional block verbatim
-	buf = malloc(da_len + 2);
-	int_to_hex(TR31_OPT_BLOCK_DA_VERSION_1, buf, 2);
-	memcpy(buf + 2, da, da_len);
-	r = tr31_opt_block_add(ctx, TR31_OPT_BLOCK_DA, buf, da_len + 2);
-	free(buf);
+	opt_ctx = tr31_opt_block_alloc(ctx, TR31_OPT_BLOCK_DA, da_len + 2);
+	if (!opt_ctx) {
+		return -2;
+	}
+	int_to_hex(TR31_OPT_BLOCK_DA_VERSION_1, opt_ctx->data, 2);
+	memcpy(opt_ctx->data + 2, da, da_len);
 
 	return r;
 }
