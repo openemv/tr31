@@ -30,7 +30,7 @@
 #include <string.h>
 
 #if defined(HAVE_ARPA_INET_H)
-#include <arpa/inet.h> // for htons and friends
+#include <arpa/inet.h> // For htons and friends
 #elif defined(HAVE_WINSOCK_H)
 #include <winsock.h>
 #endif
@@ -38,10 +38,10 @@
 #define TR31_KBEK_VARIANT_XOR (0x45)
 #define TR31_KBAK_VARIANT_XOR (0x4D)
 
-// key derivation input data
-// see TR-31:2018, section 5.3.2.1, table 1
-// see TR-31:2018, section 5.3.2.3, table 2
-// see ISO 20038:2017, section 6.3, table 1
+// Key derivation input data
+// See ANSI X9.143:2021, 7.2.1.1, table 24
+// See ANSI X9.143:2021, 7.2.2.1, table 25
+// See ISO 20038:2017, section 6.3, table 1
 struct tr31_derivation_data_t {
 	uint8_t counter; // Counter that is incremented for each block of keying material
 	uint16_t key_usage; // Usage of derived key (not TR-31 key usage)
@@ -147,48 +147,48 @@ int tr31_tdes_kbpk_derive(const void* kbpk, size_t kbpk_len, void* kbek, void* k
 		return TR31_ERROR_UNSUPPORTED_KBPK_LENGTH;
 	}
 
-	// See TR-31:2018, section 5.3.2.1
+	// See ANSI X9.143:2021, section 7.2.2
 	// CMAC uses subkey and message input to output derived key material of
 	// cipher block length.
-	// Message input is as described in TR-31:2018, section 5.3.2.1, table 1
+	// Message input is as described in ANSI X9.143:2021, 7.2.2.1, table 25
 
-	// populate key block encryption key derivation input
+	// Populate key block encryption key derivation input
 	memset(&kbxk_input, 0, sizeof(kbxk_input));
 	kbxk_input.counter = 1;
 	kbxk_input.key_usage = htons(TR31_DERIVATION_KEY_USAGE_ENCRYPTION_CBC);
-	kbxk_input.algorithm = htons(kbpk_len / 24); // this happens to correspond with tr31_derivation_algorithm_t
+	kbxk_input.algorithm = htons(kbpk_len / 24); // This intentionally corresponds with tr31_derivation_algorithm_t
 	kbxk_input.length = htons(kbpk_len * 8);
 
-	// derive key block encryption key
+	// Derive key block encryption key
 	for (size_t kbek_len = 0; kbek_len < kbpk_len; kbek_len += DES_BLOCK_SIZE) {
 		// TDES CMAC creates key material of size DES_BLOCK_SIZE
 		r = crypto_tdes_cmac(kbpk, kbpk_len, &kbxk_input, sizeof(kbxk_input), kbek + kbek_len);
 		if (r) {
-			// internal error
+			// Internal error
 			return r;
 		}
 
-		// increment key derivation input counter
+		// Increment key derivation input counter
 		kbxk_input.counter++;
 	}
 
-	// populate key block authentication key derivation input
+	// Populate key block authentication key derivation input
 	memset(&kbxk_input, 0, sizeof(kbxk_input));
 	kbxk_input.counter = 1;
 	kbxk_input.key_usage = htons(TR31_DERIVATION_KEY_USAGE_MAC);
-	kbxk_input.algorithm = htons(kbpk_len / 24); // this happens to correspond with tr31_derivation_algorithm_t
+	kbxk_input.algorithm = htons(kbpk_len / 24); // This intentionally corresponds with tr31_derivation_algorithm_t
 	kbxk_input.length = htons(kbpk_len * 8);
 
-	// derive key block authentication key
+	// Derive key block authentication key
 	for (size_t kbak_len = 0; kbak_len < kbpk_len; kbak_len += DES_BLOCK_SIZE) {
 		// TDES CMAC creates key material of size DES_BLOCK_SIZE
 		r = crypto_tdes_cmac(kbpk, kbpk_len, &kbxk_input, sizeof(kbxk_input), kbak + kbak_len);
 		if (r) {
-			// internal error
+			// Internal error
 			return r;
 		}
 
-		// increment key derivation input counter
+		// Increment key derivation input counter
 		kbxk_input.counter++;
 	}
 
@@ -244,13 +244,13 @@ int tr31_aes_kbpk_derive(
 		return TR31_ERROR_UNSUPPORTED_KBPK_LENGTH;
 	}
 
-	// See TR-31:2018, section 5.3.2.3
+	// See ANSI X9.143:2021, section 7.2.1
 	// CMAC uses subkey and message input to output derived key material of
 	// cipher block length.
-	// Message input is as described in TR-31:2018, section 5.3.2.3, table 2
+	// Message input is as described in ANSI X9.143:2021, 7.2.1.1, table 24,
 	// and ISO 20038:2017, section 6.3, table 1
 
-	// populate key block encryption key derivation input
+	// Populate key block encryption key derivation input
 	memset(&kbxk_input, 0, sizeof(kbxk_input));
 	kbxk_input.counter = 1;
 	if (mode == TR31_AES_MODE_CBC) {
@@ -260,73 +260,75 @@ int tr31_aes_kbpk_derive(
 	} else {
 		return -3;
 	}
-	kbxk_input.algorithm = htons(kbpk_len / 8); // this happens to correspond with tr31_derivation_algorithm_t
+	kbxk_input.algorithm = htons(kbpk_len / 8); // This intentionally corresponds with tr31_derivation_algorithm_t
 	kbxk_input.length = htons(kbpk_len * 8);
 
-	// derive key block encryption key
+	// Derive key block encryption key
 	for (size_t kbek_len = 0; kbek_len < kbpk_len; kbek_len += AES_BLOCK_SIZE) {
 		// AES CMAC creates key material of size AES_BLOCK_SIZE
-
-		// see TR-31:2018, section 5.3.2.3
-		// for AES-192 key derivation, use the leftmost 8 bytes of the
-		// second CMAC block
 		if (kbpk_len - kbek_len < AES_BLOCK_SIZE) {
 			uint8_t cmac[AES_BLOCK_SIZE];
 
+			// See ANSI X9.143:2021, 7.2.1.1, figure 5
+			// For AES-192 key derivation, use the leftmost 8 bytes of the
+			// second CMAC block
+
 			r = crypto_aes_cmac(kbpk, kbpk_len, &kbxk_input, sizeof(kbxk_input), cmac);
 			if (r) {
-				// internal error
+				// Internal error
 				return r;
 			}
 
 			memcpy(kbek + kbek_len, cmac, kbpk_len - kbek_len);
 			crypto_cleanse(cmac, sizeof(cmac));
 		} else {
+			// See ANSI X9.143:2021, 7.2.1.1, figure 4 & 6
 			r = crypto_aes_cmac(kbpk, kbpk_len, &kbxk_input, sizeof(kbxk_input), kbek + kbek_len);
 			if (r) {
-				// internal error
+				// Internal error
 				return r;
 			}
 		}
 
-		// increment key derivation input counter
+		// Increment key derivation input counter
 		kbxk_input.counter++;
 	}
 
-	// populate key block authentication key derivation input
+	// Populate key block authentication key derivation input
 	memset(&kbxk_input, 0, sizeof(kbxk_input));
 	kbxk_input.counter = 1;
 	kbxk_input.key_usage = htons(TR31_DERIVATION_KEY_USAGE_MAC);
-	kbxk_input.algorithm = htons(kbpk_len / 8); // this happens to correspond with tr31_derivation_algorithm_t
+	kbxk_input.algorithm = htons(kbpk_len / 8); // This intentionally corresponds with tr31_derivation_algorithm_t
 	kbxk_input.length = htons(kbpk_len * 8);
 
-	// derive key block authentication key
+	// Derive key block authentication key
 	for (size_t kbak_len = 0; kbak_len < kbpk_len; kbak_len += AES_BLOCK_SIZE) {
 		// AES CMAC creates key material of size AES_BLOCK_SIZE
-
-		// see TR-31:2018, section 5.3.2.3
-		// for AES-192 key derivation, use the leftmost 8 bytes of the
-		// second CMAC block
 		if (kbpk_len - kbak_len < AES_BLOCK_SIZE) {
 			uint8_t cmac[AES_BLOCK_SIZE];
 
+			// See ANSI X9.143:2021, 7.2.1.1, figure 5
+			// For AES-192 key derivation, use the leftmost 8 bytes of the
+			// second CMAC block
+
 			r = crypto_aes_cmac(kbpk, kbpk_len, &kbxk_input, sizeof(kbxk_input), cmac);
 			if (r) {
-				// internal error
+				// Internal error
 				return r;
 			}
 
 			memcpy(kbak + kbak_len, cmac, kbpk_len - kbak_len);
 			crypto_cleanse(cmac, sizeof(cmac));
 		} else {
+			// See ANSI X9.143:2021, 7.2.1.1, figure 4 & 6
 			r = crypto_aes_cmac(kbpk, kbpk_len, &kbxk_input, sizeof(kbxk_input), kbak + kbak_len);
 			if (r) {
-				// internal error
+				// Internal error
 				return r;
 			}
 		}
 
-		// increment key derivation input counter
+		// Increment key derivation input counter
 		kbxk_input.counter++;
 	}
 
