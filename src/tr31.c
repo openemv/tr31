@@ -42,7 +42,7 @@
 #define sizeof_field(TYPE, FIELD) sizeof(((TYPE*)0)->FIELD)
 
 // TR-31 header
-// see TR-31:2018, A.2, table 4
+// see ANSI X9.143:2021, 6.2, table 1
 struct tr31_header_t {
 	uint8_t version_id;
 	char length[4];
@@ -56,14 +56,14 @@ struct tr31_header_t {
 } __attribute__((packed));
 
 // TR-31 optional block header with short length
-// see ANSI X9.143, 6.2, table 1
+// see ANSI X9.143:2021, 6.2, table 1
 struct tr31_opt_blk_hdr_t {
 	uint16_t id;
 	char length[2] __attribute__((nonstring));
 } __attribute__((packed));
 
 // TR-31 optional block header with extended length
-// see ANSI X9.143, 6.2, table 1
+// see ANSI X9.143:2021, 6.2, table 1
 struct tr31_opt_blk_hdr_ext_t {
 	uint16_t id;
 	char reserved[2];
@@ -72,7 +72,7 @@ struct tr31_opt_blk_hdr_ext_t {
 } __attribute__((packed));
 
 // TR-31 optional block with short length
-// see ANSI X9.143, 6.2, table 1
+// see ANSI X9.143:2021, 6.2, table 1
 struct tr31_opt_blk_t {
 	uint16_t id;
 	char length[2] __attribute__((nonstring));
@@ -80,7 +80,8 @@ struct tr31_opt_blk_t {
 } __attribute__((packed));
 
 // TR-31 payload
-// see TR-31:2018, A.3, table 5
+// see ANSI X9.143:2021, 6.1, figure 2
+// see ANSI X9.143:2021, 7.3.1, figure 11 and table 26
 struct tr31_payload_t {
 	uint16_t length;
 	uint8_t data[];
@@ -1204,7 +1205,7 @@ int tr31_import(
 	ctx->opt_blocks_count = opt_blocks_count;
 
 	// decode optional blocks
-	// see TR-31:2018, A.5.6
+	// see ANSI X9.143:2021, 6.3.6
 	ptr = header + 1; // optional blocks, if any, are after the header
 	if (ctx->opt_blocks_count) {
 		ctx->opt_blocks = calloc(ctx->opt_blocks_count, sizeof(ctx->opt_blocks[0]));
@@ -1266,13 +1267,9 @@ int tr31_import(
 			return -1;
 	}
 
-	// TR-31:2018, A.2 (page 18) indicates that the total length of all
-	// optional blocks must be a multiple of the encryption block size.
-	// TR-31:2018, A.5.6 indicates that the total optional block length must
-	// be a multiple of 8.
-	// TR-31:2018, A.5.6, table 11 indicates that optional block PB is used to
-	// bring the total length of all Optional Blocks in the key block to a
-	// multiple of the encryption block length.
+	// ANSI X9.143:2021, 6.3.6 (page 19) indicates that the padding block must
+	// result in the total length of all optional blocks being a multiple of
+	// the encryption block length.
 	// ISO 20038:2017, A.2.1 (page 10) indicates that the total length of all
 	// optional blocks must be a multiple of the encryption block size and
 	// does not make an exception for format version E.
@@ -1590,7 +1587,7 @@ int tr31_export(
 			}
 
 			// build optional block KC (KCV of wrapped key)
-			// see TR-31:2018, A.5.8 KCV Optional Block Format
+			// see ANSI X9.143:2021, 6.3.6.7
 			ctx->opt_blocks[i].data_length = ctx->key.kcv_len + 1; // +1 for KCV algorithm
 			ctx->opt_blocks[i].data = calloc(1, ctx->opt_blocks[i].data_length);
 			memcpy(ctx->opt_blocks[i].data, &ctx->key.kcv_algorithm, 1);
@@ -1607,7 +1604,7 @@ int tr31_export(
 			}
 
 			// build optional block KP (KCV of KBPK)
-			// see TR-31:2018, A.5.8 KCV Optional Block Format
+			// see ANSI X9.143:2021, 6.3.6.7
 			ctx->opt_blocks[i].data_length = kbpk->kcv_len + 1; // +1 for KCV algorithm
 			ctx->opt_blocks[i].data = calloc(1, ctx->opt_blocks[i].data_length);
 			memcpy(ctx->opt_blocks[i].data, &kbpk->kcv_algorithm, 1);
@@ -1636,16 +1633,14 @@ int tr31_export(
 		ptr += opt_blk_len;
 	}
 
-	// TR-31:2018, A.2 (page 18) indicates that the total length of all
-	// optional blocks will be a must be a multiple of the encryption block
-	// size.
-	// TR-31:2018, A.5.6 indicates that the total optional block length must
-	// be a multiple of 8.
-	// TR-31:2018, A.5.6, table 11 indicates that optional block PB is used to
-	// bring the total length of all Optional Blocks in the key block to a
-	// multiple of the encryption block length.
+	// ANSI X9.143:2021, 6.3.6 (page 19) indicates that the padding block must
+	// result in the total length of all optional blocks being a multiple of
+	// the encryption block length.
+	// ISO 20038:2017, A.2.1 (page 10) indicates that the total length of all
+	// optional blocks must be a multiple of the encryption block size and
+	// does not make an exception for format version E.
 	// So we'll use the encryption block size which is determined by the TR-31
-	// format version
+	// format version.
 	if (opt_blk_len_total & (enc_block_size-1)) {
 		unsigned int pb_len = 4; // Minimum length of optional block PB
 
