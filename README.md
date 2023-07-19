@@ -7,9 +7,13 @@ TR-31 library and tools
 [![MacOS build](https://github.com/openemv/tr31/actions/workflows/macos-build.yaml/badge.svg)](https://github.com/openemv/tr31/actions/workflows/macos-build.yaml)<br/>
 [![Windows build](https://github.com/openemv/tr31/actions/workflows/windows-build.yaml/badge.svg)](https://github.com/openemv/tr31/actions/workflows/windows-build.yaml)<br/>
 
-This project is an implementation of the ASC X9 TR-31 standard. Given that
-most uses of this standard involve dedicated security hardware, this
-implementation is mostly for validation and debugging purposes.
+This project began as an implementation of the ASC X9 TR-31 standard and has
+since grown to include the ANSI X9.143 standard which supersedes it, and the
+ISO 20038 standard which extends it. However, this project continues to refer
+to TR-31 key blocks (instead of secure key blocks) due to the popularity of
+that particular naming. Given that most uses of these standards involve
+dedicated security hardware, this implementation is mostly for validation and
+debugging purposes.
 
 If you wish to use this library for a project that is not compatible with the
 terms of the LGPL v2.1 license, please contact the author for alternative
@@ -18,9 +22,10 @@ licensing options.
 Features
 --------
 
-Currently this library implements parsing/decryption and encoding/encryption
-of TR-31 format version A, B, C, and D. Various helper functions are also
-available to stringify TR-31 header attributes.
+Currently this project implements parsing/decryption and encoding/encryption
+of key block format versions A, B, C, D and E. Various helper functions are
+also available to stringify key block header attributes. The functionality is
+available as a library as well as a command line tool.
 
 Installation
 ------------
@@ -185,8 +190,7 @@ tr31-tool --kbpk AB2E09DB3EF0BA71E0CE6CD755C23A3B --export BF82DAC6A33DF92CE66E1
 Roadmap
 -------
 
-* Support ANSI X9.143:2021
-* Implement authoring of key blocks for HMAC keys using TR-31 tool
+* Add getter functions for optional blocks
 * Implement key block translation
 * Implement key block component combination
 * Add CPack packaging for Windows and MacOS
