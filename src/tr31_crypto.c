@@ -1,5 +1,6 @@
 /**
  * @file tr31_crypto.c
+ * @brief TR-31 cryptography helper functions
  *
  * Copyright (c) 2020, 2021, 2022 Leon Lynch
  *

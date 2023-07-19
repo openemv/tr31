@@ -1,5 +1,6 @@
 /**
  * @file tr31.c
+ * @brief High level TR-31 library interface
  *
  * Copyright (c) 2020, 2021, 2022 Leon Lynch
  *
@@ -2116,7 +2117,7 @@ static int tr31_opt_block_export_PB(size_t pb_len, struct tr31_opt_blk_t* opt_bl
 	for (size_t i = 0; i < pb_len - 4; ++i) {
 		// although optional block PB may contain printable ASCII characters in
 		// the range 0x20 to 0x7E, characters outside the ranges of '0'-'9',
-		// 'A'-'Z' and 'a'-'Z' are problematic when using HSM protocols that
+		// 'A'-'Z' and 'a'-'z' are problematic when using HSM protocols that
 		// may use other printable ASCII characters as delimiters
 
 		// use unsigned integers for sanity but cast to uint8_t to fix negative
@@ -2126,13 +2127,13 @@ static int tr31_opt_block_export_PB(size_t pb_len, struct tr31_opt_blk_t* opt_bl
 		// clamp range to [0 - 61] for 62 possible characters
 		tmp = (tmp * 61) / 0xFF;
 
-		// split range into ranges of '0'-'9', 'A'-'Z' and 'a'-'Z'
+		// split range into ranges of '0'-'9', 'A'-'Z' and 'a'-'z'
 		if (tmp < 10) {
 			opt_blk->data[i] = tmp + '0'; // '0'-'9'
 		} else if (tmp < 36) {
 			opt_blk->data[i] = tmp - 10 + 'A'; // 'A'-'Z'
 		} else if (tmp < 62) {
-			opt_blk->data[i] = tmp - 36 + 'a'; // 'a'-'Z'
+			opt_blk->data[i] = tmp - 36 + 'a'; // 'a'-'z'
 		} else {
 			// This should never happen
 			return -1;

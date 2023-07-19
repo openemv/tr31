@@ -1,5 +1,6 @@
 /**
  * @file tr31.h
+ * @brief High level TR-31 library interface
  *
  * Copyright (c) 2020, 2021, 2022 Leon Lynch
  *
@@ -209,7 +210,7 @@ struct tr31_opt_ctx_t {
  * To manually populate this object for @ref tr31_export(), do:
  * - Use @ref tr31_init() to initialise the object and set the #version field (and optionally the #key field)
  * - Use @ref tr31_key_init() or @ref tr31_key_copy() to set #key field (if not set in the previous step)
- * - Use @ref tr31_opt_block_add() to add optional blocks (if required)
+ * - Use @ref tr31_opt_block_add() and similar specialised functions to add optional blocks (if required)
  *
  * @note Use @ref tr31_release() to release internal resources when done.
  */
