@@ -1,7 +1,7 @@
 /**
  * @file tr31_decode_test.c
  *
- * Copyright (c) 2020, 2021, 2022 Leon Lynch
+ * Copyright (c) 2020, 2021, 2022, 2023 Leon Lynch
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
