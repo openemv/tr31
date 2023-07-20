@@ -647,6 +647,15 @@ static struct tr31_opt_ctx_t* tr31_opt_block_alloc(
 		return NULL;
 	}
 
+	// repeated optional block IDs are not allowed
+	// see ANSI X9.143:2021, 6.3.6
+	for (size_t i = 0; i < ctx->opt_blocks_count; ++i) {
+		if (ctx->opt_blocks[i].id == id) {
+			// existing optional block found
+			return NULL;
+		}
+	}
+
 	// grow optional block array
 	ctx->opt_blocks_count++;
 	ctx->opt_blocks = realloc(ctx->opt_blocks, ctx->opt_blocks_count * sizeof(struct tr31_opt_ctx_t));
