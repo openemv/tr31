@@ -900,8 +900,28 @@ static int populate_tr31_from_header(const struct tr31_tool_options_t* options, 
 {
 	int r;
 
+	// determine fake key block length to allow parsing of header
 	size_t export_header_len = strlen(options->export_header);
-	size_t tmp_key_block_len = export_header_len + 16 + 1;
+	size_t tmp_key_block_len = export_header_len;
+	switch (options->export_header[0]) {
+		case 'A':
+		case 'C':
+			tmp_key_block_len += 32 + 8 + 1;
+			break;
+
+		case 'B':
+			tmp_key_block_len += 32 + 16 + 1;
+			break;
+
+		case 'D':
+		case 'E':
+			tmp_key_block_len += 48 + 16 + 1;
+			break;
+
+		default:
+			fprintf(stderr, "Unsupported key block format version\n");
+			return 1;
+	}
 	if (tmp_key_block_len > 9999) {
 		fprintf(stderr, "Export header too large\n");
 		return 1;
@@ -920,11 +940,7 @@ static int populate_tr31_from_header(const struct tr31_tool_options_t* options, 
 
 	// misuse TR-31 import function to parse header into TR-31 context object
 	r = tr31_import(tmp_keyblock, NULL, tr31_ctx);
-	// attempt to report only header parsing errors
-	if (r &&
-		r != TR31_ERROR_INVALID_LENGTH &&
-		r < TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA
-	) {
+	if (r) {
 		fprintf(stderr, "Error while parsing export header; error %d: %s\n", r, tr31_get_error_string(r));
 		return 1;
 	}
@@ -1036,8 +1052,19 @@ static int populate_opt_blocks(const struct tr31_tool_options_t* options, struct
 	} else if (tr31_ctx->key.usage == TR31_KEY_USAGE_HMAC ||
 		tr31_ctx->key.algorithm == TR31_KEY_ALGORITHM_HMAC
 	) {
-		fprintf(stderr, "HMAC keys (key usage M7, algorithm H) must specify the hash algorithm using optional block HM (--export-opt-block-HM)\n");
-		return 1;
+		// look for existing optional block HM because it may have been
+		// provided by --export-header
+		bool opt_block_HM_found = false;
+		for (size_t i = 0; i < tr31_ctx->opt_blocks_count; ++i) {
+			if (tr31_ctx->opt_blocks[i].id == TR31_OPT_BLOCK_HM) {
+				opt_block_HM_found = true;
+				break;
+			}
+		}
+		if (!opt_block_HM_found) {
+			fprintf(stderr, "HMAC keys (key usage M7, algorithm H) must specify the hash algorithm using optional block HM (--export-opt-block-HM)\n");
+			return 1;
+		}
 	}
 
 	if (options->export_opt_block_IK_buf_len) {
