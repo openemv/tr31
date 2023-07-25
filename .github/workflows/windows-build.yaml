@@ -17,10 +17,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { sys: mingw64, env: x86_64, build_type: "Debug", lib_type: "static", shared_libs: "NO" }
-          - { sys: mingw64, env: x86_64, build_type: "Release", lib_type: "dll", shared_libs: "YES" }
-          - { sys: mingw32, env: i686, build_type: "Debug", lib_type: "dll", shared_libs: "YES" }
-          - { sys: mingw32, env: i686, build_type: "Release", lib_type: "static", shared_libs: "NO" }
+          - { sys: mingw64, env: x86_64, build_type: "Debug", lib_type: "static", shared_libs: "NO", fetch_deps: YES }
+          - { sys: mingw64, env: x86_64, build_type: "Release", lib_type: "dll", shared_libs: "YES", fetch_deps: NO }
+          - { sys: mingw32, env: i686, build_type: "Debug", lib_type: "dll", shared_libs: "YES", fetch_deps: YES }
+          - { sys: mingw32, env: i686, build_type: "Release", lib_type: "static", shared_libs: "NO", fetch_deps: NO }
+          - { sys: ucrt64, env: ucrt-x86_64, build_type: "Debug", lib_type: "static", shared_libs: "NO", fetch_deps: YES }
+          - { sys: ucrt64, env: ucrt-x86_64, build_type: "Release", lib_type: "dll", shared_libs: "YES", fetch_deps: NO }
 
     name: Windows MSYS2 ${{matrix.sys}} build (${{ matrix.lib_type }}/${{ matrix.build_type }})
 
@@ -46,6 +48,12 @@ jobs:
           mingw-w64-${{matrix.env}}-ninja
           git
 
+    - name: Install dependencies
+      if: ${{ matrix.fetch_deps == 'NO' }}
+      run: |
+        pacman --noconfirm -S --needed mingw-w64-${{matrix.env}}-mbedtls
+        echo "CMAKE_REQUIRE_FIND_PACKAGE_MbedTLS=YES" >> $GITHUB_ENV
+
     # MSYS2 Git assumes CRLF by default
     - name: Configure Git
       run: |
@@ -53,7 +61,7 @@ jobs:
         git describe --always --dirty
 
     - name: Configure CMake
-      run: cmake -G Ninja -B build -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DBUILD_SHARED_LIBS=${{ matrix.shared_libs }} -DFETCH_MBEDTLS=YES -DFETCH_ARGP=YES
+      run: cmake -G Ninja -B build -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DBUILD_SHARED_LIBS=${{ matrix.shared_libs }} -DFETCH_MBEDTLS=${{ matrix.fetch_deps }} -DCMAKE_REQUIRE_FIND_PACKAGE_MbedTLS=${{ env.CMAKE_REQUIRE_FIND_PACKAGE_MbedTLS }} -DFETCH_ARGP=YES
 
     - name: Build
       run: cmake --build build
