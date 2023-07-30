@@ -1,5 +1,5 @@
-TR-31 library and tools
-=======================
+Key block library and tools for ANSI X9.143, ASC X9 TR-31 and ISO 20038
+=======================================================================
 
 [![License: LGPL-2.1](https://img.shields.io/github/license/openemv/tr31)](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html)<br/>
 [![Ubuntu build](https://github.com/openemv/tr31/actions/workflows/ubuntu-build.yaml/badge.svg)](https://github.com/openemv/tr31/actions/workflows/ubuntu-build.yaml)<br/>

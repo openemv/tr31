@@ -1,11 +1,11 @@
-# Copyright 1999-2022 Gentoo Authors
+# Copyright 1999-2023 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=8
 
 inherit cmake
 
-DESCRIPTION="TR-31 library and tools"
+DESCRIPTION="Key block library and tools for ANSI X9.143, ASC X9 TR-31 and ISO 20038"
 HOMEPAGE="https://github.com/openemv/tr31"
 if [[ "${PV}" == *9999 ]] ; then
 	inherit git-r3
