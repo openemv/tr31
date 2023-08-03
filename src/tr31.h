@@ -179,6 +179,7 @@ enum tr31_key_version_t {
 
 // TR-31 export flags
 #define TR31_EXPORT_NO_KEY_LENGTH_OBFUSCATION   (0x01) ///< Disable ANSI X9.143 key length obfuscation during key block export
+#define TR31_EXPORT_ZERO_OPT_BLOCK_PB           (0x02) ///< Fill optional block PB using zeros instead of random characters during TR-31 export.
 
 /// TR-31 key object
 struct tr31_key_t {

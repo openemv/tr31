@@ -83,7 +83,7 @@ struct tr31_tool_options_t {
 	uint8_t export_opt_block_WP_value;
 
 	// export flags
-	bool export_flags;
+	uint32_t export_flags;
 
 	// kbpk parameters
 	// valid if kbpk is true
@@ -122,6 +122,7 @@ enum tr31_tool_option_keys_t {
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TS,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_WP,
 	TR31_TOOL_OPTION_EXPORT_NO_KEY_LENGTH_OBFUSCATION,
+	TR31_TOOL_OPTION_EXPORT_ZERO_OPT_BLOCK_PB,
 	TR31_TOOL_OPTION_KBPK,
 	TR31_TOOL_OPTION_VERSION,
 };
@@ -153,6 +154,7 @@ static struct argp_option argp_options[] = {
 	{ "export-opt-block-TS", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TS, "ISO8601", 0, "Add optional block TS (Time Stamp in ISO 8601 UTC format) during TR-31 export. May be used with either --export-template or --export-header. Specify \"now\" for current date/time." },
 	{ "export-opt-block-WP", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_WP, "0-3", 0, "Add optional block WP (Wrapping Pedigree) during TR-31 export. May be used with either --export-template or --export-header." },
 	{ "export-no-key-length-obfuscation", TR31_TOOL_OPTION_EXPORT_NO_KEY_LENGTH_OBFUSCATION, NULL, 0, "Disable ANSI X9.143 key length obfuscation during TR-31 export." },
+	{ "export-zero-opt-block-PB", TR31_TOOL_OPTION_EXPORT_ZERO_OPT_BLOCK_PB, NULL, 0, "Fill optional block PB (Padding Block) using zeros instead of random characters during TR-31 export." },
 
 	{ NULL, 0, NULL, 0, "Options for decrypting/encrypting TR-31 key blocks:", 3 },
 	{ "kbpk", TR31_TOOL_OPTION_KBPK, "KEY", 0, "TR-31 key block protection key. Use - to read raw bytes from stdin." },
@@ -491,6 +493,10 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 
 		case TR31_TOOL_OPTION_EXPORT_NO_KEY_LENGTH_OBFUSCATION:
 			options->export_flags |= TR31_EXPORT_NO_KEY_LENGTH_OBFUSCATION;
+			return 0;
+
+		case TR31_TOOL_OPTION_EXPORT_ZERO_OPT_BLOCK_PB:
+			options->export_flags |= TR31_EXPORT_ZERO_OPT_BLOCK_PB;
 			return 0;
 
 		case TR31_TOOL_OPTION_KBPK:

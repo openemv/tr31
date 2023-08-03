@@ -104,7 +104,7 @@ static struct tr31_opt_ctx_t* tr31_opt_block_alloc(struct tr31_ctx_t* ctx, unsig
 static int tr31_opt_block_parse(const void* ptr, size_t remaining_len, size_t* opt_block_len, struct tr31_opt_ctx_t* opt_ctx);
 static int tr31_opt_block_validate_iso8601(const char* ts_str, size_t ts_str_len);
 static int tr31_opt_block_export(const struct tr31_opt_ctx_t* opt_ctx, size_t remaining_len, size_t* opt_blk_len, void* ptr);
-static int tr31_opt_block_export_PB(size_t pb_len, struct tr31_opt_blk_t* opt_blk);
+static int tr31_opt_block_export_PB(const struct tr31_ctx_t* ctx, size_t pb_len, struct tr31_opt_blk_t* opt_blk);
 static int tr31_compute_final_lengths(struct tr31_ctx_t* ctx);
 static int tr31_tdes_decrypt_verify_variant_binding(struct tr31_ctx_t* ctx, const struct tr31_key_t* kbpk);
 static int tr31_tdes_encrypt_sign_variant_binding(struct tr31_ctx_t* ctx, const struct tr31_key_t* kbpk);
@@ -1665,7 +1665,7 @@ int tr31_export(
 		}
 
 		// populate optional block PB
-		r = tr31_opt_block_export_PB(pb_len, ptr);
+		r = tr31_opt_block_export_PB(ctx, pb_len, ptr);
 		if (r) {
 			// return error value as-is
 			return r;
@@ -2115,13 +2115,22 @@ static int tr31_opt_block_export(
 	return 0;
 }
 
-static int tr31_opt_block_export_PB(size_t pb_len, struct tr31_opt_blk_t* opt_blk)
+static int tr31_opt_block_export_PB(
+	const struct tr31_ctx_t* ctx,
+	size_t pb_len,
+	struct tr31_opt_blk_t* opt_blk
+)
 {
 	opt_blk->id = htons(TR31_OPT_BLOCK_PB);
 	int_to_hex(pb_len, opt_blk->length, sizeof(opt_blk->length));
 
-	// populate with random data and then transpose to the required range
-	crypto_rand(opt_blk->data, pb_len - 4);
+	if ((ctx->export_flags & TR31_EXPORT_ZERO_OPT_BLOCK_PB) == 0) {
+		// populate with random data and then transpose to the required range
+		crypto_rand(opt_blk->data, pb_len - 4);
+	} else {
+		// populate with zeros instead of random data
+		memset(opt_blk->data, 0, pb_len - 4);
+	}
 
 	for (size_t i = 0; i < pb_len - 4; ++i) {
 		// although optional block PB may contain printable ASCII characters in

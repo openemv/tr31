@@ -336,19 +336,19 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 	)
 
 	add_test(NAME tr31_tool_test16
-		COMMAND tr31-tool --kbpk 4141414141414141414141414141414141414141414141414141414141414141 --export 1273671EA26AC29AFA4D1084127652A1 --export-key-algorithm AES --export-format-version D --export-template IK --export-opt-block-IK 1234567890123456 --export-no-key-length-obfuscation
+		COMMAND tr31-tool --kbpk 4141414141414141414141414141414141414141414141414141414141414141 --export 1273671EA26AC29AFA4D1084127652A1 --export-key-algorithm AES --export-format-version D --export-template IK --export-opt-block-IK 1234567890123456 --export-no-key-length-obfuscation --export-zero-opt-block-PB
 	)
 	set_tests_properties(tr31_tool_test16
 		PROPERTIES
-			PASS_REGULAR_EXPRESSION "^D0144B1AX00N0200IK141234567890123456PB0C" # omit random optional block padding digits
+			PASS_REGULAR_EXPRESSION "^D0144B1AX00N0200IK141234567890123456PB0C00000000"
 	)
 
 	add_test(NAME tr31_tool_test17
-		COMMAND tr31-tool --kbpk 4141414141414141414141414141414141414141414141414141414141414141 --export 1273671EA26AC29AFA4D1084127652A1 --export-header D0000B1AX00N0000 --export-opt-block-IK 1234567890123456 --export-no-key-length-obfuscation
+		COMMAND tr31-tool --kbpk 4141414141414141414141414141414141414141414141414141414141414141 --export 1273671EA26AC29AFA4D1084127652A1 --export-header D0000B1AX00N0000 --export-opt-block-IK 1234567890123456 --export-no-key-length-obfuscation --export-zero-opt-block-PB
 	)
 	set_tests_properties(tr31_tool_test17
 		PROPERTIES
-			PASS_REGULAR_EXPRESSION "^D0144B1AX00N0200IK141234567890123456PB0C" # omit random optional block padding digits
+			PASS_REGULAR_EXPRESSION "^D0144B1AX00N0200IK141234567890123456PB0C00000000"
 	)
 
 	add_test(NAME tr31_tool_test18
