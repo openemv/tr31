@@ -172,6 +172,10 @@ enum tr31_key_version_t {
 
 // TR-31 Wrapping Pedigree (WP) optional block format (see ANSI X9.143:2021, 6.3.6.15, table 23)
 #define TR31_OPT_BLOCK_WP_VERSION_0     (0x00) ///< Wrapping Pedigree (WP) version: 0
+#define TR31_OPT_BLOCK_WP_EQ_GT         (0)    ///< Wrapping Pedigree: Equal or greater effective strength
+#define TR31_OPT_BLOCK_WP_LT            (1)    ///< Wrapping Pedigree: Lesser effective strength
+#define TR31_OPT_BLOCK_WP_ASYMMETRIC    (2)    ///< Asymmetric key at risk of quantum computing
+#define TR31_OPT_BLOCK_WP_ASYMMETRIC_LT (3)    ///< Asymmetric key at risk of quantum computing and symmetric key of lesser effective strength
 
 // TR-31 export flags
 #define TR31_EXPORT_NO_KEY_LENGTH_OBFUSCATION   (0x01) ///< Disable ANSI X9.143 key length obfuscation during key block export

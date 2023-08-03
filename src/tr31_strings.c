@@ -369,11 +369,13 @@ static const char* tr31_opt_block_wrapping_pedigree_get_string(const struct tr31
 	}
 
 	// See ANSI X9.143:2021, 6.3.6.15, table 23
-	switch (data[2]) {
-		case 0x30: return "Equal or greater effective strength";
-		case 0x31: return "Lesser effective strength";
-		case 0x32: return "Asymmetric key at risk of quantum computing";
-		case 0x33: return "Asymmetric key at risk of quantum computing and symmetric key of lesser effective strength";
+	if ((data[2] & 0xF0) == 0x30) { // ASCII number
+		switch (data[2] & 0x0F) {
+			case TR31_OPT_BLOCK_WP_EQ_GT: return "Equal or greater effective strength";
+			case TR31_OPT_BLOCK_WP_LT: return "Lesser effective strength";
+			case TR31_OPT_BLOCK_WP_ASYMMETRIC: return "Asymmetric key at risk of quantum computing";
+			case TR31_OPT_BLOCK_WP_ASYMMETRIC_LT: return "Asymmetric key at risk of quantum computing and symmetric key of lesser effective strength";
+		}
 	}
 
 	return "Unknown";
