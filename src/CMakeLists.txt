@@ -7,6 +7,15 @@
 
 cmake_minimum_required(VERSION 3.16)
 
+# assume that only GCC supports __attribute__((nonstring))
+if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+	set(HAVE_ATTRIBUTE_NONSTRING TRUE)
+	set(NONSTRING "__attribute__((nonstring))")
+else()
+	set(HAVE_ATTRIBUTE_NONSTRING FALSE)
+	unset(NONSTRING)
+endif()
+
 # check for headers that provide ntohs/htons and friends
 include(CheckIncludeFile)
 CHECK_INCLUDE_FILE(

@@ -60,7 +60,7 @@ struct tr31_header_t {
 // see ANSI X9.143:2021, 6.2, table 1
 struct tr31_opt_blk_hdr_t {
 	uint16_t id;
-	char length[2] __attribute__((nonstring));
+	char length[2] NONSTRING;
 } __attribute__((packed));
 
 // TR-31 optional block header with extended length
@@ -68,15 +68,15 @@ struct tr31_opt_blk_hdr_t {
 struct tr31_opt_blk_hdr_ext_t {
 	uint16_t id;
 	char reserved[2];
-	char ext_length_byte_count[2] __attribute__((nonstring));
-	char ext_length[] __attribute__((nonstring));
+	char ext_length_byte_count[2] NONSTRING;
+	char ext_length[] NONSTRING;
 } __attribute__((packed));
 
 // TR-31 optional block with short length
 // see ANSI X9.143:2021, 6.2, table 1
 struct tr31_opt_blk_t {
 	uint16_t id;
-	char length[2] __attribute__((nonstring));
+	char length[2] NONSTRING;
 	char data[];
 } __attribute__((packed));
 
