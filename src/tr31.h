@@ -404,7 +404,7 @@ int tr31_opt_block_add_AL(
  * @param ctx TR-31 context object
  * @param key_type DUKPT key type. Either @ref TR31_OPT_BLOCK_BI_TDES_DUKPT or @ref TR31_OPT_BLOCK_BI_AES_DUKPT.
  * @param bdkid Key Set ID (KSI) or Base Derivation Key ID (BDK ID)
- * @param bdkid_len Length of @p bdkid in bytes. This length will also determine the key type field of the optional block.
+ * @param bdkid_len Length of @p bdkid in bytes. Must be 5 bytes for TDES DUKPT or 4 bytes for AES DUKPT (according to ANSI X9.143:2021, 6.3.6.2, table 9)
  * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
  */
 int tr31_opt_block_add_BI(
