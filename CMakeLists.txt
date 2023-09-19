@@ -152,7 +152,7 @@ install(FILES
 )
 
 # install bash-completion file
-find_package(bash-completion) # optional for providing bash-completion files
+find_package(bash-completion CONFIG) # optional for providing bash-completion files
 if(BASH_COMPLETION_FOUND)
 	set(TR31_INSTALL_BASH_COMPLETION_DIR ${CMAKE_INSTALL_DATADIR}/bash-completion/completions CACHE STRING "Installation location for tr31 bash-completion files")
 	message(STATUS "Using bash-completion install location \"${TR31_INSTALL_BASH_COMPLETION_DIR}\"")
