@@ -96,7 +96,7 @@ static int dec_to_int(const char* str, size_t str_len);
 static void int_to_dec(unsigned int value, char* str, size_t str_len);
 static int hex_to_int(const char* str, size_t str_len);
 static void int_to_hex(unsigned int value, char* str, size_t str_len);
-static int hex_to_bin(const char* hex, void* bin, size_t bin_len);
+static int hex_to_bin(const char* hex, size_t hex_len, void* bin, size_t bin_len);
 static int bin_to_hex(const void* bin, size_t bin_len, char* str, size_t str_len);
 static int tr31_validate_format_an(const char* buf, size_t buf_len);
 static int tr31_validate_format_pa(const char* buf, size_t buf_len);
@@ -189,27 +189,40 @@ static void int_to_hex(unsigned int value, char* str, size_t str_len)
 	}
 }
 
-static int hex_to_bin(const char* hex, void* bin, size_t bin_len)
+static int hex_to_bin(const char* hex, size_t hex_len, void* bin, size_t bin_len)
 {
-	size_t hex_len = bin_len * 2;
+	uint8_t* ptr = bin;
 
-	for (size_t i = 0; i < hex_len; ++i) {
-		if (!isxdigit(hex[i])) {
-			return -1;
-		}
+	// even number of hex digits
+	if ((hex_len & 0x1) != 0) {
+		return -1;
 	}
 
-	while (*hex && bin_len--) {
-		uint8_t* ptr = bin;
+	while (hex_len && bin_len) {
+		uint8_t nibble;
 
-		char str[3];
-		strncpy(str, hex, 2);
-		str[2] = 0;
+		// convert ASCII hex digit to numeric value
+		if (*hex >= '0' && *hex <= '9') {
+			nibble = *hex - '0';
+		} else if (*hex >= 'A' && *hex <= 'F') {
+			nibble = *hex - ('A' - 10);
+		} else {
+			// invalid character
+			return -3;
+		}
 
-		*ptr = strtoul(str, NULL, 16);
+		if ((hex_len & 0x1) == 0) { // even digit index
+			// most significant nibble
+			*ptr = nibble << 4;
+		} else { // i is odd
+			// least significant nibble
+			*ptr |= nibble & 0x0F;
+			++ptr;
+			--bin_len;
+		}
 
-		hex += 2;
-		++bin;
+		++hex;
+		--hex_len;
 	}
 
 	return 0;
@@ -1305,7 +1318,7 @@ int tr31_import(
 
 	// add payload data to context object
 	ctx->payload = calloc(1, ctx->payload_length);
-	r = hex_to_bin(ptr, ctx->payload, ctx->payload_length);
+	r = hex_to_bin(ptr, key_block_payload_length, ctx->payload, ctx->payload_length);
 	if (r) {
 		r = TR31_ERROR_INVALID_PAYLOAD_FIELD;
 		goto error;
@@ -1320,7 +1333,7 @@ int tr31_import(
 
 	// add authenticator to context object
 	ctx->authenticator = calloc(1, ctx->authenticator_length);
-	r = hex_to_bin(ptr, ctx->authenticator, ctx->authenticator_length);
+	r = hex_to_bin(ptr, ctx->authenticator_length * 2, ctx->authenticator, ctx->authenticator_length);
 	if (r) {
 		r = TR31_ERROR_INVALID_AUTHENTICATOR_FIELD;
 		goto error;
@@ -1906,7 +1919,7 @@ static int tr31_opt_block_parse(
 		case TR31_OPT_BLOCK_PK:
 			opt_ctx->data_length = (*opt_blk_len - opt_blk_hdr_len) / 2;
 			opt_ctx->data = calloc(1, opt_ctx->data_length);
-			r = hex_to_bin(opt_blk_data, opt_ctx->data, opt_ctx->data_length);
+			r = hex_to_bin(opt_blk_data, opt_ctx->data_length * 2, opt_ctx->data, opt_ctx->data_length);
 			if (r) {
 				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 			}
