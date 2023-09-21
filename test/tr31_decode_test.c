@@ -42,7 +42,8 @@ int main(void)
 	struct tr31_ctx_t test_tr31;
 	uint8_t* data;
 
-	// test key block decoding for format version B with KS optional block
+	// test key block decoding for format version B with optional block KS
+	printf("Test 1 (Format version B with optional block KS)...\n");
 	r = tr31_import(test1_tr31_ascii, NULL, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
@@ -74,6 +75,7 @@ int main(void)
 	tr31_release(&test_tr31);
 
 	// test key block decoding for format version D containing TDES key
+	printf("Test 2 (Format version D containing TDES key)...\n");
 	r = tr31_import(test2_tr31_ascii, NULL, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
@@ -101,6 +103,7 @@ int main(void)
 	tr31_release(&test_tr31);
 
 	// test key block decoding for format version D containing AES key
+	printf("Test 3 (Format version D containing AES key)...\n");
 	r = tr31_import(test3_tr31_ascii, NULL, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
@@ -127,7 +130,8 @@ int main(void)
 	}
 	tr31_release(&test_tr31);
 
-	// test key block decoding for format version B with KS, KC, and KP optional blocks
+	// test key block decoding for format version B with optional blocks KS, KC, and KP
+	printf("Test 4 (Format version B with optional block KS, KC, KP)...\n");
 	r = tr31_import(test4_tr31_ascii, NULL, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
