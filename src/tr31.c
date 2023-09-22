@@ -1924,11 +1924,11 @@ static int tr31_opt_block_parse(
 		// optional blocks to be validated as alphanumeric (format AN)
 		case TR31_OPT_BLOCK_DA:
 			opt_ctx->data_length = (*opt_blk_len - opt_blk_hdr_len);
-			opt_ctx->data = calloc(1, opt_ctx->data_length);
 			r = tr31_validate_format_an(opt_blk_data, opt_ctx->data_length);
 			if (r) {
 				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 			}
+			opt_ctx->data = malloc(opt_ctx->data_length);
 			memcpy(opt_ctx->data, opt_blk_data, opt_ctx->data_length);
 			return 0;
 
@@ -1936,11 +1936,11 @@ static int tr31_opt_block_parse(
 		case TR31_OPT_BLOCK_LB:
 		case TR31_OPT_BLOCK_PB:
 			opt_ctx->data_length = (*opt_blk_len - opt_blk_hdr_len);
-			opt_ctx->data = calloc(1, opt_ctx->data_length);
 			r = tr31_validate_format_pa(opt_blk_data, opt_ctx->data_length);
 			if (r) {
 				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 			}
+			opt_ctx->data = malloc(opt_ctx->data_length);
 			memcpy(opt_ctx->data, opt_blk_data, opt_ctx->data_length);
 			return 0;
 
@@ -1948,18 +1948,18 @@ static int tr31_opt_block_parse(
 		case TR31_OPT_BLOCK_TC:
 		case TR31_OPT_BLOCK_TS:
 			opt_ctx->data_length = (*opt_blk_len - opt_blk_hdr_len);
-			opt_ctx->data = calloc(1, opt_ctx->data_length);
 			r = tr31_opt_block_validate_iso8601(opt_blk_data, opt_ctx->data_length);
 			if (r) {
 				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 			}
+			opt_ctx->data = malloc(opt_ctx->data_length);
 			memcpy(opt_ctx->data, opt_blk_data, opt_ctx->data_length);
 			return 0;
 
 		// copy all other optional blocks, including proprietary ones, verbatim
 		default:
 			opt_ctx->data_length = (*opt_blk_len - opt_blk_hdr_len);
-			opt_ctx->data = calloc(1, opt_ctx->data_length);
+			opt_ctx->data = malloc(opt_ctx->data_length);
 			memcpy(opt_ctx->data, opt_blk_data, opt_ctx->data_length);
 			return 0;
 	}
@@ -2695,7 +2695,9 @@ void tr31_release(struct tr31_ctx_t* ctx)
 
 	if (ctx->opt_blocks) {
 		for (size_t i = 0; i < ctx->opt_blocks_count; ++i) {
-			free(ctx->opt_blocks[i].data);
+			if (ctx->opt_blocks[i].data) {
+				free(ctx->opt_blocks[i].data);
+			}
 			ctx->opt_blocks[i].data = NULL;
 		}
 
