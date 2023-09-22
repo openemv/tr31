@@ -31,7 +31,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
-#include <ctype.h>
 #include <stdlib.h>
 
 #if defined(HAVE_ARPA_INET_H)
@@ -119,7 +118,7 @@ static int dec_to_int(const char* str, size_t str_len)
 
 	value = 0;
 	for (size_t i = 0; i < str_len; ++i) {
-		if (!isdigit(str[i])) {
+		if (str[i] < '0' && str[i] > '9') {
 			return -1;
 		}
 
@@ -2757,7 +2756,7 @@ const char* tr31_get_key_usage_ascii(unsigned int usage, char* ascii, size_t asc
 		return NULL;
 	}
 	for (size_t i = 0; i < sizeof(usage_ascii.bytes); ++i) {
-		if (isalnum(usage_ascii.bytes[i])) {
+		if (tr31_validate_format_an(usage_ascii.bytes, sizeof(usage_ascii.bytes)) == 0) {
 			ascii[i] = usage_ascii.bytes[i];
 		} else {
 			ascii[i] = '?';
@@ -2880,7 +2879,7 @@ const char* tr31_get_opt_block_id_ascii(unsigned int opt_block_id, char* ascii, 
 		return NULL;
 	}
 	for (size_t i = 0; i < sizeof(opt_block_id_ascii.bytes); ++i) {
-		if (isalnum(opt_block_id_ascii.bytes[i])) {
+		if (tr31_validate_format_an(opt_block_id_ascii.bytes, sizeof(opt_block_id_ascii.bytes)) == 0) {
 			ascii[i] = opt_block_id_ascii.bytes[i];
 		} else {
 			ascii[i] = '?';
