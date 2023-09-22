@@ -150,20 +150,17 @@ static int hex_to_int(const char* str, size_t str_len)
 
 	value = 0;
 	for (size_t i = 0; i < str_len; ++i) {
-		if (!isxdigit(str[i])) {
-			return -1;
-		}
-
 		value <<= 4; // shift hex value
 		// convert ASCII hex to numeric value
+		// lower case characters are not allowed
+		// see ANSI X9.143:2021, 4
 		if (str[i] >= '0' && str[i] <= '9') {
 			value += str[i] - '0';
-		}
-		if (str[i] >= 'A' && str[i] <= 'F') {
+		} else if (str[i] >= 'A' && str[i] <= 'F') {
 			value += str[i] - ('A' - 10);
-		}
-		if (str[i] >= 'a' && str[i] <= 'f') {
-			value += str[i] - ('a' - 10);
+		} else {
+			// invalid character
+			return -1;
 		}
 	}
 
