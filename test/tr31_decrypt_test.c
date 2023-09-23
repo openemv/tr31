@@ -211,6 +211,7 @@ int main(void)
 	int r;
 	struct tr31_key_t test_kbpk;
 	struct tr31_ctx_t test_tr31;
+	const struct tr31_opt_ctx_t* opt_ctx;
 
 	// populate key block protection key
 	memset(&test_kbpk, 0, sizeof(test_kbpk));
@@ -458,7 +459,6 @@ int main(void)
 		test_tr31.opt_blocks_count != 1 ||
 		test_tr31.opt_blocks == NULL ||
 		test_tr31.opt_blocks[0].id != TR31_OPT_BLOCK_KS ||
-		test_tr31.opt_blocks[0].data_length != sizeof(test4_tr31_ksn_verify) ||
 		test_tr31.opt_blocks[0].data == NULL ||
 		memcmp(test_tr31.opt_blocks[0].data, test4_tr31_ksn_verify, sizeof(test4_tr31_ksn_verify)) != 0 ||
 		test_tr31.payload_length != 24 ||
@@ -477,6 +477,17 @@ int main(void)
 	}
 	if (memcmp(test_tr31.key.kcv, test4_tr31_kcv_verify, sizeof(test4_tr31_kcv_verify)) != 0) {
 		fprintf(stderr, "TR-31 key data KCV is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	opt_ctx = tr31_opt_block_find(&test_tr31, TR31_OPT_BLOCK_KS);
+	if (opt_ctx != &test_tr31.opt_blocks[0]) {
+		fprintf(stderr, "tr31_opt_block_find() failed; r=%d\n", r);
+		r = 1;
+		goto exit;
+	}
+	if (opt_ctx->data_length != sizeof(test4_tr31_ksn_verify)) {
+		fprintf(stderr, "TR-31 optional block KS length is incorrect\n");
 		r = 1;
 		goto exit;
 	}
@@ -508,7 +519,6 @@ int main(void)
 		test_tr31.opt_blocks_count != 1 ||
 		test_tr31.opt_blocks == NULL ||
 		test_tr31.opt_blocks[0].id != TR31_OPT_BLOCK_KS ||
-		test_tr31.opt_blocks[0].data_length != sizeof(test5_tr31_ksn_verify) ||
 		test_tr31.opt_blocks[0].data == NULL ||
 		memcmp(test_tr31.opt_blocks[0].data, test5_tr31_ksn_verify, sizeof(test5_tr31_ksn_verify)) != 0 ||
 		test_tr31.payload_length != 24 ||
@@ -527,6 +537,17 @@ int main(void)
 	}
 	if (memcmp(test_tr31.key.kcv, test5_tr31_kcv_verify, sizeof(test5_tr31_kcv_verify)) != 0) {
 		fprintf(stderr, "TR-31 key data KCV is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	opt_ctx = tr31_opt_block_find(&test_tr31, TR31_OPT_BLOCK_KS);
+	if (opt_ctx != &test_tr31.opt_blocks[0]) {
+		fprintf(stderr, "tr31_opt_block_find() failed; r=%d\n", r);
+		r = 1;
+		goto exit;
+	}
+	if (opt_ctx->data_length != sizeof(test5_tr31_ksn_verify)) {
+		fprintf(stderr, "TR-31 optional block KS length is incorrect\n");
 		r = 1;
 		goto exit;
 	}
@@ -834,7 +855,6 @@ int main(void)
 		test_tr31.opt_blocks_count != 1 ||
 		test_tr31.opt_blocks == NULL ||
 		test_tr31.opt_blocks[0].id != TR31_OPT_BLOCK_KS ||
-		test_tr31.opt_blocks[0].data_length != sizeof(test15_tr31_ksn_verify) ||
 		test_tr31.opt_blocks[0].data == NULL ||
 		memcmp(test_tr31.opt_blocks[0].data, test15_tr31_ksn_verify, sizeof(test15_tr31_ksn_verify)) != 0 ||
 		test_tr31.payload_length != 32 ||
@@ -853,6 +873,17 @@ int main(void)
 	}
 	if (memcmp(test_tr31.key.kcv, test15_tr31_kcv_verify, sizeof(test15_tr31_kcv_verify)) != 0) {
 		fprintf(stderr, "TR-31 key data KCV is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	opt_ctx = tr31_opt_block_find(&test_tr31, TR31_OPT_BLOCK_KS);
+	if (opt_ctx != &test_tr31.opt_blocks[0]) {
+		fprintf(stderr, "tr31_opt_block_find() failed; r=%d\n", r);
+		r = 1;
+		goto exit;
+	}
+	if (opt_ctx->data_length != sizeof(test15_tr31_ksn_verify)) {
+		fprintf(stderr, "TR-31 optional block KS length is incorrect\n");
 		r = 1;
 		goto exit;
 	}
@@ -884,7 +915,6 @@ int main(void)
 		test_tr31.opt_blocks_count != 1 ||
 		test_tr31.opt_blocks == NULL ||
 		test_tr31.opt_blocks[0].id != TR31_OPT_BLOCK_KS ||
-		test_tr31.opt_blocks[0].data_length != sizeof(test16_tr31_ksn_verify) ||
 		test_tr31.opt_blocks[0].data == NULL ||
 		memcmp(test_tr31.opt_blocks[0].data, test16_tr31_ksn_verify, sizeof(test16_tr31_ksn_verify)) != 0 ||
 		test_tr31.payload_length != 32 ||
@@ -903,6 +933,17 @@ int main(void)
 	}
 	if (memcmp(test_tr31.key.kcv, test16_tr31_kcv_verify, sizeof(test16_tr31_kcv_verify)) != 0) {
 		fprintf(stderr, "TR-31 key data KCV is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	opt_ctx = tr31_opt_block_find(&test_tr31, TR31_OPT_BLOCK_KS);
+	if (opt_ctx != &test_tr31.opt_blocks[0]) {
+		fprintf(stderr, "tr31_opt_block_find() failed; r=%d\n", r);
+		r = 1;
+		goto exit;
+	}
+	if (opt_ctx->data_length != sizeof(test16_tr31_ksn_verify)) {
+		fprintf(stderr, "TR-31 optional block KS length is incorrect\n");
 		r = 1;
 		goto exit;
 	}
@@ -935,11 +976,9 @@ int main(void)
 		test_tr31.opt_blocks[0].id != TR31_OPT_BLOCK_CT ||
 		test_tr31.opt_blocks[0].data_length != 0x500 - 10 ||
 		test_tr31.opt_blocks[1].id != TR31_OPT_BLOCK_KP ||
-		test_tr31.opt_blocks[1].data_length != sizeof(test17_tr31_kp_verify) ||
 		test_tr31.opt_blocks[1].data == NULL ||
 		memcmp(test_tr31.opt_blocks[1].data, test17_tr31_kp_verify, sizeof(test17_tr31_kp_verify)) != 0 ||
 		test_tr31.opt_blocks[2].id != TR31_OPT_BLOCK_TS ||
-		test_tr31.opt_blocks[2].data_length != strlen(test17_tr31_ts_verify) ||
 		test_tr31.opt_blocks[2].data == NULL ||
 		memcmp(test_tr31.opt_blocks[2].data, test17_tr31_ts_verify, strlen(test17_tr31_ts_verify)) != 0 ||
 		test_tr31.opt_blocks[3].id != TR31_OPT_BLOCK_PB ||
@@ -949,6 +988,28 @@ int main(void)
 		test_tr31.authenticator == NULL
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	opt_ctx = tr31_opt_block_find(&test_tr31, TR31_OPT_BLOCK_KP);
+	if (opt_ctx != &test_tr31.opt_blocks[1]) {
+		fprintf(stderr, "tr31_opt_block_find() failed; r=%d\n", r);
+		r = 1;
+		goto exit;
+	}
+	if (opt_ctx->data_length != sizeof(test17_tr31_kp_verify)) {
+		fprintf(stderr, "TR-31 optional block KP data length is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	opt_ctx = tr31_opt_block_find(&test_tr31, TR31_OPT_BLOCK_TS);
+	if (opt_ctx != &test_tr31.opt_blocks[2]) {
+		fprintf(stderr, "tr31_opt_block_find() failed; r=%d\n", r);
+		r = 1;
+		goto exit;
+	}
+	if (opt_ctx->data_length != strlen(test17_tr31_ts_verify)) {
+		fprintf(stderr, "TR-31 optional block TS data length is incorrect\n");
 		r = 1;
 		goto exit;
 	}
@@ -981,11 +1042,9 @@ int main(void)
 		test_tr31.opt_blocks[0].id != TR31_OPT_BLOCK_CT ||
 		test_tr31.opt_blocks[0].data_length != 0x5CC - 10 ||
 		test_tr31.opt_blocks[1].id != TR31_OPT_BLOCK_KP ||
-		test_tr31.opt_blocks[1].data_length != sizeof(test18_tr31_kp_verify) ||
 		test_tr31.opt_blocks[1].data == NULL ||
 		memcmp(test_tr31.opt_blocks[1].data, test18_tr31_kp_verify, sizeof(test18_tr31_kp_verify)) != 0 ||
 		test_tr31.opt_blocks[2].id != TR31_OPT_BLOCK_TS ||
-		test_tr31.opt_blocks[2].data_length != strlen(test18_tr31_ts_verify) ||
 		test_tr31.opt_blocks[2].data == NULL ||
 		memcmp(test_tr31.opt_blocks[2].data, test18_tr31_ts_verify, strlen(test18_tr31_ts_verify)) != 0 ||
 		test_tr31.opt_blocks[3].id != TR31_OPT_BLOCK_PB ||
@@ -995,6 +1054,28 @@ int main(void)
 		test_tr31.authenticator == NULL
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	opt_ctx = tr31_opt_block_find(&test_tr31, TR31_OPT_BLOCK_KP);
+	if (opt_ctx != &test_tr31.opt_blocks[1]) {
+		fprintf(stderr, "tr31_opt_block_find() failed; r=%d\n", r);
+		r = 1;
+		goto exit;
+	}
+	if (opt_ctx->data_length != sizeof(test18_tr31_kp_verify)) {
+		fprintf(stderr, "TR-31 optional block KP data length is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	opt_ctx = tr31_opt_block_find(&test_tr31, TR31_OPT_BLOCK_TS);
+	if (opt_ctx != &test_tr31.opt_blocks[2]) {
+		fprintf(stderr, "tr31_opt_block_find() failed; r=%d\n", r);
+		r = 1;
+		goto exit;
+	}
+	if (opt_ctx->data_length != strlen(test18_tr31_ts_verify)) {
+		fprintf(stderr, "TR-31 optional block TS data length is incorrect\n");
 		r = 1;
 		goto exit;
 	}

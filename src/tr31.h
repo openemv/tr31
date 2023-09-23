@@ -381,6 +381,17 @@ int tr31_opt_block_add(
 );
 
 /**
+ * Find optional block in TR-31 context object
+ *
+ * @note This function requires an initialised TR-31 context object to be provided.
+ *
+ * @param ctx TR-31 context object
+ * @param id TR-31 optional block identifier (see ANSI X9.143:2021, 6.3.6, table 7)
+ * @return Pointer to optional block context object, if found. Otherwise NULL.
+ */
+struct tr31_opt_ctx_t* tr31_opt_block_find(struct tr31_ctx_t* ctx, unsigned int id);
+
+/**
  * Add optional block 'AL' for Asymmetric Key Life (AKL) of wrapped key to
  * TR-31 context object.
  *
