@@ -212,6 +212,7 @@ int main(void)
 	struct tr31_key_t test_kbpk;
 	struct tr31_ctx_t test_tr31;
 	const struct tr31_opt_ctx_t* opt_ctx;
+	uint8_t ksn[20];
 
 	// populate key block protection key
 	memset(&test_kbpk, 0, sizeof(test_kbpk));
@@ -460,7 +461,6 @@ int main(void)
 		test_tr31.opt_blocks == NULL ||
 		test_tr31.opt_blocks[0].id != TR31_OPT_BLOCK_KS ||
 		test_tr31.opt_blocks[0].data == NULL ||
-		memcmp(test_tr31.opt_blocks[0].data, test4_tr31_ksn_verify, sizeof(test4_tr31_ksn_verify)) != 0 ||
 		test_tr31.payload_length != 24 ||
 		test_tr31.payload == NULL ||
 		test_tr31.authenticator_length != 4 ||
@@ -486,8 +486,19 @@ int main(void)
 		r = 1;
 		goto exit;
 	}
-	if (opt_ctx->data_length != sizeof(test4_tr31_ksn_verify)) {
-		fprintf(stderr, "TR-31 optional block KS length is incorrect\n");
+	if (opt_ctx->data_length != sizeof(test4_tr31_ksn_verify) * 2) {
+		fprintf(stderr, "TR-31 optional block KS data length is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	memset(ksn, 0, sizeof(ksn));
+	r = tr31_opt_block_decode_KS(opt_ctx, ksn, sizeof(test4_tr31_ksn_verify));
+	if (r) {
+		fprintf(stderr, "tr31_opt_block_decode_KS() failed; r=%d\n", r);
+		goto exit;
+	}
+	if (memcmp(ksn, test4_tr31_ksn_verify, sizeof(test4_tr31_ksn_verify)) != 0) {
+		fprintf(stderr, "TR-31 optional block KS decoded data is incorrect\n");
 		r = 1;
 		goto exit;
 	}
@@ -520,7 +531,6 @@ int main(void)
 		test_tr31.opt_blocks == NULL ||
 		test_tr31.opt_blocks[0].id != TR31_OPT_BLOCK_KS ||
 		test_tr31.opt_blocks[0].data == NULL ||
-		memcmp(test_tr31.opt_blocks[0].data, test5_tr31_ksn_verify, sizeof(test5_tr31_ksn_verify)) != 0 ||
 		test_tr31.payload_length != 24 ||
 		test_tr31.payload == NULL ||
 		test_tr31.authenticator_length != 8 ||
@@ -546,8 +556,19 @@ int main(void)
 		r = 1;
 		goto exit;
 	}
-	if (opt_ctx->data_length != sizeof(test5_tr31_ksn_verify)) {
-		fprintf(stderr, "TR-31 optional block KS length is incorrect\n");
+	if (opt_ctx->data_length != sizeof(test5_tr31_ksn_verify) * 2) {
+		fprintf(stderr, "TR-31 optional block KS data length is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	memset(ksn, 0, sizeof(ksn));
+	r = tr31_opt_block_decode_KS(opt_ctx, ksn, sizeof(test5_tr31_ksn_verify));
+	if (r) {
+		fprintf(stderr, "tr31_opt_block_decode_KS() failed; r=%d\n", r);
+		goto exit;
+	}
+	if (memcmp(ksn, test5_tr31_ksn_verify, sizeof(test5_tr31_ksn_verify)) != 0) {
+		fprintf(stderr, "TR-31 optional block KS decoded data is incorrect\n");
 		r = 1;
 		goto exit;
 	}
@@ -856,7 +877,6 @@ int main(void)
 		test_tr31.opt_blocks == NULL ||
 		test_tr31.opt_blocks[0].id != TR31_OPT_BLOCK_KS ||
 		test_tr31.opt_blocks[0].data == NULL ||
-		memcmp(test_tr31.opt_blocks[0].data, test15_tr31_ksn_verify, sizeof(test15_tr31_ksn_verify)) != 0 ||
 		test_tr31.payload_length != 32 ||
 		test_tr31.payload == NULL ||
 		test_tr31.authenticator_length != 4 ||
@@ -882,8 +902,19 @@ int main(void)
 		r = 1;
 		goto exit;
 	}
-	if (opt_ctx->data_length != sizeof(test15_tr31_ksn_verify)) {
-		fprintf(stderr, "TR-31 optional block KS length is incorrect\n");
+	if (opt_ctx->data_length != sizeof(test15_tr31_ksn_verify) * 2) {
+		fprintf(stderr, "TR-31 optional block KS data length is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	memset(ksn, 0, sizeof(ksn));
+	r = tr31_opt_block_decode_KS(opt_ctx, ksn, sizeof(test15_tr31_ksn_verify));
+	if (r) {
+		fprintf(stderr, "tr31_opt_block_decode_KS() failed; r=%d\n", r);
+		goto exit;
+	}
+	if (memcmp(ksn, test15_tr31_ksn_verify, sizeof(test15_tr31_ksn_verify)) != 0) {
+		fprintf(stderr, "TR-31 optional block KS decoded data is incorrect\n");
 		r = 1;
 		goto exit;
 	}
@@ -916,7 +947,6 @@ int main(void)
 		test_tr31.opt_blocks == NULL ||
 		test_tr31.opt_blocks[0].id != TR31_OPT_BLOCK_KS ||
 		test_tr31.opt_blocks[0].data == NULL ||
-		memcmp(test_tr31.opt_blocks[0].data, test16_tr31_ksn_verify, sizeof(test16_tr31_ksn_verify)) != 0 ||
 		test_tr31.payload_length != 32 ||
 		test_tr31.payload == NULL ||
 		test_tr31.authenticator_length != 8 ||
@@ -942,8 +972,19 @@ int main(void)
 		r = 1;
 		goto exit;
 	}
-	if (opt_ctx->data_length != sizeof(test16_tr31_ksn_verify)) {
-		fprintf(stderr, "TR-31 optional block KS length is incorrect\n");
+	if (opt_ctx->data_length != sizeof(test16_tr31_ksn_verify) * 2) {
+		fprintf(stderr, "TR-31 optional block KS data length is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	memset(ksn, 0, sizeof(ksn));
+	r = tr31_opt_block_decode_KS(opt_ctx, ksn, sizeof(test16_tr31_ksn_verify));
+	if (r) {
+		fprintf(stderr, "tr31_opt_block_decode_KS() failed; r=%d\n", r);
+		goto exit;
+	}
+	if (memcmp(ksn, test16_tr31_ksn_verify, sizeof(test16_tr31_ksn_verify)) != 0) {
+		fprintf(stderr, "TR-31 optional block KS decoded data is incorrect\n");
 		r = 1;
 		goto exit;
 	}

@@ -98,6 +98,7 @@ static void int_to_hex(unsigned int value, char* str, size_t str_len);
 static int hex_to_bin(const char* hex, size_t hex_len, void* bin, size_t bin_len);
 static int bin_to_hex(const void* bin, size_t bin_len, char* str, size_t str_len);
 static int tr31_validate_format_an(const char* buf, size_t buf_len);
+static int tr31_validate_format_h(const char* buf, size_t buf_len);
 static int tr31_validate_format_pa(const char* buf, size_t buf_len);
 static struct tr31_opt_ctx_t* tr31_opt_block_alloc(struct tr31_ctx_t* ctx, unsigned int id, size_t length);
 static int tr31_opt_block_parse(const void* ptr, size_t remaining_len, size_t* opt_block_len, struct tr31_opt_ctx_t* opt_ctx);
@@ -266,6 +267,24 @@ static int tr31_validate_format_an(const char* buf, size_t buf_len)
 		if ((*buf < 0x30 || *buf > 0x39) &&
 			(*buf < 0x41 || *buf > 0x5A) &&
 			(*buf < 0x61 || *buf > 0x7A)
+		) {
+			return -1;
+		}
+
+		++buf;
+	}
+
+	return 0;
+}
+
+static int tr31_validate_format_h(const char* buf, size_t buf_len)
+{
+	while (buf_len--) {
+		// hex characters are in the ranges 0x30 - 0x39 and 0x41 - 0x46
+		// lower case characters are not allowed
+		// see ANSI X9.143:2021, 4
+		if ((*buf < 0x30 || *buf > 0x39) &&
+			(*buf < 0x41 || *buf > 0x46)
 		) {
 			return -1;
 		}
@@ -752,7 +771,10 @@ int tr31_opt_block_add_BI(
 	size_t bdkid_len
 )
 {
+	int r;
 	uint8_t buf[6];
+	size_t buf_len;
+	char encoded_data[12];
 
 	if (!ctx || !bdkid) {
 		return -1;
@@ -762,12 +784,18 @@ int tr31_opt_block_add_BI(
 	// see ANSI X9.143:2021, 6.3.6.2, table 9
 	switch (key_type) {
 		case TR31_OPT_BLOCK_BI_TDES_DUKPT:
+			if (ctx->key.algorithm != TR31_KEY_ALGORITHM_TDES) {
+				return TR31_ERROR_UNSUPPORTED_ALGORITHM;
+			}
 			if (bdkid_len != 5) {
 				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 			}
 			break;
 
 		case TR31_OPT_BLOCK_BI_AES_DUKPT:
+			if (ctx->key.algorithm != TR31_KEY_ALGORITHM_AES) {
+				return TR31_ERROR_UNSUPPORTED_ALGORITHM;
+			}
 			if (bdkid_len != 4) {
 				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 			}
@@ -777,10 +805,71 @@ int tr31_opt_block_add_BI(
 			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 	}
 
-	// NOTE: tr31_opt_block_export() will hex encode this optional block
+	// encode optional block data
 	buf[0] = key_type;
 	memcpy(&buf[1], bdkid, bdkid_len);
-	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_BI, buf, bdkid_len + 1);
+	buf_len = bdkid_len + 1;
+	r = bin_to_hex(
+		buf,
+		buf_len,
+		encoded_data,
+		sizeof(encoded_data)
+	);
+	if (r) {
+		return -2;
+	}
+
+	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_BI, encoded_data, buf_len * 2);
+}
+
+int tr31_opt_block_decode_BI(
+	const struct tr31_opt_ctx_t* opt_ctx,
+	struct tr31_opt_blk_bdkid_data_t* bdkid_data
+)
+{
+	int r;
+
+	if (!opt_ctx || !bdkid_data) {
+		return -1;
+	}
+
+	if (opt_ctx->id != TR31_OPT_BLOCK_BI) {
+		return -2;
+	}
+
+	// decode optional block data and validate
+	// see ANSI X9.143:2021, 6.3.6.2, table 9
+	r = hex_to_bin(opt_ctx->data, 2, &bdkid_data->key_type, sizeof(bdkid_data->key_type));
+	if (r) {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+	switch (bdkid_data->key_type) {
+		case TR31_OPT_BLOCK_BI_TDES_DUKPT:
+			if (opt_ctx->data_length != 12) {
+				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+			}
+
+			// 5 bytes for TDES DUKPT
+			bdkid_data->bdkid_len = 5;
+			break;
+
+		case TR31_OPT_BLOCK_BI_AES_DUKPT:
+			if (opt_ctx->data_length != 10) {
+				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+			}
+
+			// 4 bytes for AES DUKPT
+			bdkid_data->bdkid_len = 4;
+			break;
+
+		default:
+			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+	r = hex_to_bin(opt_ctx->data + 2, opt_ctx->data_length - 2, &bdkid_data->bdkid, bdkid_data->bdkid_len);
+	if (r) {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+	return 0;
 }
 
 int tr31_opt_block_add_CT(
@@ -984,6 +1073,9 @@ int tr31_opt_block_add_IK(
 	size_t ikid_len
 )
 {
+	int r;
+	char encoded_data[16];
+
 	if (!ctx || !ikid) {
 		return -1;
 	}
@@ -994,7 +1086,50 @@ int tr31_opt_block_add_IK(
 		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 	}
 
-	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_IK, ikid, ikid_len);
+	// encode optional block data
+	r = bin_to_hex(
+		ikid,
+		ikid_len,
+		encoded_data,
+		sizeof(encoded_data)
+	);
+	if (r) {
+		return -2;
+	}
+
+	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_IK, encoded_data, sizeof(encoded_data));
+}
+
+int tr31_opt_block_decode_IK(
+	const struct tr31_opt_ctx_t* opt_ctx,
+	void* ikid,
+	size_t ikid_len
+)
+{
+	int r;
+
+	if (!opt_ctx || !ikid) {
+		return -1;
+	}
+
+	if (opt_ctx->id != TR31_OPT_BLOCK_IK) {
+		return -2;
+	}
+
+	// IKID must be 8 bytes (thus 16 hex digits)
+	// see ANSI X9.143:2021, 6.3.6.6, table 14
+	if (ikid_len != 8) {
+		return -3;
+	}
+	if (opt_ctx->data_length != 16) {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+	r = hex_to_bin(opt_ctx->data, opt_ctx->data_length, ikid, ikid_len);
+	if (r) {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+
+	return 0;
 }
 
 int tr31_opt_block_add_KC(struct tr31_ctx_t* ctx)
@@ -1015,6 +1150,9 @@ int tr31_opt_block_add_KS(
 	size_t iksn_len
 )
 {
+	int r;
+	char encoded_data[20];
+
 	if (!ctx || !iksn) {
 		return -1;
 	}
@@ -1027,7 +1165,56 @@ int tr31_opt_block_add_KS(
 		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 	}
 
-	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_KS, iksn, iksn_len);
+	// encode optional block data
+	r = bin_to_hex(
+		iksn,
+		iksn_len,
+		encoded_data,
+		sizeof(encoded_data)
+	);
+	if (r) {
+		return -2;
+	}
+
+	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_KS, encoded_data, iksn_len * 2);
+}
+
+int tr31_opt_block_decode_KS(
+	const struct tr31_opt_ctx_t* opt_ctx,
+	void* iksn,
+	size_t iksn_len
+)
+{
+	int r;
+
+	if (!opt_ctx || !iksn) {
+		return -1;
+	}
+
+	if (opt_ctx->id != TR31_OPT_BLOCK_KS) {
+		return -2;
+	}
+
+	// IKSN must be 10 bytes (thus 20 hex digits)
+	// see ANSI X9.143:2021, 6.3.6.8, table 16
+	// NOTE: this implementation also allows 8 bytes (thus 16 hex digits) for
+	// compatibility with other legacy implementations
+	if (iksn_len != 10 && iksn_len != 8) {
+		return -3;
+	}
+	if (opt_ctx->data_length != 20 && opt_ctx->data_length != 16) {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+	r = hex_to_bin(opt_ctx->data, opt_ctx->data_length, iksn, iksn_len);
+	if (r) {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+	if (iksn_len == 10 && opt_ctx->data_length == 16) {
+		// zero last two bytes if there is a length mismatch
+		memset(iksn + 8, 0, 2);
+	}
+
+	return 0;
 }
 
 int tr31_opt_block_add_KV(
@@ -1920,12 +2107,9 @@ static int tr31_opt_block_parse(
 	switch (opt_ctx->id) {
 		// optional blocks to be decoded as hex
 		case TR31_OPT_BLOCK_AL:
-		case TR31_OPT_BLOCK_BI:
 		case TR31_OPT_BLOCK_HM:
-		case TR31_OPT_BLOCK_IK:
 		case TR31_OPT_BLOCK_KC:
 		case TR31_OPT_BLOCK_KP:
-		case TR31_OPT_BLOCK_KS:
 		case TR31_OPT_BLOCK_PK:
 			opt_ctx->data_length = (*opt_blk_len - opt_blk_hdr_len) / 2;
 			opt_ctx->data = calloc(1, opt_ctx->data_length);
@@ -1933,6 +2117,19 @@ static int tr31_opt_block_parse(
 			if (r) {
 				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 			}
+			return 0;
+
+		// optional blocks to be validated as hex (format H)
+		case TR31_OPT_BLOCK_BI:
+		case TR31_OPT_BLOCK_IK:
+		case TR31_OPT_BLOCK_KS:
+			opt_ctx->data_length = (*opt_blk_len - opt_blk_hdr_len);
+			r = tr31_validate_format_h(opt_blk_data, opt_ctx->data_length);
+			if (r) {
+				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+			}
+			opt_ctx->data = malloc(opt_ctx->data_length);
+			memcpy(opt_ctx->data, opt_blk_data, opt_ctx->data_length);
 			return 0;
 
 		// optional blocks to be validated as alphanumeric (format AN)
@@ -2065,12 +2262,9 @@ static int tr31_opt_block_export(
 	switch (opt_ctx->id) {
 		// optional blocks to be encoded as hex
 		case TR31_OPT_BLOCK_AL:
-		case TR31_OPT_BLOCK_BI:
 		case TR31_OPT_BLOCK_HM:
-		case TR31_OPT_BLOCK_IK:
 		case TR31_OPT_BLOCK_KC:
 		case TR31_OPT_BLOCK_KP:
-		case TR31_OPT_BLOCK_KS:
 		case TR31_OPT_BLOCK_PK:
 			encoded_data_length = opt_ctx->data_length * 2;
 			encode_hex = true;

@@ -768,7 +768,45 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 			);
 
 			switch (tr31_ctx.opt_blocks[i].id) {
-				case TR31_OPT_BLOCK_BI:
+				case TR31_OPT_BLOCK_BI: {
+					struct tr31_opt_blk_bdkid_data_t bdkid_data;
+					r = tr31_opt_block_decode_BI(&tr31_ctx.opt_blocks[i], &bdkid_data);
+					if (r) {
+						// invalid; print as string
+						print_str(tr31_ctx.opt_blocks[i].data, tr31_ctx.opt_blocks[i].data_length);
+						break;
+					}
+					// valid; print as hex
+					print_hex(bdkid_data.bdkid, bdkid_data.bdkid_len);
+					break;
+				}
+
+				case TR31_OPT_BLOCK_IK: {
+					uint8_t ikid[8];
+					r = tr31_opt_block_decode_IK(&tr31_ctx.opt_blocks[i], ikid, sizeof(ikid));
+					if (r) {
+						// invalid; print as string
+						print_str(tr31_ctx.opt_blocks[i].data, tr31_ctx.opt_blocks[i].data_length);
+						break;
+					}
+					// valid; print as hex
+					print_hex(ikid, sizeof(ikid));
+					break;
+				}
+
+				case TR31_OPT_BLOCK_KS: {
+					uint8_t iksn[10];
+					r = tr31_opt_block_decode_KS(&tr31_ctx.opt_blocks[i], iksn, sizeof(iksn));
+					if (r) {
+						// invalid; print as string
+						print_str(tr31_ctx.opt_blocks[i].data, tr31_ctx.opt_blocks[i].data_length);
+						break;
+					}
+					// valid; print as hex
+					print_hex(iksn, sizeof(iksn));
+					break;
+				}
+
 				case TR31_OPT_BLOCK_KC:
 				case TR31_OPT_BLOCK_KP:
 				case TR31_OPT_BLOCK_PK:

@@ -41,6 +41,7 @@ int main(void)
 	int r;
 	struct tr31_ctx_t test_tr31;
 	const struct tr31_opt_ctx_t* opt_ctx;
+	uint8_t tmp[32];
 	const uint8_t* data;
 
 	// test key block decoding for format version B with optional block KS
@@ -62,7 +63,6 @@ int main(void)
 		test_tr31.opt_blocks == NULL ||
 		test_tr31.opt_blocks[0].id != TR31_OPT_BLOCK_KS ||
 		test_tr31.opt_blocks[0].data == NULL ||
-		memcmp(test_tr31.opt_blocks[0].data, test1_ksn_verify, sizeof(test1_ksn_verify)) != 0 ||
 		test_tr31.payload_length != 24 ||
 		test_tr31.payload == NULL ||
 		test_tr31.authenticator_length != 8 ||
@@ -78,8 +78,19 @@ int main(void)
 		r = 1;
 		goto exit;
 	}
-	if (opt_ctx->data_length != sizeof(test1_ksn_verify)) {
-		fprintf(stderr, "TR-31 optional block KS length is incorrect\n");
+	if (opt_ctx->data_length != sizeof(test1_ksn_verify) * 2) {
+		fprintf(stderr, "TR-31 optional block KS data length is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	memset(tmp, 0, sizeof(tmp));
+	r = tr31_opt_block_decode_KS(opt_ctx, tmp, sizeof(test1_ksn_verify));
+	if (r) {
+		fprintf(stderr, "tr31_opt_block_decode_KS() failed; r=%d\n", r);
+		goto exit;
+	}
+	if (memcmp(tmp, test1_ksn_verify, sizeof(test1_ksn_verify)) != 0) {
+		fprintf(stderr, "TR-31 optional block KS decoded data is incorrect\n");
 		r = 1;
 		goto exit;
 	}
@@ -160,7 +171,6 @@ int main(void)
 		test_tr31.opt_blocks == NULL ||
 		test_tr31.opt_blocks[0].id != TR31_OPT_BLOCK_KS ||
 		test_tr31.opt_blocks[0].data == NULL ||
-		memcmp(test_tr31.opt_blocks[0].data, test4_ksn_verify, sizeof(test4_ksn_verify)) != 0 ||
 		test_tr31.opt_blocks[1].id != TR31_OPT_BLOCK_KC ||
 		test_tr31.opt_blocks[1].data == NULL ||
 		test_tr31.opt_blocks[2].id != TR31_OPT_BLOCK_KP ||
@@ -180,8 +190,19 @@ int main(void)
 		r = 1;
 		goto exit;
 	}
-	if (opt_ctx->data_length != sizeof(test4_ksn_verify)) {
-		fprintf(stderr, "TR-31 optional block KS length is incorrect\n");
+	if (opt_ctx->data_length != sizeof(test4_ksn_verify) * 2) {
+		fprintf(stderr, "TR-31 optional block KS data length is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	memset(tmp, 0, sizeof(tmp));
+	r = tr31_opt_block_decode_KS(opt_ctx, tmp, sizeof(test4_ksn_verify));
+	if (r) {
+		fprintf(stderr, "tr31_opt_block_decode_KS() failed; r=%d\n", r);
+		goto exit;
+	}
+	if (memcmp(tmp, test4_ksn_verify, sizeof(test4_ksn_verify)) != 0) {
+		fprintf(stderr, "TR-31 optional block KS decoded data is incorrect\n");
 		r = 1;
 		goto exit;
 	}

@@ -208,6 +208,13 @@ struct tr31_opt_ctx_t {
 	void* data; ///< TR-31 optional block data
 };
 
+/// Decoded optional block Base Derivation Key Identifier (BDK ID) data
+struct tr31_opt_blk_bdkid_data_t {
+	uint8_t key_type; ///< DUKPT key type. Either @ref TR31_OPT_BLOCK_BI_TDES_DUKPT or @ref TR31_OPT_BLOCK_BI_AES_DUKPT.
+	size_t bdkid_len; ///< Length of @ref tr31_opt_blk_bdkid_data_t.bdkid in bytes. Must be 5 bytes for TDES DUKPT or 4 bytes for AES DUKPT (according to ANSI X9.143:2021, 6.3.6.2, table 9)
+	uint8_t bdkid[5]; ///< Key Set ID (KSI) or Base Derivation Key ID (BDK ID)
+};
+
 /**
  * @brief TR-31 context object
  * This object is typically populated by @ref tr31_import().
@@ -407,8 +414,8 @@ int tr31_opt_block_add_AL(
 );
 
 /**
- * Add optional block 'BI' for Base Derviation Key Identifier for DUKPT to
- * TR-31 context object.
+ * Add optional block 'BI' for Base Derivation Key Identifier (BDK ID) for
+ * DUKPT to TR-31 context object.
  *
  * @note This function requires an initialised TR-31 context object to be provided.
  *
@@ -423,6 +430,22 @@ int tr31_opt_block_add_BI(
 	uint8_t key_type,
 	const void* bdkid,
 	size_t bdkid_len
+);
+
+/**
+ * Decode optional block 'BI' for Base Derivation Key Identifier (BDK ID) for
+ * DUKPT.
+ *
+ * @note This function complies with ANSI X9.143 and will fail for
+ *       non-compliant encodings of this optional block.
+ *
+ * @param opt_ctx TR-31 optional block context object
+ * @param bdkid_data Decoded Base Derivation Key ID (BDK ID) data output
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
+ */
+int tr31_opt_block_decode_BI(
+	const struct tr31_opt_ctx_t* opt_ctx,
+	struct tr31_opt_blk_bdkid_data_t* bdkid_data
 );
 
 /**
@@ -497,6 +520,24 @@ int tr31_opt_block_add_IK(
 );
 
 /**
+ * Decode optional block 'IK' for Initial Key Identifier (IKID) of
+ * Initial AES DUKPT Key.
+ *
+ * @note This function complies with ANSI X9.143 and will fail for
+ *       non-compliant encodings of this optional block.
+ *
+ * @param opt_ctx TR-31 optional block context object
+ * @param ikid Initial Key Identifier (IKID) output
+ * @param ikid_len of @p ikid in bytes. Must be 8 bytes.
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
+ */
+int tr31_opt_block_decode_IK(
+	const struct tr31_opt_ctx_t* opt_ctx,
+	void* ikid,
+	size_t ikid_len
+);
+
+/**
  * Add optional block 'KC' for Key Check Value (KCV) of wrapped key to TR-31
  * context object. This function will not compute the KCV but cause it to be
  * computed by @ref tr31_export().
@@ -521,7 +562,7 @@ int tr31_opt_block_add_KC(struct tr31_ctx_t* ctx);
 int tr31_opt_block_add_KP(struct tr31_ctx_t* ctx);
 
 /**
- * Add optional block 'KS' for Initial Key Serial Number (KSN) of
+ * Add optional block 'KS' for Initial Key Serial Number (IKSN) of
  * Initial TDES DUKPT key to TR-31 context object.
  *
  * @note This function requires an initialised TR-31 context object to be provided.
@@ -534,6 +575,24 @@ int tr31_opt_block_add_KP(struct tr31_ctx_t* ctx);
 int tr31_opt_block_add_KS(
 	struct tr31_ctx_t* ctx,
 	const void* iksn,
+	size_t iksn_len
+);
+
+/**
+ * Decode optional block 'KS' for Initial Key Serial Number (IKSN) of
+ * Initial TDES DUKPT key.
+ *
+ * @note This function complies with ANSI X9.143 and ISO 20038, and will fail
+ *       for non-compliant encodings of this optional block.
+ *
+ * @param opt_ctx TR-31 optional block context object
+ * @param iksn Initial Key Serial Number (IKSN) output
+ * @param iksn_len of @p iksn in bytes. Must be 10 bytes (according to ANSI X9.143:2021, 6.3.6.8, table 16) or 8 bytes (for legacy implementations).
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
+ */
+int tr31_opt_block_decode_KS(
+	const struct tr31_opt_ctx_t* opt_ctx,
+	void* iksn,
 	size_t iksn_len
 );
 

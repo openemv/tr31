@@ -123,18 +123,16 @@ static const char* tr31_opt_block_alf_get_string(const struct tr31_opt_ctx_t* op
 
 static const char* tr31_opt_block_BI_get_string(const struct tr31_opt_ctx_t* opt_block)
 {
-	const uint8_t* data;
+	int r;
+	struct tr31_opt_blk_bdkid_data_t bdkid_data;
 
-	if (!opt_block ||
-		opt_block->id != TR31_OPT_BLOCK_BI ||
-		(opt_block->data_length != 6 && opt_block->data_length != 5)
-	) {
+	r = tr31_opt_block_decode_BI(opt_block, &bdkid_data);
+	if (r) {
 		return NULL;
 	}
-	data = opt_block->data;
 
 	// See ANSI X9.143:2021, 6.3.6.2, table 9
-	switch (data[0]) {
+	switch (bdkid_data.key_type) {
 		case TR31_OPT_BLOCK_BI_TDES_DUKPT: return "Key Set ID";
 		case TR31_OPT_BLOCK_BI_AES_DUKPT: return "Base Derivation Key ID";
 	}
