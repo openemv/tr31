@@ -215,6 +215,13 @@ struct tr31_opt_blk_bdkid_data_t {
 	uint8_t bdkid[5]; ///< Key Set ID (KSI) or Base Derivation Key ID (BDK ID)
 };
 
+/// Decoded optional block Key Check Value (KCV) data
+struct tr31_opt_blk_kcv_data_t {
+	uint8_t kcv_algorithm; ///< KCV algorithm output. Either @ref TR31_OPT_BLOCK_KCV_LEGACY or @ref TR31_OPT_BLOCK_KCV_CMAC.
+	size_t kcv_len; ///< Length of @ref tr31_opt_blk_kcv_data_t.kcv in bytes. Must be at most 3 bytes for legacy KCV or at most 5 bytes for CMAC KCV (according to ANSI X9.24-1)
+	uint8_t kcv[5]; ///< Key Check Value (KCV)
+};
+
 /**
  * @brief TR-31 context object
  * This object is typically populated by @ref tr31_import().
@@ -399,6 +406,23 @@ int tr31_opt_block_add(
 struct tr31_opt_ctx_t* tr31_opt_block_find(struct tr31_ctx_t* ctx, unsigned int id);
 
 /**
+ * Decode optional block containing Key Check Value (KCV) data. This may be
+ * optional block 'KC', 'KP', 'PK' or any other proprietary optional block with
+ * the same format.
+ *
+ * @note This function complies with ANSI X9.143 and ISO 20038, and will fail
+ *       for non-compliant encodings of this optional block.
+ *
+ * @param opt_ctx TR-31 optional block context object
+ * @param kcv_data Decoded optional block Key Check Value (KCV) data output
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
+ */
+int tr31_opt_block_decode_kcv(
+	const struct tr31_opt_ctx_t* opt_ctx,
+	struct tr31_opt_blk_kcv_data_t* kcv_data
+);
+
+/**
  * Add optional block 'AL' for Asymmetric Key Life (AKL) of wrapped key to
  * TR-31 context object.
  *
@@ -550,6 +574,22 @@ int tr31_opt_block_decode_IK(
 int tr31_opt_block_add_KC(struct tr31_ctx_t* ctx);
 
 /**
+ * Decode optional block 'KC' for Key Check Value (KCV) of wrapped key.
+ * This function will not compute the KCV.
+ *
+ * @note This function complies with ANSI X9.143 and ISO 20038, and will fail
+ *       for non-compliant encodings of this optional block.
+ *
+ * @param opt_ctx TR-31 optional block context object
+ * @param kcv_data Decoded optional block Key Check Value (KCV) data output
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
+ */
+int tr31_opt_block_decode_KC(
+	const struct tr31_opt_ctx_t* opt_ctx,
+	struct tr31_opt_blk_kcv_data_t* kcv_data
+);
+
+/**
  * Add optional block 'KP' for Key Check Value (KCV) of Key Block Protection
  * Key (KBPK) to TR-31 context object. This function will not compute the KCV
  * but cause it to be computed by @ref tr31_export().
@@ -560,6 +600,22 @@ int tr31_opt_block_add_KC(struct tr31_ctx_t* ctx);
  * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
  */
 int tr31_opt_block_add_KP(struct tr31_ctx_t* ctx);
+
+/**
+ * Decode optional block 'KP' for Key Check Value (KCV) of Key Block Protection
+ * Key (KBPK). This function will not compute the KCV.
+ *
+ * @note This function complies with ANSI X9.143 and ISO 20038, and will fail
+ *       for non-compliant encodings of this optional block.
+ *
+ * @param opt_ctx TR-31 optional block context object
+ * @param kcv_data Decoded optional block Key Check Value (KCV) data output
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
+ */
+int tr31_opt_block_decode_KP(
+	const struct tr31_opt_ctx_t* opt_ctx,
+	struct tr31_opt_blk_kcv_data_t* kcv_data
+);
 
 /**
  * Add optional block 'KS' for Initial Key Serial Number (IKSN) of
@@ -644,6 +700,22 @@ int tr31_opt_block_add_PK(
 	uint8_t kcv_algorithm,
 	const void* kcv,
 	size_t kcv_len
+);
+
+/**
+ * Decode optional block 'PK' for Key Check Value (KCV) of export protection
+ * key.
+ *
+ * @note This function complies with ANSI X9.143 and will fail for
+ *       non-compliant encodings of this optional block.
+ *
+ * @param opt_ctx TR-31 optional block context object
+ * @param kcv_data Decoded optional block Key Check Value (KCV) data output
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
+ */
+int tr31_opt_block_decode_PK(
+	const struct tr31_opt_ctx_t* opt_ctx,
+	struct tr31_opt_blk_kcv_data_t* kcv_data
 );
 
 /**

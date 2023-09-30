@@ -199,24 +199,17 @@ static const char* tr31_opt_block_hmac_get_string(const struct tr31_opt_ctx_t* o
 
 static const char* tr31_opt_block_kcv_get_string(const struct tr31_opt_ctx_t* opt_block)
 {
-	const uint8_t* data;
+	int r;
+	struct tr31_opt_blk_kcv_data_t kcv_data;
 
-	if (!opt_block ||
-		opt_block->data_length < 2
-	) {
+	r = tr31_opt_block_decode_kcv(opt_block, &kcv_data);
+	if (r) {
 		return NULL;
 	}
-	if (opt_block->id != TR31_OPT_BLOCK_KC &&
-		opt_block->id != TR31_OPT_BLOCK_KP &&
-		opt_block->id != TR31_OPT_BLOCK_PK
-	) {
-		return NULL;
-	}
-	data = opt_block->data;
 
 	// See ANSI X9.143:2021, 6.3.6.7, table 15
 	// See ANSI X9.143:2021, 6.3.6.12, table 20
-	switch (data[0]) {
+	switch (kcv_data.kcv_algorithm) {
 		case TR31_OPT_BLOCK_KCV_LEGACY: return "Legacy KCV algorithm";
 		case TR31_OPT_BLOCK_KCV_CMAC: return "CMAC based KCV";
 	}

@@ -809,13 +809,18 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 
 				case TR31_OPT_BLOCK_KC:
 				case TR31_OPT_BLOCK_KP:
-				case TR31_OPT_BLOCK_PK:
-					// for some optional blocks, skip the first byte
-					// the first byte will be decoded by tr31_get_opt_block_data_string()
-					if (tr31_ctx.opt_blocks[i].data_length > 1) {
-						print_hex(tr31_ctx.opt_blocks[i].data + 1, tr31_ctx.opt_blocks[i].data_length - 1);
+				case TR31_OPT_BLOCK_PK: {
+					struct tr31_opt_blk_kcv_data_t kcv_data;
+					r = tr31_opt_block_decode_kcv(&tr31_ctx.opt_blocks[i], &kcv_data);
+					if (r) {
+						// invalid; print as string
+						print_str(tr31_ctx.opt_blocks[i].data, tr31_ctx.opt_blocks[i].data_length);
+						break;
 					}
+					// valid; print as hex
+					print_hex(kcv_data.kcv, kcv_data.kcv_len);
 					break;
+				}
 
 				case TR31_OPT_BLOCK_DA:
 				case TR31_OPT_BLOCK_WP:

@@ -42,7 +42,7 @@ int main(void)
 	struct tr31_ctx_t test_tr31;
 	const struct tr31_opt_ctx_t* opt_ctx;
 	uint8_t tmp[32];
-	const uint8_t* data;
+	struct tr31_opt_blk_kcv_data_t kcv_data;
 
 	// test key block decoding for format version B with optional block KS
 	printf("Test 1 (Format version B with optional block KS)...\n");
@@ -212,18 +212,25 @@ int main(void)
 		r = 1;
 		goto exit;
 	}
-	if (opt_ctx->data_length != sizeof(test4_kcv_verify) + 1) {
+	if (opt_ctx->data_length != (sizeof(test4_kcv_verify) + 1) * 2) {
 		fprintf(stderr, "TR-31 optional block KC data length is incorrect\n");
 		r = 1;
 		goto exit;
 	}
-	data = test_tr31.opt_blocks[1].data;
-	if (data[0] != TR31_OPT_BLOCK_KCV_LEGACY) {
+	memset(&kcv_data, 0, sizeof(kcv_data));
+	r = tr31_opt_block_decode_KC(opt_ctx, &kcv_data);
+	if (r) {
+		fprintf(stderr, "tr31_opt_block_decode_KC() failed; r=%d\n", r);
+		goto exit;
+	}
+	if (kcv_data.kcv_algorithm != TR31_OPT_BLOCK_KCV_LEGACY) {
 		fprintf(stderr, "TR-31 optional block KC algorithm is incorrect\n");
 		r = 1;
 		goto exit;
 	}
-	if (memcmp(&data[1], test4_kcv_verify, sizeof(test4_kcv_verify)) != 0) {
+	if (kcv_data.kcv_len != sizeof(test4_kcv_verify) ||
+		memcmp(kcv_data.kcv, test4_kcv_verify, sizeof(test4_kcv_verify)) != 0
+	) {
 		fprintf(stderr, "TR-31 optional block KC data is incorrect\n");
 		r = 1;
 		goto exit;
@@ -234,18 +241,25 @@ int main(void)
 		r = 1;
 		goto exit;
 	}
-	if (opt_ctx->data_length != sizeof(test4_kcv_kbpk_verify) + 1) {
+	if (opt_ctx->data_length != (sizeof(test4_kcv_kbpk_verify) + 1) * 2) {
 		fprintf(stderr, "TR-31 optional block KP data length is incorrect\n");
 		r = 1;
 		goto exit;
 	}
-	data = test_tr31.opt_blocks[2].data;
-	if (data[0] != TR31_OPT_BLOCK_KCV_LEGACY) {
+	memset(&kcv_data, 0, sizeof(kcv_data));
+	r = tr31_opt_block_decode_KP(opt_ctx, &kcv_data);
+	if (r) {
+		fprintf(stderr, "tr31_opt_block_decode_KP() failed; r=%d\n", r);
+		goto exit;
+	}
+	if (kcv_data.kcv_algorithm != TR31_OPT_BLOCK_KCV_LEGACY) {
 		fprintf(stderr, "TR-31 optional block KP algorithm is incorrect\n");
 		r = 1;
 		goto exit;
 	}
-	if (memcmp(&data[1], test4_kcv_kbpk_verify, sizeof(test4_kcv_kbpk_verify)) != 0) {
+	if (kcv_data.kcv_len != sizeof(test4_kcv_kbpk_verify) ||
+		memcmp(kcv_data.kcv, test4_kcv_kbpk_verify, sizeof(test4_kcv_kbpk_verify)) != 0
+	) {
 		fprintf(stderr, "TR-31 optional block KP data is incorrect\n");
 		r = 1;
 		goto exit;

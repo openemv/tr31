@@ -186,7 +186,7 @@ static const char test17_tr31_ascii[] =
 
 	// MAC
 	"CDE1B75F3299D4544787A07F6A9F7127";
-static const uint8_t test17_tr31_kp_verify[] = { 0x01, 0xD7, 0x7F, 0x00, 0x77, 0x24 };
+static const uint8_t test17_kcv_kbpk_verify[] = { 0xD7, 0x7F, 0x00, 0x77, 0x24 };
 static const char test17_tr31_ts_verify[] = "20200818221218Z";
 
 // ANSI X9.143:2021, 8.6
@@ -203,7 +203,7 @@ static const char test18_tr31_ascii[] =
 
 	// MAC
 	"F6186011C7BE905F875B24C5D05EA14E";
-static const uint8_t test18_tr31_kp_verify[] = { 0x01, 0x23, 0x31, 0x55, 0x0B, 0xC9 };
+static const uint8_t test18_kcv_kbpk_verify[] = { 0x23, 0x31, 0x55, 0x0B, 0xC9 };
 static const char test18_tr31_ts_verify[] = "20200818004100Z";
 
 int main(void)
@@ -213,6 +213,7 @@ int main(void)
 	struct tr31_ctx_t test_tr31;
 	const struct tr31_opt_ctx_t* opt_ctx;
 	uint8_t ksn[20];
+	struct tr31_opt_blk_kcv_data_t kcv_data;
 
 	// populate key block protection key
 	memset(&test_kbpk, 0, sizeof(test_kbpk));
@@ -1018,7 +1019,6 @@ int main(void)
 		test_tr31.opt_blocks[0].data_length != 0x500 - 10 ||
 		test_tr31.opt_blocks[1].id != TR31_OPT_BLOCK_KP ||
 		test_tr31.opt_blocks[1].data == NULL ||
-		memcmp(test_tr31.opt_blocks[1].data, test17_tr31_kp_verify, sizeof(test17_tr31_kp_verify)) != 0 ||
 		test_tr31.opt_blocks[2].id != TR31_OPT_BLOCK_TS ||
 		test_tr31.opt_blocks[2].data == NULL ||
 		memcmp(test_tr31.opt_blocks[2].data, test17_tr31_ts_verify, strlen(test17_tr31_ts_verify)) != 0 ||
@@ -1038,8 +1038,26 @@ int main(void)
 		r = 1;
 		goto exit;
 	}
-	if (opt_ctx->data_length != sizeof(test17_tr31_kp_verify)) {
+	if (opt_ctx->data_length != (sizeof(test17_kcv_kbpk_verify) + 1) * 2) {
 		fprintf(stderr, "TR-31 optional block KP data length is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	memset(&kcv_data, 0, sizeof(kcv_data));
+	r = tr31_opt_block_decode_KP(opt_ctx, &kcv_data);
+	if (r) {
+		fprintf(stderr, "tr31_opt_block_decode_KP() failed; r=%d\n", r);
+		goto exit;
+	}
+	if (kcv_data.kcv_algorithm != TR31_OPT_BLOCK_KCV_CMAC) {
+		fprintf(stderr, "TR-31 optional block KP algorithm is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	if (kcv_data.kcv_len != sizeof(test17_kcv_kbpk_verify) ||
+		memcmp(kcv_data.kcv, test17_kcv_kbpk_verify, sizeof(test17_kcv_kbpk_verify)) != 0
+	) {
+		fprintf(stderr, "TR-31 optional block KP data is incorrect\n");
 		r = 1;
 		goto exit;
 	}
@@ -1084,7 +1102,6 @@ int main(void)
 		test_tr31.opt_blocks[0].data_length != 0x5CC - 10 ||
 		test_tr31.opt_blocks[1].id != TR31_OPT_BLOCK_KP ||
 		test_tr31.opt_blocks[1].data == NULL ||
-		memcmp(test_tr31.opt_blocks[1].data, test18_tr31_kp_verify, sizeof(test18_tr31_kp_verify)) != 0 ||
 		test_tr31.opt_blocks[2].id != TR31_OPT_BLOCK_TS ||
 		test_tr31.opt_blocks[2].data == NULL ||
 		memcmp(test_tr31.opt_blocks[2].data, test18_tr31_ts_verify, strlen(test18_tr31_ts_verify)) != 0 ||
@@ -1104,8 +1121,26 @@ int main(void)
 		r = 1;
 		goto exit;
 	}
-	if (opt_ctx->data_length != sizeof(test18_tr31_kp_verify)) {
+	if (opt_ctx->data_length != (sizeof(test18_kcv_kbpk_verify) + 1) * 2) {
 		fprintf(stderr, "TR-31 optional block KP data length is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	memset(&kcv_data, 0, sizeof(kcv_data));
+	r = tr31_opt_block_decode_KP(opt_ctx, &kcv_data);
+	if (r) {
+		fprintf(stderr, "tr31_opt_block_decode_KP() failed; r=%d\n", r);
+		goto exit;
+	}
+	if (kcv_data.kcv_algorithm != TR31_OPT_BLOCK_KCV_CMAC) {
+		fprintf(stderr, "TR-31 optional block KP algorithm is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	if (kcv_data.kcv_len != sizeof(test18_kcv_kbpk_verify) ||
+		memcmp(kcv_data.kcv, test18_kcv_kbpk_verify, sizeof(test18_kcv_kbpk_verify)) != 0
+	) {
+		fprintf(stderr, "TR-31 optional block KP data is incorrect\n");
 		r = 1;
 		goto exit;
 	}
