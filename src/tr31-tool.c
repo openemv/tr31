@@ -768,6 +768,20 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 			);
 
 			switch (tr31_ctx.opt_blocks[i].id) {
+				case TR31_OPT_BLOCK_AL: {
+					struct tr31_opt_blk_akl_data_t akl_data;
+					r = tr31_opt_block_decode_AL(&tr31_ctx.opt_blocks[i], &akl_data);
+					if (r || akl_data.version != TR31_OPT_BLOCK_AL_VERSION_1) {
+						// invalid; print as string
+						print_str(tr31_ctx.opt_blocks[i].data, tr31_ctx.opt_blocks[i].data_length);
+						break;
+					}
+					// valid; assume version 1 and print AKL as hex
+					printf("v1, ");
+					print_hex(&akl_data.v1.akl, sizeof(akl_data.v1.akl));
+					break;
+				}
+
 				case TR31_OPT_BLOCK_BI: {
 					struct tr31_opt_blk_bdkid_data_t bdkid_data;
 					r = tr31_opt_block_decode_BI(&tr31_ctx.opt_blocks[i], &bdkid_data);
@@ -778,6 +792,19 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 					}
 					// valid; print as hex
 					print_hex(bdkid_data.bdkid, bdkid_data.bdkid_len);
+					break;
+				}
+
+				case TR31_OPT_BLOCK_HM: {
+					uint8_t hash_algorithm;
+					r = tr31_opt_block_decode_HM(&tr31_ctx.opt_blocks[i], &hash_algorithm);
+					if (r) {
+						// invalid; print as string
+						print_str(tr31_ctx.opt_blocks[i].data, tr31_ctx.opt_blocks[i].data_length);
+						break;
+					}
+					// valid; print as hex
+					print_hex(&hash_algorithm, sizeof(hash_algorithm));
 					break;
 				}
 

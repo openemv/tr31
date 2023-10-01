@@ -39,7 +39,7 @@
 #endif // TR31_ENABLE_DATETIME_CONVERSION
 
 // Helper functions
-static const char* tr31_opt_block_alf_get_string(const struct tr31_opt_ctx_t* opt_block);
+static const char* tr31_opt_block_akl_get_string(const struct tr31_opt_ctx_t* opt_block);
 static const char* tr31_opt_block_BI_get_string(const struct tr31_opt_ctx_t* opt_block);
 static const char* tr31_opt_block_CT_get_string(const struct tr31_opt_ctx_t* opt_block);
 static const char* tr31_opt_block_hmac_get_string(const struct tr31_opt_ctx_t* opt_block);
@@ -58,7 +58,7 @@ int tr31_opt_block_data_get_desc(const struct tr31_opt_ctx_t* opt_block, char* s
 
 	switch (opt_block->id) {
 		case TR31_OPT_BLOCK_AL:
-			simple_str = tr31_opt_block_alf_get_string(opt_block);
+			simple_str = tr31_opt_block_akl_get_string(opt_block);
 			break;
 
 		case TR31_OPT_BLOCK_BI:
@@ -96,24 +96,34 @@ int tr31_opt_block_data_get_desc(const struct tr31_opt_ctx_t* opt_block, char* s
 	return 0;
 }
 
-static const char* tr31_opt_block_alf_get_string(const struct tr31_opt_ctx_t* opt_block)
+static const char* tr31_opt_block_akl_get_string(const struct tr31_opt_ctx_t* opt_block)
 {
-	const uint8_t* data;
+	int r;
+	struct tr31_opt_blk_akl_data_t akl_data;
 
-	if (!opt_block ||
-		opt_block->id != TR31_OPT_BLOCK_AL ||
-		opt_block->data_length != 2
-	) {
+	// Use canary value to know whether AKL version was decoded
+	akl_data.version = 0xFF;
+	r = tr31_opt_block_decode_AL(opt_block, &akl_data);
+	if (r < 0) {
 		return NULL;
 	}
-	data = opt_block->data;
-
-	if (data[0] != TR31_OPT_BLOCK_AL_VERSION_1) {
-		return "Unknown AFL version";
+	if (r > 0) {
+		// If at least the AKL version is available, report it as unknown
+		if (akl_data.version != 0xFF &&
+			akl_data.version != TR31_OPT_BLOCK_AL_VERSION_1
+		) {
+			return "Unknown AKL version";
+		} else {
+			// Invalid
+			return NULL;
+		}
 	}
 
 	// See ANSI X9.143:2021, 6.3.6.1, table 8
-	switch (data[1]) {
+	if (akl_data.version != TR31_OPT_BLOCK_AL_VERSION_1) {
+		return "Unknown AKL version";
+	}
+	switch (akl_data.v1.akl) {
 		case TR31_OPT_BLOCK_AL_AKL_EPHEMERAL: return "Ephemeral";
 		case TR31_OPT_BLOCK_AL_AKL_STATIC: return "Static";
 	}
@@ -167,18 +177,25 @@ static const char* tr31_opt_block_CT_get_string(const struct tr31_opt_ctx_t* opt
 
 static const char* tr31_opt_block_hmac_get_string(const struct tr31_opt_ctx_t* opt_block)
 {
-	const uint8_t* data;
+	int r;
+	uint8_t hash_algorithm;
 
-	if (!opt_block ||
-		opt_block->id != TR31_OPT_BLOCK_HM ||
-		opt_block->data_length != 1
-	) {
+	// Use canary value to know whether hash algorithm was decoded
+	hash_algorithm = 0xFF;
+	r = tr31_opt_block_decode_HM(opt_block, &hash_algorithm);
+	if (r < 0) {
 		return NULL;
 	}
-	data = opt_block->data;
+	if (r > 0) {
+		if (hash_algorithm != 0xFF) {
+			return "Unknown";
+		} else {
+			return NULL;
+		}
+	}
 
 	// See ANSI X9.143:2021, 6.3.6.5, table 13
-	switch (data[0]) {
+	switch (hash_algorithm) {
 		case TR31_OPT_BLOCK_HM_SHA1:            return "SHA-1";
 		case TR31_OPT_BLOCK_HM_SHA224:          return "SHA-224";
 		case TR31_OPT_BLOCK_HM_SHA256:          return "SHA-256";

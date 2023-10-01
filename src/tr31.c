@@ -103,6 +103,7 @@ static int tr31_validate_format_pa(const char* buf, size_t buf_len);
 static struct tr31_opt_ctx_t* tr31_opt_block_alloc(struct tr31_ctx_t* ctx, unsigned int id, size_t length);
 static inline size_t tr31_opt_block_kcv_data_length(size_t kcv_len);
 static int tr31_opt_block_encode_kcv(uint8_t kcv_algorithm, const void* kcv, size_t kcv_len, char* encoded_data, size_t encoded_data_len);
+static int tr31_opt_block_validate_hash_algorithm(uint8_t hash_algorithm);
 static int tr31_opt_block_parse(const void* ptr, size_t remaining_len, size_t* opt_block_len, struct tr31_opt_ctx_t* opt_ctx);
 static int tr31_opt_block_validate_iso8601(const char* ts_str, size_t ts_str_len);
 static int tr31_opt_block_export(const struct tr31_opt_ctx_t* opt_ctx, size_t remaining_len, size_t* opt_blk_len, void* ptr);
@@ -878,19 +879,86 @@ int tr31_opt_block_add_AL(
 	uint8_t akl
 )
 {
+	int r;
 	uint8_t buf[2];
+	char encoded_data[4];
+
+	if (!ctx) {
+		return -1;
+	}
 
 	if (akl != TR31_OPT_BLOCK_AL_AKL_EPHEMERAL &&
-		akl != TR31_OPT_BLOCK_AL_AKL_STATIC)
-	{
+		akl != TR31_OPT_BLOCK_AL_AKL_STATIC
+	) {
 		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 	}
 
+	// encode optional block data
 	// assume AKL optional block version 1
 	// see ANSI X9.143:2021, 6.3.6.1, table 8
 	buf[0] = TR31_OPT_BLOCK_AL_VERSION_1;
 	buf[1] = akl;
-	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_AL, buf, sizeof(buf));
+	r = bin_to_hex(
+		buf,
+		sizeof(buf),
+		encoded_data,
+		sizeof(encoded_data)
+	);
+	if (r) {
+		return -2;
+	}
+
+	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_AL, encoded_data, sizeof(buf) * 2);
+}
+
+int tr31_opt_block_decode_AL(
+	const struct tr31_opt_ctx_t* opt_ctx,
+	struct tr31_opt_blk_akl_data_t* akl_data
+)
+{
+	int r;
+
+	if (!opt_ctx || !akl_data) {
+		return -1;
+	}
+
+	if (opt_ctx->id != TR31_OPT_BLOCK_AL) {
+		return -2;
+	}
+
+	// decode optional block data and validate
+	// see ANSI X9.143:2021, 6.3.6.1, table 8
+	if (opt_ctx->data_length < 2) {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+	r = hex_to_bin(opt_ctx->data, 2, &akl_data->version, sizeof(akl_data->version));
+	if (r) {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+	if (akl_data->version == TR31_OPT_BLOCK_AL_VERSION_1) {
+		uint8_t akl = 0xFF;
+
+		// decode AKL optional block version 1
+		if (opt_ctx->data_length != 4) {
+			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+		}
+		r = hex_to_bin(opt_ctx->data + 2, 2, &akl, sizeof(akl));
+		if (r) {
+			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+		}
+		if (akl != TR31_OPT_BLOCK_AL_AKL_EPHEMERAL &&
+			akl != TR31_OPT_BLOCK_AL_AKL_STATIC
+		) {
+			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+		}
+		akl_data->v1.akl = akl;
+
+	} else {
+		// unsupported AKL version
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+
+	return 0;
 }
 
 int tr31_opt_block_add_BI(
@@ -1162,15 +1230,8 @@ int tr31_opt_block_add_DA(
 	return r;
 }
 
-int tr31_opt_block_add_HM(
-	struct tr31_ctx_t* ctx,
-	uint8_t hash_algorithm
-)
+static int tr31_opt_block_validate_hash_algorithm(uint8_t hash_algorithm)
 {
-	if (!ctx) {
-		return -1;
-	}
-
 	// validate hash algorithm
 	// see ANSI X9.143:2021, 6.3.6.5, table 13
 	switch (hash_algorithm) {
@@ -1187,13 +1248,79 @@ int tr31_opt_block_add_HM(
 		case TR31_OPT_BLOCK_HM_SHA3_512:
 		case TR31_OPT_BLOCK_HM_SHAKE128:
 		case TR31_OPT_BLOCK_HM_SHAKE256:
-			break;
+			// valid
+			return 0;
 
 		default:
 			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 	}
+}
 
-	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_HM, &hash_algorithm, 1);
+int tr31_opt_block_add_HM(
+	struct tr31_ctx_t* ctx,
+	uint8_t hash_algorithm
+)
+{
+	int r;
+	char encoded_data[2];
+
+	if (!ctx) {
+		return -1;
+	}
+
+	// validate hash algorithm
+	// see ANSI X9.143:2021, 6.3.6.5, table 13
+	r = tr31_opt_block_validate_hash_algorithm(hash_algorithm);
+	if (r) {
+		// return error value as-is
+		return r;
+	}
+
+	// encode optional block data
+	r = bin_to_hex(
+		&hash_algorithm,
+		sizeof(hash_algorithm),
+		encoded_data,
+		sizeof(encoded_data)
+	);
+	if (r) {
+		return -2;
+	}
+
+	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_HM, encoded_data, sizeof(encoded_data));
+}
+
+int tr31_opt_block_decode_HM(
+	const struct tr31_opt_ctx_t* opt_ctx,
+	uint8_t* hash_algorithm
+)
+{
+	int r;
+
+	if (!opt_ctx || !hash_algorithm) {
+		return -1;
+	}
+
+	if (opt_ctx->id != TR31_OPT_BLOCK_HM) {
+		return -2;
+	}
+
+	// decode optional block data and validate
+	// see ANSI X9.143:2021, 6.3.6.5, table 13
+	if (opt_ctx->data_length != 2) {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+	r = hex_to_bin(opt_ctx->data, 2, hash_algorithm, sizeof(*hash_algorithm));
+	if (r) {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+	r = tr31_opt_block_validate_hash_algorithm(*hash_algorithm);
+	if (r) {
+		// return error value as-is
+		return r;
+	}
+
+	return 0;
 }
 
 int tr31_opt_block_add_IK(
@@ -2297,19 +2424,10 @@ static int tr31_opt_block_parse(
 	opt_blk_data = ptr + opt_blk_hdr_len;
 
 	switch (opt_ctx->id) {
-		// optional blocks to be decoded as hex
-		case TR31_OPT_BLOCK_AL:
-		case TR31_OPT_BLOCK_HM:
-			opt_ctx->data_length = (*opt_blk_len - opt_blk_hdr_len) / 2;
-			opt_ctx->data = calloc(1, opt_ctx->data_length);
-			r = hex_to_bin(opt_blk_data, opt_ctx->data_length * 2, opt_ctx->data, opt_ctx->data_length);
-			if (r) {
-				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
-			}
-			return 0;
-
 		// optional blocks to be validated as hex (format H)
+		case TR31_OPT_BLOCK_AL:
 		case TR31_OPT_BLOCK_BI:
+		case TR31_OPT_BLOCK_HM:
 		case TR31_OPT_BLOCK_IK:
 		case TR31_OPT_BLOCK_KC:
 		case TR31_OPT_BLOCK_KP:
@@ -2452,13 +2570,6 @@ static int tr31_opt_block_export(
 
 	// determine optional block data length according to encoding
 	switch (opt_ctx->id) {
-		// optional blocks to be encoded as hex
-		case TR31_OPT_BLOCK_AL:
-		case TR31_OPT_BLOCK_HM:
-			encoded_data_length = opt_ctx->data_length * 2;
-			encode_hex = true;
-			break;
-
 		// optional blocks to be copied verbatim
 		default:
 			encoded_data_length = opt_ctx->data_length;

@@ -208,6 +208,15 @@ struct tr31_opt_ctx_t {
 	void* data; ///< TR-31 optional block data
 };
 
+/// Decoded optional block Asymmetric Key Life (AKL) data
+struct tr31_opt_blk_akl_data_t {
+	uint8_t version; ///< Asymmetric Key Life (AKL) version
+	/// Asymmetric Key Life (AKL) version 1
+	struct v1_t {
+		uint8_t akl; ///< Asymmetric Key Life (AKL)
+	} v1; ///< Asymmetric Key Life (AKL) version 1. Valid if @ref tr31_opt_blk_akl_data_t.version is @ref TR31_OPT_BLOCK_AL_VERSION_1
+};
+
 /// Decoded optional block Base Derivation Key Identifier (BDK ID) data
 struct tr31_opt_blk_bdkid_data_t {
 	uint8_t key_type; ///< DUKPT key type. Either @ref TR31_OPT_BLOCK_BI_TDES_DUKPT or @ref TR31_OPT_BLOCK_BI_AES_DUKPT.
@@ -438,6 +447,21 @@ int tr31_opt_block_add_AL(
 );
 
 /**
+ * Decode optional block 'AL' for Asymmetric Key Life (AKL) of wrapped key.
+ *
+ * @note This function complies with ANSI X9.143 and will fail for
+ *       non-compliant encodings of this optional block.
+ *
+ * @param opt_ctx TR-31 optional block context object
+ * @param akl_data Decoded Asymmetric Key Life (AKL) data output
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
+ */
+int tr31_opt_block_decode_AL(
+	const struct tr31_opt_ctx_t* opt_ctx,
+	struct tr31_opt_blk_akl_data_t* akl_data
+);
+
+/**
  * Add optional block 'BI' for Base Derivation Key Identifier (BDK ID) for
  * DUKPT to TR-31 context object.
  *
@@ -518,12 +542,27 @@ int tr31_opt_block_add_DA(
  * @note This function requires an initialised TR-31 context object to be provided.
  *
  * @param ctx TR-31 context object
- * @param hash_algorithm TR-31 HMAC hash algorithm (see ANSI X9.143:2021, 6.3.6.5, table 13)
+ * @param hash_algorithm HMAC hash algorithm (see ANSI X9.143:2021, 6.3.6.5, table 13)
  * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
  */
 int tr31_opt_block_add_HM(
 	struct tr31_ctx_t* ctx,
 	uint8_t hash_algorithm
+);
+
+/**
+ * Decode optional block 'HM' for HMAC hash algorithm of wrapped key.
+ *
+ * @note This function complies with ANSI X9.143 and will fail for
+ *       non-compliant encodings of this optional block.
+ *
+ * @param opt_ctx TR-31 optional block context object
+ * @param hash_algorithm HMAC hash algorithm output
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
+ */
+int tr31_opt_block_decode_HM(
+	const struct tr31_opt_ctx_t* opt_ctx,
+	uint8_t* hash_algorithm
 );
 
 /**
