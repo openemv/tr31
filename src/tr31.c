@@ -101,6 +101,7 @@ static int tr31_validate_format_an(const char* buf, size_t buf_len);
 static int tr31_validate_format_h(const char* buf, size_t buf_len);
 static int tr31_validate_format_pa(const char* buf, size_t buf_len);
 static struct tr31_opt_ctx_t* tr31_opt_block_alloc(struct tr31_ctx_t* ctx, unsigned int id, size_t length);
+static inline size_t tr31_opt_block_kcv_data_length(size_t kcv_len);
 static int tr31_opt_block_encode_kcv(uint8_t kcv_algorithm, const void* kcv, size_t kcv_len, char* encoded_data, size_t encoded_data_len);
 static int tr31_opt_block_parse(const void* ptr, size_t remaining_len, size_t* opt_block_len, struct tr31_opt_ctx_t* opt_ctx);
 static int tr31_opt_block_validate_iso8601(const char* ts_str, size_t ts_str_len);
@@ -745,6 +746,11 @@ struct tr31_opt_ctx_t* tr31_opt_block_find(struct tr31_ctx_t* ctx, unsigned int 
 	return NULL;
 }
 
+static inline size_t tr31_opt_block_kcv_data_length(size_t kcv_len)
+{
+	return (kcv_len + 1) * 2;
+}
+
 static int tr31_opt_block_encode_kcv(
 	uint8_t kcv_algorithm,
 	const void* kcv,
@@ -832,8 +838,8 @@ int tr31_opt_block_decode_kcv(
 	}
 	switch (kcv_data->kcv_algorithm) {
 		case TR31_OPT_BLOCK_KCV_LEGACY:
-			// KCV algorithm and at most 6 KCV digits
-			if (opt_ctx->data_length > 2 + 6) {
+			// at most 6 KCV digits, thus 3 KCV bytes
+			if (opt_ctx->data_length > tr31_opt_block_kcv_data_length(3)) {
 				// too many KCV digits for legacy KCV algorithm
 				// see ANSI X9.24-1:2017, Annex A
 				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
@@ -841,8 +847,8 @@ int tr31_opt_block_decode_kcv(
 			break;
 
 		case TR31_OPT_BLOCK_KCV_CMAC:
-			// KCV algorithm and at most 10 KCV digits
-			if (opt_ctx->data_length > 2 + 10) {
+			// at most 10 KCV digits, thus 5 KCV bytes
+			if (opt_ctx->data_length > tr31_opt_block_kcv_data_length(5)) {
 				// too many KCV digits for CMAC KCV algorithm
 				// see ANSI X9.24-1:2017, Annex A
 				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
@@ -1443,7 +1449,12 @@ int tr31_opt_block_add_PK(
 		return r;
 	}
 
-	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_PK, encoded_data, (kcv_len + 1) * 2);
+	return tr31_opt_block_add(
+		ctx,
+		TR31_OPT_BLOCK_PK,
+		encoded_data,
+		tr31_opt_block_kcv_data_length(kcv_len)
+	);
 }
 
 int tr31_opt_block_decode_PK(
@@ -1971,7 +1982,7 @@ int tr31_export(
 
 			// build optional block KC (KCV of wrapped key)
 			// see ANSI X9.143:2021, 6.3.6.7
-			ctx->opt_blocks[i].data_length = (ctx->key.kcv_len + 1) * 2; // +1 for KCV algorithm
+			ctx->opt_blocks[i].data_length = tr31_opt_block_kcv_data_length(ctx->key.kcv_len);
 			ctx->opt_blocks[i].data = calloc(1, ctx->opt_blocks[i].data_length);
 			r = tr31_opt_block_encode_kcv(
 				ctx->key.kcv_algorithm,
@@ -1997,7 +2008,7 @@ int tr31_export(
 
 			// build optional block KP (KCV of KBPK)
 			// see ANSI X9.143:2021, 6.3.6.7
-			ctx->opt_blocks[i].data_length = (kbpk->kcv_len + 1) * 2; // +1 for KCV algorithm
+			ctx->opt_blocks[i].data_length = tr31_opt_block_kcv_data_length(kbpk->kcv_len);
 			ctx->opt_blocks[i].data = calloc(1, ctx->opt_blocks[i].data_length);
 			r = tr31_opt_block_encode_kcv(
 				kbpk->kcv_algorithm,
