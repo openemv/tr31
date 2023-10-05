@@ -224,11 +224,34 @@ struct tr31_opt_blk_bdkid_data_t {
 	uint8_t bdkid[5]; ///< Key Set ID (KSI) or Base Derivation Key ID (BDK ID)
 };
 
+/// Decoded Derivation Allowed (DA) attributes
+struct tr31_opt_blk_da_attr_t {
+	unsigned int key_usage; ///< Derivation Allowed: key usage
+	unsigned int algorithm; ///< Derivation Allowed: key algorithm
+	unsigned int mode_of_use; ///< Derivation Allowed: mode of use
+	unsigned int exportability; ///< Derivation Allowed: exportability
+};
+
+/// Decoded Derivation(s) Allowed (DA) data
+struct tr31_opt_blk_da_data_t {
+	unsigned int version; ///< Derivation(s) Allowed (DA) version
+	struct tr31_opt_blk_da_attr_t attr[]; ///< Derivation Allowed (DA) array
+};
+
 /// Decoded optional block Key Check Value (KCV) data
 struct tr31_opt_blk_kcv_data_t {
 	uint8_t kcv_algorithm; ///< KCV algorithm output. Either @ref TR31_OPT_BLOCK_KCV_LEGACY or @ref TR31_OPT_BLOCK_KCV_CMAC.
 	size_t kcv_len; ///< Length of @ref tr31_opt_blk_kcv_data_t.kcv in bytes. Must be at most 3 bytes for legacy KCV or at most 5 bytes for CMAC KCV (according to ANSI X9.24-1)
 	uint8_t kcv[5]; ///< Key Check Value (KCV)
+};
+
+/// Decoded optional block Wrapping Pedigree (WP) data
+struct tr31_opt_blk_wp_data_t {
+	uint8_t version; ///<Wrapping Pedigree (WP) format version
+	/// Wrapping Pedigree (WP) version 0
+	struct v0_t {
+		uint8_t wrapping_pedigree; ///< Wrapping Pedigree value
+	} v0; ///< Wrapping Pedigree (WP) version 0. Valid if @ref tr31_opt_blk_wp_data_t.version is @ref TR31_OPT_BLOCK_WP_VERSION_0
 };
 
 /**
@@ -536,6 +559,33 @@ int tr31_opt_block_add_DA(
 );
 
 /**
+ * Decode optional block 'DA' for Derivation(s) Allowed for Derivation Keys.
+ * The caller is responsible for computing the length of the output data and
+ * allocating a suitable buffer. The length can be calculated using:
+ * @code
+ * if (opt_ctx->data_length > 2) {
+ *     da_attr_count = (opt_ctx->data_length - 2) / 5;
+ *     da_data_len = sizeof(struct tr31_opt_blk_da_attr_t) * da_attr_count
+ *         + sizeof(struct tr31_opt_blk_da_data_t);
+ *     da_data = malloc(da_data_len);
+ * }
+ * @endcode
+ *
+ * @note This function complies with ANSI X9.143 and will fail for
+ *       non-compliant encodings of this optional block.
+ *
+ * @param opt_ctx TR-31 optional block context object
+ * @param da_data Decoded Derivation(s) Allowed (DA) data output
+ * @param da_data_len Length of @p da_data in bytes. See function description.
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
+ */
+int tr31_opt_block_decode_DA(
+	const struct tr31_opt_ctx_t* opt_ctx,
+	struct tr31_opt_blk_da_data_t* da_data,
+	size_t da_data_len
+);
+
+/**
  * Add optional block 'HM' for HMAC hash algorithm of wrapped key to TR-31
  * context object.
  *
@@ -788,7 +838,7 @@ int tr31_opt_block_add_TS(
 );
 
 /**
- * Add optional block 'WP' for wrapping pedigree to TR-31 context object.
+ * Add optional block 'WP' for Wrapping Pedigree to TR-31 context object.
  *
  * @note This function requires an initialised TR-31 context object to be provided.
  *
@@ -799,6 +849,21 @@ int tr31_opt_block_add_TS(
 int tr31_opt_block_add_WP(
 	struct tr31_ctx_t* ctx,
 	uint8_t wrapping_pedigree
+);
+
+/**
+ * Decode optional block 'WP' for Wrapping Pedigree.
+ *
+ * @note This function complies with ANSI X9.143 and will fail for
+ *       non-compliant encodings of this optional block.
+ *
+ * @param opt_ctx TR-31 optional block context object
+ * @param wp_data Decoded Wrapping Pedigree (WP) data output
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
+ */
+int tr31_opt_block_decode_WP(
+	const struct tr31_opt_ctx_t* opt_ctx,
+	struct tr31_opt_blk_wp_data_t* wp_data
 );
 
 /**

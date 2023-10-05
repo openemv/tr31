@@ -1219,7 +1219,6 @@ int tr31_opt_block_add_DA(
 		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 	}
 
-	// NOTE: tr31_opt_block_export() copies this optional block verbatim
 	opt_ctx = tr31_opt_block_alloc(ctx, TR31_OPT_BLOCK_DA, da_len + 2);
 	if (!opt_ctx) {
 		return -2;
@@ -1228,6 +1227,63 @@ int tr31_opt_block_add_DA(
 	memcpy(opt_ctx->data + 2, da, da_len);
 
 	return r;
+}
+
+int tr31_opt_block_decode_DA(
+	const struct tr31_opt_ctx_t* opt_ctx,
+	struct tr31_opt_blk_da_data_t* da_data,
+	size_t da_data_len
+)
+{
+	size_t count;
+	const uint8_t* da_attr;
+
+	if (!opt_ctx || !da_data || !da_data_len) {
+		return -1;
+	}
+
+	if (opt_ctx->id != TR31_OPT_BLOCK_DA) {
+		return -2;
+	}
+
+	// decode optional block DA version
+	// see ANSI X9.143:2021, 6.3.6.1, table 8
+	if (opt_ctx->data_length < 2) {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+	da_data->version = hex_to_int(opt_ctx->data, 2);
+	if (da_data->version != TR31_OPT_BLOCK_DA_VERSION_1) {
+		// unsupported DA version
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+
+	// validate optional block length
+	if (opt_ctx->data_length < 7 ||
+		(opt_ctx->data_length - 2) % 5 != 0
+	) {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+	count = (opt_ctx->data_length - 2) / 5;
+
+	// validate output data length
+	if (da_data_len != sizeof(struct tr31_opt_blk_da_attr_t) * count + sizeof(struct tr31_opt_blk_da_data_t)) {
+		return -3;
+	}
+
+	// decode optional block DA version 1
+	// see ANSI X9.143:2021, 6.3.6.1, table 8
+	da_attr = opt_ctx->data + 2;
+	for (size_t i = 0; i < count; ++i) {
+		uint16_t key_usage_raw = da_attr[0];
+		key_usage_raw += da_attr[1] << 8;
+		da_data->attr[i].key_usage = ntohs(key_usage_raw);
+		da_data->attr[i].algorithm = da_attr[2];
+		da_data->attr[i].mode_of_use = da_attr[3];
+		da_data->attr[i].exportability = da_attr[4];
+		da_attr += 5;
+	}
+
+	return 0;
 }
 
 static int tr31_opt_block_validate_hash_algorithm(uint8_t hash_algorithm)
@@ -1654,13 +1710,55 @@ int tr31_opt_block_add_WP(
 	}
 
 	// assume wrapping pedigree optional block version 00
-	// unfortunately optional block WP carries an odd number of hex digits and
-	// therefore the digits must be encoded here instead of in
-	// tr31_opt_block_export()
 	// see ANSI X9.143:2021, 6.3.6.15, table 23
 	int_to_hex(TR31_OPT_BLOCK_WP_VERSION_0, buf, 2);
 	int_to_hex(wrapping_pedigree, buf + 2, 1);
 	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_WP, buf, sizeof(buf));
+}
+
+int tr31_opt_block_decode_WP(
+	const struct tr31_opt_ctx_t* opt_ctx,
+	struct tr31_opt_blk_wp_data_t* wp_data
+)
+{
+	int r;
+
+	if (!opt_ctx || !wp_data) {
+		return -1;
+	}
+
+	if (opt_ctx->id != TR31_OPT_BLOCK_WP) {
+		return -2;
+	}
+
+	// decode optional block data and validate
+	// see ANSI X9.143:2021, 6.3.6.15, table 23
+	if (opt_ctx->data_length < 2) {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+	r = hex_to_bin(opt_ctx->data, 2, &wp_data->version, sizeof(wp_data->version));
+	if (r) {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+	if (wp_data->version == TR31_OPT_BLOCK_WP_VERSION_0) {
+		uint8_t wrapping_pedigree;
+
+		// decode WP optional block version 00
+		if (opt_ctx->data_length != 3) {
+			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+		}
+		wrapping_pedigree = hex_to_int(opt_ctx->data + 2, 1);
+		if (wrapping_pedigree > 3) {
+			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+		}
+		wp_data->v0.wrapping_pedigree = wrapping_pedigree;
+
+	} else {
+		// unsupported AKL version
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+
+	return 0;
 }
 
 int tr31_import(

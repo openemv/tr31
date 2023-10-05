@@ -362,28 +362,38 @@ static int tr31_opt_block_iso8601_get_string(const struct tr31_opt_ctx_t* opt_bl
 
 static const char* tr31_opt_block_wrapping_pedigree_get_string(const struct tr31_opt_ctx_t* opt_block)
 {
-	const uint8_t* data;
 
-	if (!opt_block ||
-		opt_block->id != TR31_OPT_BLOCK_WP ||
-		opt_block->data_length != 3
-	) {
+	int r;
+	struct tr31_opt_blk_wp_data_t wp_data;
+
+	// Use canary value to know whether WP version was decoded
+	wp_data.version = 0xFF;
+	r = tr31_opt_block_decode_WP(opt_block, &wp_data);
+	if (r < 0) {
 		return NULL;
 	}
-	data = opt_block->data;
+	if (r > 0) {
+		// If at least the WP version is available, report it as unknown
+		if (wp_data.version != 0xFF &&
+			wp_data.version != TR31_OPT_BLOCK_WP_VERSION_0
+		) {
+			return "Unknown wrapping pedigree version";
+		} else {
+			// Invalid
+			return NULL;
+		}
+	}
 
-	if (data[0] != '0' || data[1] != '0') {
+	if (wp_data.version != TR31_OPT_BLOCK_WP_VERSION_0) {
 		return "Unknown wrapping pedigree version";
 	}
 
 	// See ANSI X9.143:2021, 6.3.6.15, table 23
-	if ((data[2] & 0xF0) == 0x30) { // ASCII number
-		switch (data[2] & 0x0F) {
-			case TR31_OPT_BLOCK_WP_EQ_GT: return "Equal or greater effective strength";
-			case TR31_OPT_BLOCK_WP_LT: return "Lesser effective strength";
-			case TR31_OPT_BLOCK_WP_ASYMMETRIC: return "Asymmetric key at risk of quantum computing";
-			case TR31_OPT_BLOCK_WP_ASYMMETRIC_LT: return "Asymmetric key at risk of quantum computing and symmetric key of lesser effective strength";
-		}
+	switch (wp_data.v0.wrapping_pedigree) {
+		case TR31_OPT_BLOCK_WP_EQ_GT: return "Equal or greater effective strength";
+		case TR31_OPT_BLOCK_WP_LT: return "Lesser effective strength";
+		case TR31_OPT_BLOCK_WP_ASYMMETRIC: return "Asymmetric key at risk of quantum computing";
+		case TR31_OPT_BLOCK_WP_ASYMMETRIC_LT: return "Asymmetric key at risk of quantum computing and symmetric key of lesser effective strength";
 	}
 
 	return "Unknown";

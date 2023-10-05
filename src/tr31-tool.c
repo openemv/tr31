@@ -795,6 +795,40 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 					break;
 				}
 
+				case TR31_OPT_BLOCK_DA: {
+					size_t da_attr_count;
+					size_t da_data_len;
+					struct tr31_opt_blk_da_data_t* da_data;
+					if (tr31_ctx.opt_blocks[i].data_length < 2) {
+						// invalid; print as string
+						print_str(tr31_ctx.opt_blocks[i].data, tr31_ctx.opt_blocks[i].data_length);
+						break;
+					}
+					da_attr_count = (tr31_ctx.opt_blocks[i].data_length - 2) / 5;
+					da_data_len = sizeof(struct tr31_opt_blk_da_attr_t)
+						* da_attr_count
+						+ sizeof(struct tr31_opt_blk_da_data_t);
+					da_data = malloc(da_data_len);
+					r = tr31_opt_block_decode_DA(&tr31_ctx.opt_blocks[i], da_data, da_data_len);
+					if (r) {
+						// invalid; print as string
+						print_str(tr31_ctx.opt_blocks[i].data, tr31_ctx.opt_blocks[i].data_length);
+						free(da_data);
+						break;
+					}
+					for (size_t i = 0; i < da_attr_count; ++i) {
+						printf("%s%s%c%c%c",
+							i == 0 ? "" : ",",
+							tr31_get_key_usage_ascii(da_data->attr[i].key_usage, ascii_buf, sizeof(ascii_buf)),
+							da_data->attr[i].algorithm,
+							da_data->attr[i].mode_of_use,
+							da_data->attr[i].exportability
+						);
+					}
+					free(da_data);
+					break;
+				}
+
 				case TR31_OPT_BLOCK_HM: {
 					uint8_t hash_algorithm;
 					r = tr31_opt_block_decode_HM(&tr31_ctx.opt_blocks[i], &hash_algorithm);
@@ -849,13 +883,18 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 					break;
 				}
 
-				case TR31_OPT_BLOCK_DA:
-				case TR31_OPT_BLOCK_WP:
-					// for some optional blocks, skip the first two bytes
-					if (tr31_ctx.opt_blocks[i].data_length > 2) {
-						print_str(tr31_ctx.opt_blocks[i].data + 2, tr31_ctx.opt_blocks[i].data_length - 2);
+				case TR31_OPT_BLOCK_WP: {
+					struct tr31_opt_blk_wp_data_t wp_data;
+					r = tr31_opt_block_decode_WP(&tr31_ctx.opt_blocks[i], &wp_data);
+					if (r || wp_data.version != TR31_OPT_BLOCK_WP_VERSION_0) {
+						// invalid; print as string
+						print_str(tr31_ctx.opt_blocks[i].data, tr31_ctx.opt_blocks[i].data_length);
+						break;
 					}
+					// valid; assume version 00 and print wrapping pedigree digit
+					print_str(tr31_ctx.opt_blocks[i].data + 2, 1);
 					break;
+				}
 
 				case TR31_OPT_BLOCK_CT:
 					// for certificates and certificate chains, skip the first two bytes and use quotes

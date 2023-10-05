@@ -552,7 +552,7 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 		"Key version: Unused[\r\n]"
 		"Key exportability: \\[E\\] Exportable in a trusted key block only[\r\n]"
 		"Optional blocks \\[5\\]:[\r\n]"
-		"\t\\[DA\\] Derivation\\(s\\) Allowed for Derivation Keys: D2ABND3AEN[\r\n]"
+		"\t\\[DA\\] Derivation\\(s\\) Allowed for Derivation Keys: D2ABN,D3AEN[\r\n]"
 		"\t\\[LB\\] Label: \"My Great Key\"[\r\n]"
 		"\t\\[PK\\] Protection Key Check Value \\(KCV\\) of export KBPK: 9876543210 \\(CMAC based KCV\\)[\r\n]"
 		"\t\\[WP\\] Wrapping Pedigree: 3 \\(Asymmetric key at risk of quantum computing and symmetric key of lesser effective strength\\)[\r\n]"
