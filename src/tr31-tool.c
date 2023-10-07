@@ -910,9 +910,9 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 					print_str_with_quotes(tr31_ctx.opt_blocks[i].data, tr31_ctx.opt_blocks[i].data_length);
 					break;
 
-				// print all other optional blocks, including proprietary ones, as hex
+				// print all other optional blocks, including proprietary ones, verbatim
 				default:
-					print_hex(tr31_ctx.opt_blocks[i].data, tr31_ctx.opt_blocks[i].data_length);
+					print_str(tr31_ctx.opt_blocks[i].data, tr31_ctx.opt_blocks[i].data_length);
 			}
 
 			r = tr31_opt_block_data_get_desc(&tr31_ctx.opt_blocks[i], opt_block_data_str, sizeof(opt_block_data_str));
