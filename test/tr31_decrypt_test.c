@@ -224,7 +224,7 @@ int main(void)
 	printf("Test 1 (Basic format version A)...\n");
 	r = tr31_import(test1_tr31_format_a, &test_kbpk, &test_tr31);
 	if (r) {
-		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
 	}
 	if (test_tr31.version != TR31_VERSION_A ||
@@ -264,7 +264,7 @@ int main(void)
 	printf("Test 1 (Basic format version B)...\n");
 	r = tr31_import(test1_tr31_format_b, &test_kbpk, &test_tr31);
 	if (r) {
-		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
 	}
 	if (test_tr31.version != TR31_VERSION_B ||
@@ -304,7 +304,7 @@ int main(void)
 	printf("Test 1 (Basic format version C)...\n");
 	r = tr31_import(test1_tr31_format_c, &test_kbpk, &test_tr31);
 	if (r) {
-		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
 	}
 	if (test_tr31.version != TR31_VERSION_C ||
@@ -350,7 +350,7 @@ int main(void)
 	test_kbpk.data = (void*)test2_kbpk;
 	r = tr31_import(test2_tr31_ascii, &test_kbpk, &test_tr31);
 	if (r) {
-		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
 	}
 	if (test_tr31.version != TR31_VERSION_A ||
@@ -396,7 +396,7 @@ int main(void)
 	test_kbpk.data = (void*)test3_kbpk;
 	r = tr31_import(test3_tr31_ascii, &test_kbpk, &test_tr31);
 	if (r) {
-		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
 	}
 	if (test_tr31.version != TR31_VERSION_B ||
@@ -442,7 +442,7 @@ int main(void)
 	test_kbpk.data = (void*)test4_kbpk;
 	r = tr31_import(test4_tr31_ascii, &test_kbpk, &test_tr31);
 	if (r) {
-		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
 	}
 	if (test_tr31.version != TR31_VERSION_C ||
@@ -492,7 +492,7 @@ int main(void)
 	test_kbpk.data = (void*)test5_kbpk;
 	r = tr31_import(test5_tr31_ascii, &test_kbpk, &test_tr31);
 	if (r) {
-		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
 	}
 	if (test_tr31.version != TR31_VERSION_B ||
@@ -542,7 +542,7 @@ int main(void)
 	test_kbpk.data = (void*)test6_kbpk;
 	r = tr31_import(test6_tr31_ascii, &test_kbpk, &test_tr31);
 	if (r) {
-		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
 	}
 	if (test_tr31.version != TR31_VERSION_D ||
@@ -588,7 +588,7 @@ int main(void)
 	test_kbpk.data = (void*)test7_kbpk;
 	r = tr31_import(test7_tr31_ascii, &test_kbpk, &test_tr31);
 	if (r) {
-		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
 	}
 	if (test_tr31.version != TR31_VERSION_D ||
@@ -634,7 +634,7 @@ int main(void)
 	test_kbpk.data = (void*)test8_kbpk;
 	r = tr31_import(test8_tr31_ascii, &test_kbpk, &test_tr31);
 	if (r) {
-		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
 	}
 	if (test_tr31.version != TR31_VERSION_D ||
@@ -680,7 +680,7 @@ int main(void)
 	test_kbpk.data = (void*)test9_kbpk;
 	r = tr31_import(test9_tr31_ascii, &test_kbpk, &test_tr31);
 	if (r) {
-		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
 	}
 	if (test_tr31.version != TR31_VERSION_E ||
@@ -726,7 +726,7 @@ int main(void)
 	test_kbpk.data = (void*)test10_kbpk;
 	r = tr31_import(test10_tr31_ascii, &test_kbpk, &test_tr31);
 	if (r) {
-		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
 	}
 	if (test_tr31.version != TR31_VERSION_D ||
@@ -772,7 +772,7 @@ int main(void)
 	test_kbpk.data = (void*)test11_kbpk;
 	r = tr31_import(test11_tr31_ascii, &test_kbpk, &test_tr31);
 	if (r) {
-		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
 	}
 	if (test_tr31.version != TR31_VERSION_D ||
@@ -818,7 +818,7 @@ int main(void)
 	test_kbpk.data = (void*)test15_kbpk;
 	r = tr31_import(test15_tr31_ascii, &test_kbpk, &test_tr31);
 	if (r) {
-		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
 	}
 	if (test_tr31.version != TR31_VERSION_C ||
@@ -868,7 +868,7 @@ int main(void)
 	test_kbpk.data = (void*)test16_kbpk;
 	r = tr31_import(test16_tr31_ascii, &test_kbpk, &test_tr31);
 	if (r) {
-		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
 	}
 	if (test_tr31.version != TR31_VERSION_B ||
@@ -918,7 +918,7 @@ int main(void)
 	test_kbpk.data = (void*)test17_kbpk;
 	r = tr31_import(test17_tr31_ascii, &test_kbpk, &test_tr31);
 	if (r) {
-		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
 	}
 	if (test_tr31.version != TR31_VERSION_D ||
@@ -964,7 +964,7 @@ int main(void)
 	test_kbpk.data = (void*)test18_kbpk;
 	r = tr31_import(test18_tr31_ascii, &test_kbpk, &test_tr31);
 	if (r) {
-		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
 	}
 	if (test_tr31.version != TR31_VERSION_D ||

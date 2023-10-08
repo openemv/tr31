@@ -894,7 +894,7 @@ static int populate_tr31_from_template(const struct tr31_tool_options_t* options
 	// populate TR-31 context object
 	r = tr31_init(options->export_format_version, &key, tr31_ctx);
 	if (r) {
-		fprintf(stderr, "tr31_init() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_init() error %d: %s\n", r, tr31_get_error_string(r));
 		return 1;
 	}
 
@@ -954,7 +954,7 @@ static int populate_tr31_from_header(const struct tr31_tool_options_t* options, 
 	// populate key data
 	r = tr31_key_set_data(&tr31_ctx->key, options->export_key_buf, options->export_key_buf_len);
 	if (r) {
-		fprintf(stderr, "tr31_key_set_data() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_key_set_data() error %d: %s\n", r, tr31_get_error_string(r));
 		return 1;
 	}
 
