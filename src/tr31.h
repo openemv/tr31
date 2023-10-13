@@ -243,6 +243,7 @@ struct tr31_ctx_t {
 /// TR-31 library errors
 enum tr31_error_t {
 	TR31_ERROR_INVALID_LENGTH = 1, ///< Invalid key block length
+	TR31_ERROR_INVALID_KEY_BLOCK_STRING, ///< Invalid key block string
 	TR31_ERROR_UNSUPPORTED_VERSION, ///< Unsupported key block format version
 	TR31_ERROR_INVALID_LENGTH_FIELD, ///< Invalid key block length field
 	TR31_ERROR_UNSUPPORTED_KEY_USAGE, ///< Unsupported key usage
@@ -626,13 +627,15 @@ int tr31_opt_block_add_WP(
  * @note This function will populate a new TR-31 context object.
  *       Use @ref tr31_release() to release internal resources when done.
  *
- * @param key_block TR-31 key block. Null terminated. At least the header must be ASCII encoded.
+ * @param key_block TR-31 key block. Must contain printable ASCII characters. Null-termination not required.
+ * @param key_block_len Length of TR-31 key block in bytes, excluding null-termination.
  * @param kbpk TR-31 key block protection key. NULL if not available or decryption is not required.
  * @param ctx TR-31 context object output
  * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
  */
 int tr31_import(
 	const char* key_block,
+	size_t key_block_len,
 	const struct tr31_key_t* kbpk,
 	struct tr31_ctx_t* ctx
 );

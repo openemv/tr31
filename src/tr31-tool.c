@@ -205,7 +205,7 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 
 				} else {
 					// Copy argument
-					buf_len = strlen(arg) + 1;
+					buf_len = strlen(arg);
 					buf = malloc(buf_len);
 					memcpy(buf, arg, buf_len);
 				}
@@ -716,10 +716,10 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 
 	if (options->kbpk) { // if key block protection key was provided
 		// parse and decrypt TR-31 key block
-		r = tr31_import(options->key_block, &kbpk, &tr31_ctx);
+		r = tr31_import(options->key_block, options->key_block_len, &kbpk, &tr31_ctx);
 	} else { // else if no key block protection key was provided
 		// parse TR-31 key block
-		r = tr31_import(options->key_block, NULL, &tr31_ctx);
+		r = tr31_import(options->key_block, options->key_block_len, NULL, &tr31_ctx);
 	}
 	// check for errors
 	if (r) {
@@ -912,16 +912,16 @@ static int populate_tr31_from_header(const struct tr31_tool_options_t* options, 
 	switch (options->export_header[0]) {
 		case 'A':
 		case 'C':
-			tmp_key_block_len += 32 + 8 + 1;
+			tmp_key_block_len += 32 + 8;
 			break;
 
 		case 'B':
-			tmp_key_block_len += 32 + 16 + 1;
+			tmp_key_block_len += 32 + 16;
 			break;
 
 		case 'D':
 		case 'E':
-			tmp_key_block_len += 48 + 16 + 1;
+			tmp_key_block_len += 48 + 16;
 			break;
 
 		default:
@@ -936,16 +936,15 @@ static int populate_tr31_from_header(const struct tr31_tool_options_t* options, 
 	// build fake key block to allow parsing of header
 	char tmp_keyblock[tmp_key_block_len];
 	memcpy(tmp_keyblock, options->export_header, export_header_len);
-	memset(tmp_keyblock + export_header_len, '0', sizeof(tmp_keyblock) - export_header_len - 1);
-	tmp_keyblock[sizeof(tmp_keyblock) - 1] = 0;
+	memset(tmp_keyblock + export_header_len, '0', sizeof(tmp_keyblock) - export_header_len);
 
 	// fix length field to allow parsing of header
 	char tmp[5];
-	snprintf(tmp, sizeof(tmp), "%04zu", tmp_key_block_len - 1);
+	snprintf(tmp, sizeof(tmp), "%04zu", sizeof(tmp_keyblock));
 	memcpy(tmp_keyblock + 1, tmp, 4);
 
 	// misuse TR-31 import function to parse header into TR-31 context object
-	r = tr31_import(tmp_keyblock, NULL, tr31_ctx);
+	r = tr31_import(tmp_keyblock, sizeof(tmp_keyblock), NULL, tr31_ctx);
 	if (r) {
 		fprintf(stderr, "Error while parsing export header; error %d: %s\n", r, tr31_get_error_string(r));
 		return 1;

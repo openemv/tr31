@@ -1163,12 +1163,12 @@ int tr31_opt_block_add_WP(
 
 int tr31_import(
 	const char* key_block,
+	size_t key_block_len,
 	const struct tr31_key_t* kbpk,
 	struct tr31_ctx_t* ctx
 )
 {
 	int r;
-	size_t key_block_len;
 	const struct tr31_header_t* header;
 	size_t opt_blk_len_total = 0;
 	unsigned int enc_block_size;
@@ -1178,15 +1178,19 @@ int tr31_import(
 		return -1;
 	}
 
-	key_block_len = strlen(key_block);
-	header = (const struct tr31_header_t*)key_block;
-
 	// validate minimum length
 	if (key_block_len < TR31_MIN_KEY_BLOCK_LENGTH) {
 		return TR31_ERROR_INVALID_LENGTH;
 	}
 
+	// validate key block as printable ASCII (format PA)
+	r = tr31_validate_format_pa(key_block, key_block_len);
+	if (r) {
+		return TR31_ERROR_INVALID_KEY_BLOCK_STRING;
+	}
+
 	// initialise TR-31 context object
+	header = (const struct tr31_header_t*)key_block;
 	r = tr31_init(header->version_id, NULL, ctx);
 	if (r) {
 		// return error value as-is
@@ -2721,6 +2725,7 @@ const char* tr31_get_error_string(enum tr31_error_t error)
 
 	switch (error) {
 		case TR31_ERROR_INVALID_LENGTH: return "Invalid key block length";
+		case TR31_ERROR_INVALID_KEY_BLOCK_STRING: return "Invalid key block string";
 		case TR31_ERROR_UNSUPPORTED_VERSION: return "Unsupported key block format version";
 		case TR31_ERROR_INVALID_LENGTH_FIELD: return "Invalid key block length field";
 		case TR31_ERROR_UNSUPPORTED_KEY_USAGE: return "Unsupported key usage";

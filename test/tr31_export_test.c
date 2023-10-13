@@ -907,7 +907,7 @@ int main(void)
 		tr31_release(&test_tr31);
 
 		// Import and decrypt key block
-		r = tr31_import(key_block, &test[i].kbpk, &test_tr31);
+		r = tr31_import(key_block, strlen(key_block), &test[i].kbpk, &test_tr31);
 		if (r) {
 			fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 			goto exit;
