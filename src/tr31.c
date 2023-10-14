@@ -1299,7 +1299,8 @@ int tr31_import(
 	// So we'll use the encryption block size which is determined by the TR-31
 	// format version.
 	if (opt_blk_len_total & (enc_block_size-1)) {
-		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+		r = TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+		goto error;
 	}
 
 	// ensure that current pointer is valid for minimal payload and authenticator

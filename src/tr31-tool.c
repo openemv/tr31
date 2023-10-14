@@ -838,7 +838,10 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 
 	// cleanup
 	tr31_key_release(&kbpk);
-	tr31_release(&tr31_ctx);
+	if (!ret) {
+		// only cleanup TR-31 context object if tr31_import() was successful
+		tr31_release(&tr31_ctx);
+	}
 
 	return ret;
 }

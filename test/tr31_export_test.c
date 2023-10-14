@@ -832,7 +832,7 @@ int main(void)
 				);
 				if (r) {
 					fprintf(stderr, "tr31_opt_block_add_CT() error %d: %s\n", r, tr31_get_error_string(r));
-					return 1;
+					goto exit;
 				}
 			}
 		}
@@ -840,7 +840,7 @@ int main(void)
 			r = tr31_opt_block_add_HM(&test_tr31, test[i].opt_blk_HM);
 			if (r) {
 				fprintf(stderr, "tr31_opt_block_add_HM() error %d: %s\n", r, tr31_get_error_string(r));
-				return 1;
+				goto exit;
 			}
 		}
 		if (test[i].opt_blk_KC) {
