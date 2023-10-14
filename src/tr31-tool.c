@@ -212,7 +212,7 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 
 				// Trim KEYBLOCK argument
 				for (char* str = buf; buf_len; --buf_len) {
-					if (!isalnum(str[buf_len - 1])) {
+					if (!isgraph(str[buf_len - 1])) {
 						str[buf_len - 1] = 0;
 					} else {
 						break;
@@ -289,8 +289,8 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 				argp_error(state, "Export header must be at least 16 characters/bytes");
 			}
 			for (size_t i = 0; i < strlen(arg); ++i) {
-				if (!isalnum(arg[i])) {
-					argp_error(state, "Export header must consist of alphanumeric characters (invalid character '%c' is not allowed)", arg[i]);
+				if (!isprint(arg[i])) {
+					argp_error(state, "Export header must consist of printable characters (invalid character '%c' is not allowed)", arg[i]);
 				}
 			}
 			options->export_header = arg;
@@ -383,8 +383,8 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 				argp_error(state, "Export optional block DA must be a multiple of 5 bytes");
 			}
 			for (size_t i = 0; i < strlen(arg); ++i) {
-				if (!isprint(arg[i]) || isspace(arg[i])) {
-					argp_error(state, "Export header must consist of printable characters (invalid character '%c' is not allowed)", arg[i]);
+				if (!isalnum(arg[i])) {
+					argp_error(state, "Export optional block DA consist of alphanumeric characters (invalid character '%c' is not allowed)", arg[i]);
 				}
 			}
 			options->export_opt_block_DA = arg;
