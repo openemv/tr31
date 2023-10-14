@@ -647,15 +647,15 @@ int tr31_import(
  *
  * @param ctx TR-31 context object input
  * @param kbpk TR-31 key block protection key.
- * @param key_block TR-31 key block output. Null terminated. At least the header will be ASCII encoded.
- * @param key_block_len TR-31 key block output buffer length.
+ * @param key_block TR-31 key block output. Will contain printable ASCII characters and will be null-terminated.
+ * @param key_block_buf_len TR-31 key block output buffer length.
  * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
  */
 int tr31_export(
 	struct tr31_ctx_t* ctx,
 	const struct tr31_key_t* kbpk,
 	char* key_block,
-	size_t key_block_len
+	size_t key_block_buf_len
 );
 
 /**

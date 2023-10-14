@@ -1520,7 +1520,7 @@ int tr31_export(
 	struct tr31_ctx_t* ctx,
 	const struct tr31_key_t* kbpk,
 	char* key_block,
-	size_t key_block_len
+	size_t key_block_buf_len
 )
 {
 	int r;
@@ -1529,21 +1529,21 @@ int tr31_export(
 	unsigned int enc_block_size;
 	void* ptr;
 
-	if (!ctx || !kbpk || !key_block || !key_block_len) {
+	if (!ctx || !kbpk || !key_block || !key_block_buf_len) {
 		return -1;
 	}
 	if (!ctx->key.data || !ctx->key.length) {
 		return -2;
 	}
 
-	// ensure space for null-termination
-	--key_block_len;
-
-	// validate minimum length
-	if (key_block_len < TR31_MIN_KEY_BLOCK_LENGTH) {
+	// validate minimum length (+1 for null-termination)
+	if (key_block_buf_len < TR31_MIN_KEY_BLOCK_LENGTH + 1) {
 		return TR31_ERROR_INVALID_LENGTH;
 	}
-	memset(key_block, 0, key_block_len);
+
+	// ensure null-termination
+	memset(key_block, 0, key_block_buf_len);
+	--key_block_buf_len;
 
 	// validate key block format version
 	// set encryption block size for header padding
@@ -1641,7 +1641,7 @@ int tr31_export(
 		size_t opt_blk_len;
 		r = tr31_opt_block_export(
 			&ctx->opt_blocks[i],
-			(void*)key_block + key_block_len - ptr,
+			(void*)key_block + key_block_buf_len - ptr,
 			&opt_blk_len,
 			ptr
 		);
@@ -1673,7 +1673,7 @@ int tr31_export(
 			pb_len = ((opt_blk_len_total + 4 + enc_block_size) & ~(enc_block_size-1)) - opt_blk_len_total;
 		}
 
-		if (ptr + pb_len - (void*)header > key_block_len) {
+		if (ptr + pb_len - (void*)header > key_block_buf_len) {
 			// optional block length exceeds total key block length
 			return TR31_ERROR_INVALID_LENGTH;
 		}
@@ -1709,7 +1709,7 @@ int tr31_export(
 		// return error value as-is
 		return r;
 	}
-	if (ctx->length > key_block_len) {
+	if (ctx->length > key_block_buf_len) {
 		return TR31_ERROR_INVALID_LENGTH;
 	}
 
@@ -1808,7 +1808,7 @@ int tr31_export(
 	}
 
 	// add payload to key block
-	r = bin_to_hex(ctx->payload, ctx->payload_length, ptr, key_block_len);
+	r = bin_to_hex(ctx->payload, ctx->payload_length, ptr, key_block_buf_len);
 	if (r) {
 		// internal error
 		return -5;
@@ -1816,7 +1816,7 @@ int tr31_export(
 	ptr += (ctx->payload_length * 2);
 
 	// add authenticator to key block
-	r = bin_to_hex(ctx->authenticator, ctx->authenticator_length, ptr, key_block_len);
+	r = bin_to_hex(ctx->authenticator, ctx->authenticator_length, ptr, key_block_buf_len);
 	if (r) {
 		// internal error
 		return -6;
