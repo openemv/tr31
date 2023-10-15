@@ -1296,10 +1296,10 @@ int tr31_import(
 	// ISO 20038:2017, A.2.1 (page 10) indicates that the total length of all
 	// optional blocks must be a multiple of the encryption block size and
 	// does not make an exception for format version E.
-	// So we'll use the encryption block size which is determined by the TR-31
-	// format version.
+	// So we'll use the encryption block size which is determined by the key
+	// block format version.
 	if (opt_blk_len_total & (enc_block_size-1)) {
-		r = TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+		r = TR31_ERROR_INVALID_OPTIONAL_BLOCK_PADDING;
 		goto error;
 	}
 
@@ -2737,6 +2737,7 @@ const char* tr31_get_error_string(enum tr31_error_t error)
 		case TR31_ERROR_INVALID_NUMBER_OF_OPTIONAL_BLOCKS_FIELD: return "Invalid number of optional blocks field";
 		case TR31_ERROR_INVALID_OPTIONAL_BLOCK_LENGTH: return "Invalid optional block length";
 		case TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA: return "Invalid optional block data";
+		case TR31_ERROR_INVALID_OPTIONAL_BLOCK_PADDING: return "Invalid optional block padding";
 		case TR31_ERROR_INVALID_PAYLOAD_FIELD: return "Invalid payload data field";
 		case TR31_ERROR_INVALID_AUTHENTICATOR_FIELD: return "Invalid authenticator data field";
 		case TR31_ERROR_UNSUPPORTED_KBPK_ALGORITHM: return "Unsupported key block protection key algorithm";
