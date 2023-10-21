@@ -238,11 +238,7 @@ int main(void)
 		test_tr31.key.length != sizeof(test1_tr31_key_verify) ||
 		test_tr31.key.data == NULL ||
 		test_tr31.opt_blocks_count != 0 ||
-		test_tr31.opt_blocks != NULL ||
-		test_tr31.payload_length != 24 ||
-		test_tr31.payload == NULL ||
-		test_tr31.authenticator_length != 4 ||
-		test_tr31.authenticator == NULL
+		test_tr31.opt_blocks != NULL
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;
@@ -278,11 +274,7 @@ int main(void)
 		test_tr31.key.length != sizeof(test1_tr31_key_verify) ||
 		test_tr31.key.data == NULL ||
 		test_tr31.opt_blocks_count != 0 ||
-		test_tr31.opt_blocks != NULL ||
-		test_tr31.payload_length != 24 ||
-		test_tr31.payload == NULL ||
-		test_tr31.authenticator_length != 8 ||
-		test_tr31.authenticator == NULL
+		test_tr31.opt_blocks != NULL
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;
@@ -318,11 +310,7 @@ int main(void)
 		test_tr31.key.length != sizeof(test1_tr31_key_verify) ||
 		test_tr31.key.data == NULL ||
 		test_tr31.opt_blocks_count != 0 ||
-		test_tr31.opt_blocks != NULL ||
-		test_tr31.payload_length != 24 ||
-		test_tr31.payload == NULL ||
-		test_tr31.authenticator_length != 4 ||
-		test_tr31.authenticator == NULL
+		test_tr31.opt_blocks != NULL
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;
@@ -364,11 +352,7 @@ int main(void)
 		test_tr31.key.length != sizeof(test2_tr31_key_verify) ||
 		test_tr31.key.data == NULL ||
 		test_tr31.opt_blocks_count != 0 ||
-		test_tr31.opt_blocks != NULL ||
-		test_tr31.payload_length != 24 ||
-		test_tr31.payload == NULL ||
-		test_tr31.authenticator_length != 4 ||
-		test_tr31.authenticator == NULL
+		test_tr31.opt_blocks != NULL
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;
@@ -410,11 +394,7 @@ int main(void)
 		test_tr31.key.length != sizeof(test3_tr31_key_verify) ||
 		test_tr31.key.data == NULL ||
 		test_tr31.opt_blocks_count != 0 ||
-		test_tr31.opt_blocks != NULL ||
-		test_tr31.payload_length != 24 ||
-		test_tr31.payload == NULL ||
-		test_tr31.authenticator_length != 8 ||
-		test_tr31.authenticator == NULL
+		test_tr31.opt_blocks != NULL
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;
@@ -460,11 +440,7 @@ int main(void)
 		test_tr31.opt_blocks[0].id != TR31_OPT_BLOCK_KS ||
 		test_tr31.opt_blocks[0].data_length != sizeof(test4_tr31_ksn_verify) ||
 		test_tr31.opt_blocks[0].data == NULL ||
-		memcmp(test_tr31.opt_blocks[0].data, test4_tr31_ksn_verify, sizeof(test4_tr31_ksn_verify)) != 0 ||
-		test_tr31.payload_length != 24 ||
-		test_tr31.payload == NULL ||
-		test_tr31.authenticator_length != 4 ||
-		test_tr31.authenticator == NULL
+		memcmp(test_tr31.opt_blocks[0].data, test4_tr31_ksn_verify, sizeof(test4_tr31_ksn_verify)) != 0
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;
@@ -510,11 +486,7 @@ int main(void)
 		test_tr31.opt_blocks[0].id != TR31_OPT_BLOCK_KS ||
 		test_tr31.opt_blocks[0].data_length != sizeof(test5_tr31_ksn_verify) ||
 		test_tr31.opt_blocks[0].data == NULL ||
-		memcmp(test_tr31.opt_blocks[0].data, test5_tr31_ksn_verify, sizeof(test5_tr31_ksn_verify)) != 0 ||
-		test_tr31.payload_length != 24 ||
-		test_tr31.payload == NULL ||
-		test_tr31.authenticator_length != 8 ||
-		test_tr31.authenticator == NULL
+		memcmp(test_tr31.opt_blocks[0].data, test5_tr31_ksn_verify, sizeof(test5_tr31_ksn_verify)) != 0
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;
@@ -556,11 +528,7 @@ int main(void)
 		test_tr31.key.length != sizeof(test6_tr31_key_verify) ||
 		test_tr31.key.data == NULL ||
 		test_tr31.opt_blocks_count != 0 ||
-		test_tr31.opt_blocks != NULL ||
-		test_tr31.payload_length != 32 ||
-		test_tr31.payload == NULL ||
-		test_tr31.authenticator_length != 16 ||
-		test_tr31.authenticator == NULL
+		test_tr31.opt_blocks != NULL
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;
@@ -602,11 +570,7 @@ int main(void)
 		test_tr31.key.length != sizeof(test7_tr31_key_verify) ||
 		test_tr31.key.data == NULL ||
 		test_tr31.opt_blocks_count != 0 ||
-		test_tr31.opt_blocks != NULL ||
-		test_tr31.payload_length != 32 ||
-		test_tr31.payload == NULL ||
-		test_tr31.authenticator_length != 16 ||
-		test_tr31.authenticator == NULL
+		test_tr31.opt_blocks != NULL
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;
@@ -648,11 +612,7 @@ int main(void)
 		test_tr31.key.length != sizeof(test8_tr31_key_verify) ||
 		test_tr31.key.data == NULL ||
 		test_tr31.opt_blocks_count != 0 ||
-		test_tr31.opt_blocks != NULL ||
-		test_tr31.payload_length != 48 ||
-		test_tr31.payload == NULL ||
-		test_tr31.authenticator_length != 16 ||
-		test_tr31.authenticator == NULL
+		test_tr31.opt_blocks != NULL
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;
@@ -694,11 +654,7 @@ int main(void)
 		test_tr31.key.length != sizeof(test9_tr31_key_verify) ||
 		test_tr31.key.data == NULL ||
 		test_tr31.opt_blocks_count != 0 ||
-		test_tr31.opt_blocks != NULL ||
-		test_tr31.payload_length != 18 ||
-		test_tr31.payload == NULL ||
-		test_tr31.authenticator_length != 16 ||
-		test_tr31.authenticator == NULL
+		test_tr31.opt_blocks != NULL
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;
@@ -740,11 +696,7 @@ int main(void)
 		test_tr31.key.length != sizeof(test10_tr31_key_verify) ||
 		test_tr31.key.data == NULL ||
 		test_tr31.opt_blocks_count != 0 ||
-		test_tr31.opt_blocks != NULL ||
-		test_tr31.payload_length != 32 ||
-		test_tr31.payload == NULL ||
-		test_tr31.authenticator_length != 16 ||
-		test_tr31.authenticator == NULL
+		test_tr31.opt_blocks != NULL
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;
@@ -786,11 +738,7 @@ int main(void)
 		test_tr31.key.length != sizeof(test11_tr31_key_verify) ||
 		test_tr31.key.data == NULL ||
 		test_tr31.opt_blocks_count != 0 ||
-		test_tr31.opt_blocks != NULL ||
-		test_tr31.payload_length != 48 ||
-		test_tr31.payload == NULL ||
-		test_tr31.authenticator_length != 16 ||
-		test_tr31.authenticator == NULL
+		test_tr31.opt_blocks != NULL
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;
@@ -836,11 +784,7 @@ int main(void)
 		test_tr31.opt_blocks[0].id != TR31_OPT_BLOCK_KS ||
 		test_tr31.opt_blocks[0].data_length != sizeof(test15_tr31_ksn_verify) ||
 		test_tr31.opt_blocks[0].data == NULL ||
-		memcmp(test_tr31.opt_blocks[0].data, test15_tr31_ksn_verify, sizeof(test15_tr31_ksn_verify)) != 0 ||
-		test_tr31.payload_length != 32 ||
-		test_tr31.payload == NULL ||
-		test_tr31.authenticator_length != 4 ||
-		test_tr31.authenticator == NULL
+		memcmp(test_tr31.opt_blocks[0].data, test15_tr31_ksn_verify, sizeof(test15_tr31_ksn_verify)) != 0
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;
@@ -886,11 +830,7 @@ int main(void)
 		test_tr31.opt_blocks[0].id != TR31_OPT_BLOCK_KS ||
 		test_tr31.opt_blocks[0].data_length != sizeof(test16_tr31_ksn_verify) ||
 		test_tr31.opt_blocks[0].data == NULL ||
-		memcmp(test_tr31.opt_blocks[0].data, test16_tr31_ksn_verify, sizeof(test16_tr31_ksn_verify)) != 0 ||
-		test_tr31.payload_length != 32 ||
-		test_tr31.payload == NULL ||
-		test_tr31.authenticator_length != 8 ||
-		test_tr31.authenticator == NULL
+		memcmp(test_tr31.opt_blocks[0].data, test16_tr31_ksn_verify, sizeof(test16_tr31_ksn_verify)) != 0
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;
@@ -942,11 +882,7 @@ int main(void)
 		test_tr31.opt_blocks[2].data_length != strlen(test17_tr31_ts_verify) ||
 		test_tr31.opt_blocks[2].data == NULL ||
 		memcmp(test_tr31.opt_blocks[2].data, test17_tr31_ts_verify, strlen(test17_tr31_ts_verify)) != 0 ||
-		test_tr31.opt_blocks[3].id != TR31_OPT_BLOCK_PB ||
-		test_tr31.payload_length != 1200 ||
-		test_tr31.payload == NULL ||
-		test_tr31.authenticator_length != 16 ||
-		test_tr31.authenticator == NULL
+		test_tr31.opt_blocks[3].id != TR31_OPT_BLOCK_PB
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;
@@ -988,11 +924,7 @@ int main(void)
 		test_tr31.opt_blocks[2].data_length != strlen(test18_tr31_ts_verify) ||
 		test_tr31.opt_blocks[2].data == NULL ||
 		memcmp(test_tr31.opt_blocks[2].data, test18_tr31_ts_verify, strlen(test18_tr31_ts_verify)) != 0 ||
-		test_tr31.opt_blocks[3].id != TR31_OPT_BLOCK_PB ||
-		test_tr31.payload_length != 128 ||
-		test_tr31.payload == NULL ||
-		test_tr31.authenticator_length != 16 ||
-		test_tr31.authenticator == NULL
+		test_tr31.opt_blocks[3].id != TR31_OPT_BLOCK_PB
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;
