@@ -221,21 +221,12 @@ struct tr31_opt_ctx_t {
  */
 struct tr31_ctx_t {
 	enum tr31_version_t version; ///< TR-31 key block format version
-	size_t length; ///< TR-31 key block length in bytes
+	size_t length; ///< TR-31 key block length in bytes (only populated by @ref tr31_import(), not @ref tr31_export())
 
 	struct tr31_key_t key; ///< TR-31 key object
 
 	size_t opt_blocks_count; ///< TR-31 number of optional blocks
 	struct tr31_opt_ctx_t* opt_blocks; ///< TR-31 optional block context objects
-
-	size_t header_length; ///< TR-31 header data length in bytes, including optional blocks
-	const void* header; ///< Pointer to TR-31 header data for internal use only. @warning For internal use only!
-
-	size_t payload_length; ///< TR-31 payload data length in bytes
-	void* payload; ///< Decoded TR-31 payload data for internal use only. @warning For internal use only!
-
-	size_t authenticator_length; ///< TR-31 authenticator data length in bytes
-	void* authenticator; ///< Decoded TR-31 authenticator data for internal use only. @warning For internal use only!
 
 	uint32_t export_flags; ///< Flags used during TR-31 export
 };
@@ -653,7 +644,7 @@ int tr31_import(
  * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
  */
 int tr31_export(
-	struct tr31_ctx_t* ctx,
+	const struct tr31_ctx_t* ctx,
 	const struct tr31_key_t* kbpk,
 	char* key_block,
 	size_t key_block_buf_len
