@@ -679,17 +679,43 @@ static struct tr31_opt_ctx_t* tr31_opt_block_alloc(
 )
 {
 	struct tr31_opt_ctx_t* opt_ctx;
+	bool opt_blk_pb_found = false;
 
 	if (!ctx) {
 		return NULL;
 	}
 
 	// repeated optional block IDs are not allowed
+	// and optional block PB must always be last
 	// see ANSI X9.143:2021, 6.3.6
 	for (size_t i = 0; i < ctx->opt_blocks_count; ++i) {
 		if (ctx->opt_blocks[i].id == id) {
 			// existing optional block found
 			return NULL;
+		}
+
+		if (ctx->opt_blocks[i].id == TR31_OPT_BLOCK_PB) {
+			// optional block PB found
+			opt_blk_pb_found = true;
+		}
+	}
+
+	// if optional block PB already exists, remove all instances
+	// NOTE: it will be recreated by tr31_export()
+	// NOTE: if no new optional blocks are added, PB is intentionally preserved
+	if (opt_blk_pb_found) {
+		for (size_t i = 0; i < ctx->opt_blocks_count; ++i) {
+			if (ctx->opt_blocks[i].id == TR31_OPT_BLOCK_PB) {
+				free(ctx->opt_blocks[i].data);
+				ctx->opt_blocks[i].data = NULL;
+
+				ctx->opt_blocks_count -= 1;
+				if (i < ctx->opt_blocks_count) {
+					size_t remaining_count = ctx->opt_blocks_count - i;
+					size_t remaining_bytes = sizeof(*ctx->opt_blocks) * remaining_count;
+					memmove(&ctx->opt_blocks[i], &ctx->opt_blocks[i + 1], remaining_bytes);
+				}
+			}
 		}
 	}
 
