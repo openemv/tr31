@@ -267,21 +267,12 @@ struct tr31_opt_blk_wp_data_t {
  */
 struct tr31_ctx_t {
 	enum tr31_version_t version; ///< TR-31 key block format version
-	size_t length; ///< TR-31 key block length in bytes
+	size_t length; ///< TR-31 key block length in bytes (only populated by @ref tr31_import(), not @ref tr31_export())
 
 	struct tr31_key_t key; ///< TR-31 key object
 
 	size_t opt_blocks_count; ///< TR-31 number of optional blocks
 	struct tr31_opt_ctx_t* opt_blocks; ///< TR-31 optional block context objects
-
-	size_t header_length; ///< TR-31 header data length in bytes, including optional blocks
-	const void* header; ///< Pointer to TR-31 header data for internal use only. @warning For internal use only!
-
-	size_t payload_length; ///< TR-31 payload data length in bytes
-	void* payload; ///< Decoded TR-31 payload data for internal use only. @warning For internal use only!
-
-	size_t authenticator_length; ///< TR-31 authenticator data length in bytes
-	void* authenticator; ///< Decoded TR-31 authenticator data for internal use only. @warning For internal use only!
 
 	uint32_t export_flags; ///< Flags used during TR-31 export
 };
@@ -289,6 +280,7 @@ struct tr31_ctx_t {
 /// TR-31 library errors
 enum tr31_error_t {
 	TR31_ERROR_INVALID_LENGTH = 1, ///< Invalid key block length
+	TR31_ERROR_INVALID_KEY_BLOCK_STRING, ///< Invalid key block string
 	TR31_ERROR_UNSUPPORTED_VERSION, ///< Unsupported key block format version
 	TR31_ERROR_INVALID_LENGTH_FIELD, ///< Invalid key block length field
 	TR31_ERROR_UNSUPPORTED_KEY_USAGE, ///< Unsupported key usage
@@ -300,6 +292,7 @@ enum tr31_error_t {
 	TR31_ERROR_DUPLICATE_OPTIONAL_BLOCK_ID, ///< Duplicate optional block identifier
 	TR31_ERROR_INVALID_OPTIONAL_BLOCK_LENGTH, ///< Invalid optional block length
 	TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA, ///< Invalid optional block data
+	TR31_ERROR_INVALID_OPTIONAL_BLOCK_PADDING, ///< Invalid optional block padding
 	TR31_ERROR_INVALID_PAYLOAD_FIELD, ///< Invalid payload data field
 	TR31_ERROR_INVALID_AUTHENTICATOR_FIELD, ///< Invalid authenticator data field
 	TR31_ERROR_UNSUPPORTED_KBPK_ALGORITHM, ///< Unsupported key block protection key algorithm
@@ -873,13 +866,15 @@ int tr31_opt_block_decode_WP(
  * @note This function will populate a new TR-31 context object.
  *       Use @ref tr31_release() to release internal resources when done.
  *
- * @param key_block TR-31 key block. Null terminated. At least the header must be ASCII encoded.
+ * @param key_block TR-31 key block. Must contain printable ASCII characters. Null-termination not required.
+ * @param key_block_len Length of TR-31 key block in bytes, excluding null-termination.
  * @param kbpk TR-31 key block protection key. NULL if not available or decryption is not required.
  * @param ctx TR-31 context object output
  * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
  */
 int tr31_import(
 	const char* key_block,
+	size_t key_block_len,
 	const struct tr31_key_t* kbpk,
 	struct tr31_ctx_t* ctx
 );
@@ -891,15 +886,15 @@ int tr31_import(
  *
  * @param ctx TR-31 context object input
  * @param kbpk TR-31 key block protection key.
- * @param key_block TR-31 key block output. Null terminated. At least the header will be ASCII encoded.
- * @param key_block_len TR-31 key block output buffer length.
+ * @param key_block TR-31 key block output. Will contain printable ASCII characters and will be null-terminated.
+ * @param key_block_buf_len TR-31 key block output buffer length.
  * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
  */
 int tr31_export(
-	struct tr31_ctx_t* ctx,
+	const struct tr31_ctx_t* ctx,
 	const struct tr31_key_t* kbpk,
 	char* key_block,
-	size_t key_block_len
+	size_t key_block_buf_len
 );
 
 /**

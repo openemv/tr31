@@ -803,7 +803,7 @@ int main(void)
 		print_buf("kbpk", test[i].kbpk_data, test[i].kbpk_len);
 		r = tr31_key_set_data(&test[i].kbpk, test[i].kbpk_data, test[i].kbpk_len);
 		if (r) {
-			fprintf(stderr, "tr31_key_set_data() failed; r=%d\n", r);
+			fprintf(stderr, "tr31_key_set_data() error %d: %s\n", r, tr31_get_error_string(r));
 			goto exit;
 		}
 
@@ -811,14 +811,14 @@ int main(void)
 		print_buf("key", test[i].key_data, test[i].key_len);
 		r = tr31_key_set_data(&test[i].key, test[i].key_data, test[i].key_len);
 		if (r) {
-			fprintf(stderr, "tr31_key_set_data() failed; r=%d\n", r);
+			fprintf(stderr, "tr31_key_set_data() error %d: %s\n", r, tr31_get_error_string(r));
 			goto exit;
 		}
 
 		// Prepare TR-31 context
 		r = tr31_init(test[i].tr31_version, &test[i].key, &test_tr31);
 		if (r) {
-			fprintf(stderr, "tr31_init() failed; r=%d\n", r);
+			fprintf(stderr, "tr31_init() error %d: %s\n", r, tr31_get_error_string(r));
 			goto exit;
 		}
 		test_tr31.export_flags = test[i].export_flags;
@@ -831,29 +831,29 @@ int main(void)
 					strlen(test[i].cert_base64[cert_idx])
 				);
 				if (r) {
-					fprintf(stderr, "tr31_opt_block_add_CT() failed; r=%d\n", r);
-					return 1;
+					fprintf(stderr, "tr31_opt_block_add_CT() error %d: %s\n", r, tr31_get_error_string(r));
+					goto exit;
 				}
 			}
 		}
 		if (test[i].opt_blk_HM) {
 			r = tr31_opt_block_add_HM(&test_tr31, test[i].opt_blk_HM);
 			if (r) {
-				fprintf(stderr, "tr31_opt_block_add_HM() failed; r=%d\n", r);
-				return 1;
+				fprintf(stderr, "tr31_opt_block_add_HM() error %d: %s\n", r, tr31_get_error_string(r));
+				goto exit;
 			}
 		}
 		if (test[i].opt_blk_KC) {
 			r = tr31_opt_block_add_KC(&test_tr31);
 			if (r) {
-				fprintf(stderr, "tr31_opt_block_add_KC() failed; r=%d\n", r);
+				fprintf(stderr, "tr31_opt_block_add_KC() error %d: %s\n", r, tr31_get_error_string(r));
 				goto exit;
 			}
 		}
 		if (test[i].opt_blk_KP) {
 			r = tr31_opt_block_add_KP(&test_tr31);
 			if (r) {
-				fprintf(stderr, "tr31_opt_block_add_KP() failed; r=%d\n", r);
+				fprintf(stderr, "tr31_opt_block_add_KP() error %d: %s\n", r, tr31_get_error_string(r));
 				goto exit;
 			}
 		}
@@ -864,14 +864,14 @@ int main(void)
 				test[i].ksn_len
 			);
 			if (r) {
-				fprintf(stderr, "tr31_opt_block_add_KS() failed; r=%d\n", r);
+				fprintf(stderr, "tr31_opt_block_add_KS() error %d: %s\n", r, tr31_get_error_string(r));
 				goto exit;
 			}
 		}
 		if (test[i].timestamp) {
 			r = tr31_opt_block_add_TS(&test_tr31, test[i].timestamp);
 			if (r) {
-				fprintf(stderr, "tr31_opt_block_add_TS() failed; r=%d\n", r);
+				fprintf(stderr, "tr31_opt_block_add_TS() error %d: %s\n", r, tr31_get_error_string(r));
 				goto exit;
 			}
 		}
@@ -879,7 +879,7 @@ int main(void)
 		// Export key block
 		r = tr31_export(&test_tr31, &test[i].kbpk, key_block, sizeof(key_block));
 		if (r) {
-			fprintf(stderr, "tr31_export() failed; r=%d\n", r);
+			fprintf(stderr, "tr31_export() error %d: %s\n", r, tr31_get_error_string(r));
 			goto exit;
 		}
 		printf("TR-31: %s\n", key_block);
@@ -907,9 +907,9 @@ int main(void)
 		tr31_release(&test_tr31);
 
 		// Import and decrypt key block
-		r = tr31_import(key_block, &test[i].kbpk, &test_tr31);
+		r = tr31_import(key_block, strlen(key_block), &test[i].kbpk, &test_tr31);
 		if (r) {
-			fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+			fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 			goto exit;
 		}
 		if (test_tr31.key.length != test[i].key_len ||

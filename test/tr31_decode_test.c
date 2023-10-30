@@ -46,9 +46,9 @@ int main(void)
 
 	// test key block decoding for format version B with optional block KS
 	printf("Test 1 (Format version B with optional block KS)...\n");
-	r = tr31_import(test1_tr31_ascii, NULL, &test_tr31);
+	r = tr31_import(test1_tr31_ascii, strlen(test1_tr31_ascii), NULL, &test_tr31);
 	if (r) {
-		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
 	}
 	if (test_tr31.version != TR31_VERSION_B ||
@@ -62,11 +62,7 @@ int main(void)
 		test_tr31.opt_blocks_count != 1 ||
 		test_tr31.opt_blocks == NULL ||
 		test_tr31.opt_blocks[0].id != TR31_OPT_BLOCK_KS ||
-		test_tr31.opt_blocks[0].data == NULL ||
-		test_tr31.payload_length != 24 ||
-		test_tr31.payload == NULL ||
-		test_tr31.authenticator_length != 8 ||
-		test_tr31.authenticator == NULL
+		test_tr31.opt_blocks[0].data == NULL
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;
@@ -98,9 +94,9 @@ int main(void)
 
 	// test key block decoding for format version D containing TDES key
 	printf("Test 2 (Format version D containing TDES key)...\n");
-	r = tr31_import(test2_tr31_ascii, NULL, &test_tr31);
+	r = tr31_import(test2_tr31_ascii, strlen(test2_tr31_ascii), NULL, &test_tr31);
 	if (r) {
-		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
 	}
 	if (test_tr31.version != TR31_VERSION_D ||
@@ -112,11 +108,7 @@ int main(void)
 		test_tr31.key.key_version_str[0] != 0 ||
 		test_tr31.key.exportability != TR31_KEY_EXPORT_NONE ||
 		test_tr31.opt_blocks_count != 0 ||
-		test_tr31.opt_blocks != NULL ||
-		test_tr31.payload_length != 32 ||
-		test_tr31.payload == NULL ||
-		test_tr31.authenticator_length != 16 ||
-		test_tr31.authenticator == NULL
+		test_tr31.opt_blocks != NULL
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;
@@ -126,9 +118,9 @@ int main(void)
 
 	// test key block decoding for format version D containing AES key
 	printf("Test 3 (Format version D containing AES key)...\n");
-	r = tr31_import(test3_tr31_ascii, NULL, &test_tr31);
+	r = tr31_import(test3_tr31_ascii, strlen(test3_tr31_ascii), NULL, &test_tr31);
 	if (r) {
-		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
 	}
 	if (test_tr31.version != TR31_VERSION_D ||
@@ -140,11 +132,7 @@ int main(void)
 		test_tr31.key.key_version_str[0] != 0 ||
 		test_tr31.key.exportability != TR31_KEY_EXPORT_NONE ||
 		test_tr31.opt_blocks_count != 0 ||
-		test_tr31.opt_blocks != NULL ||
-		test_tr31.payload_length != 48 ||
-		test_tr31.payload == NULL ||
-		test_tr31.authenticator_length != 16 ||
-		test_tr31.authenticator == NULL
+		test_tr31.opt_blocks != NULL
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;
@@ -154,9 +142,9 @@ int main(void)
 
 	// test key block decoding for format version B with optional blocks KS, KC, and KP
 	printf("Test 4 (Format version B with optional block KS, KC, KP)...\n");
-	r = tr31_import(test4_tr31_ascii, NULL, &test_tr31);
+	r = tr31_import(test4_tr31_ascii, strlen(test4_tr31_ascii), NULL, &test_tr31);
 	if (r) {
-		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
 	}
 	if (test_tr31.version != TR31_VERSION_B ||
@@ -174,11 +162,7 @@ int main(void)
 		test_tr31.opt_blocks[1].id != TR31_OPT_BLOCK_KC ||
 		test_tr31.opt_blocks[1].data == NULL ||
 		test_tr31.opt_blocks[2].id != TR31_OPT_BLOCK_KP ||
-		test_tr31.opt_blocks[2].data == NULL ||
-		test_tr31.payload_length != 24 ||
-		test_tr31.payload == NULL ||
-		test_tr31.authenticator_length != 8 ||
-		test_tr31.authenticator == NULL
+		test_tr31.opt_blocks[2].data == NULL
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;

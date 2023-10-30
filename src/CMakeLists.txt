@@ -702,11 +702,30 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 			PASS_REGULAR_EXPRESSION ${tr31_tool_test41_regex}
 	)
 
+	# test export header containing optional blocks and padding, but not adding additional optional blocks
 	add_test(NAME tr31_tool_test42
 		COMMAND tr31-tool --kbpk 88E1AB2A2E3DD38C1FA039A536500CC8A87AB9D62DC92C01058FA79F44657DE6 --export 3F419E1CB7079442AA37474C2EFBF8B8 --export-header D1234M7HG00N0200HM0621PB0A5V5E8F
 	)
 	set_tests_properties(tr31_tool_test42
 		PROPERTIES
-			PASS_REGULAR_EXPRESSION "^D0128M7HG00N0200HM0621PB0A5V5E8F"
+			PASS_REGULAR_EXPRESSION "^D0128M7HG00N0200HM0621PB0A5V5E8F" # note that optional block padding content is intentionally preserved
+	)
+
+	# test export header containing optional blocks and padding and also adding additional optional blocks
+	add_test(NAME tr31_tool_test43
+		COMMAND tr31-tool --kbpk 88E1AB2A2E3DD38C1FA039A536500CC8A87AB9D62DC92C01058FA79F44657DE6 --export 3F419E1CB7079442AA37474C2EFBF8B8 --export-header D1234M7HG00N0200HM0621PB0A5V5E8F --export-opt-block-LB "MyKey"
+	)
+	set_tests_properties(tr31_tool_test43
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^D0144M7HG00N0300HM0621LB09MyKeyPB11"
+	)
+
+	# test export header containing optional blocks but insufficient padding
+	add_test(NAME tr31_tool_test44
+		COMMAND tr31-tool --kbpk 88E1AB2A2E3DD38C1FA039A536500CC8A87AB9D62DC92C01058FA79F44657DE6 --export 3F419E1CB7079442AA37474C2EFBF8B8 --export-header D1234M7HG00N0100HM0621
+	)
+	set_tests_properties(tr31_tool_test44
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^D0128M7HG00N0200HM0621PB0A"
 	)
 endif()

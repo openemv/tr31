@@ -225,9 +225,9 @@ int main(void)
 
 	// test key block decryption for format version A
 	printf("Test 1 (Basic format version A)...\n");
-	r = tr31_import(test1_tr31_format_a, &test_kbpk, &test_tr31);
+	r = tr31_import(test1_tr31_format_a, strlen(test1_tr31_format_a), &test_kbpk, &test_tr31);
 	if (r) {
-		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
 	}
 	if (test_tr31.version != TR31_VERSION_A ||
@@ -241,11 +241,7 @@ int main(void)
 		test_tr31.key.length != sizeof(test1_tr31_key_verify) ||
 		test_tr31.key.data == NULL ||
 		test_tr31.opt_blocks_count != 0 ||
-		test_tr31.opt_blocks != NULL ||
-		test_tr31.payload_length != 24 ||
-		test_tr31.payload == NULL ||
-		test_tr31.authenticator_length != 4 ||
-		test_tr31.authenticator == NULL
+		test_tr31.opt_blocks != NULL
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;
@@ -265,9 +261,9 @@ int main(void)
 
 	// test key block decryption for format version B
 	printf("Test 1 (Basic format version B)...\n");
-	r = tr31_import(test1_tr31_format_b, &test_kbpk, &test_tr31);
+	r = tr31_import(test1_tr31_format_b, strlen(test1_tr31_format_b), &test_kbpk, &test_tr31);
 	if (r) {
-		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
 	}
 	if (test_tr31.version != TR31_VERSION_B ||
@@ -281,11 +277,7 @@ int main(void)
 		test_tr31.key.length != sizeof(test1_tr31_key_verify) ||
 		test_tr31.key.data == NULL ||
 		test_tr31.opt_blocks_count != 0 ||
-		test_tr31.opt_blocks != NULL ||
-		test_tr31.payload_length != 24 ||
-		test_tr31.payload == NULL ||
-		test_tr31.authenticator_length != 8 ||
-		test_tr31.authenticator == NULL
+		test_tr31.opt_blocks != NULL
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;
@@ -305,9 +297,9 @@ int main(void)
 
 	// test key block decryption for format version C
 	printf("Test 1 (Basic format version C)...\n");
-	r = tr31_import(test1_tr31_format_c, &test_kbpk, &test_tr31);
+	r = tr31_import(test1_tr31_format_c, strlen(test1_tr31_format_c), &test_kbpk, &test_tr31);
 	if (r) {
-		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
 	}
 	if (test_tr31.version != TR31_VERSION_C ||
@@ -321,11 +313,7 @@ int main(void)
 		test_tr31.key.length != sizeof(test1_tr31_key_verify) ||
 		test_tr31.key.data == NULL ||
 		test_tr31.opt_blocks_count != 0 ||
-		test_tr31.opt_blocks != NULL ||
-		test_tr31.payload_length != 24 ||
-		test_tr31.payload == NULL ||
-		test_tr31.authenticator_length != 4 ||
-		test_tr31.authenticator == NULL
+		test_tr31.opt_blocks != NULL
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;
@@ -351,9 +339,9 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test2_kbpk);
 	test_kbpk.data = (void*)test2_kbpk;
-	r = tr31_import(test2_tr31_ascii, &test_kbpk, &test_tr31);
+	r = tr31_import(test2_tr31_ascii, strlen(test2_tr31_ascii), &test_kbpk, &test_tr31);
 	if (r) {
-		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
 	}
 	if (test_tr31.version != TR31_VERSION_A ||
@@ -367,11 +355,7 @@ int main(void)
 		test_tr31.key.length != sizeof(test2_tr31_key_verify) ||
 		test_tr31.key.data == NULL ||
 		test_tr31.opt_blocks_count != 0 ||
-		test_tr31.opt_blocks != NULL ||
-		test_tr31.payload_length != 24 ||
-		test_tr31.payload == NULL ||
-		test_tr31.authenticator_length != 4 ||
-		test_tr31.authenticator == NULL
+		test_tr31.opt_blocks != NULL
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;
@@ -397,9 +381,9 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test3_kbpk);
 	test_kbpk.data = (void*)test3_kbpk;
-	r = tr31_import(test3_tr31_ascii, &test_kbpk, &test_tr31);
+	r = tr31_import(test3_tr31_ascii, strlen(test3_tr31_ascii), &test_kbpk, &test_tr31);
 	if (r) {
-		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
 	}
 	if (test_tr31.version != TR31_VERSION_B ||
@@ -413,11 +397,7 @@ int main(void)
 		test_tr31.key.length != sizeof(test3_tr31_key_verify) ||
 		test_tr31.key.data == NULL ||
 		test_tr31.opt_blocks_count != 0 ||
-		test_tr31.opt_blocks != NULL ||
-		test_tr31.payload_length != 24 ||
-		test_tr31.payload == NULL ||
-		test_tr31.authenticator_length != 8 ||
-		test_tr31.authenticator == NULL
+		test_tr31.opt_blocks != NULL
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;
@@ -443,9 +423,9 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test4_kbpk);
 	test_kbpk.data = (void*)test4_kbpk;
-	r = tr31_import(test4_tr31_ascii, &test_kbpk, &test_tr31);
+	r = tr31_import(test4_tr31_ascii, strlen(test4_tr31_ascii), &test_kbpk, &test_tr31);
 	if (r) {
-		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
 	}
 	if (test_tr31.version != TR31_VERSION_C ||
@@ -461,11 +441,7 @@ int main(void)
 		test_tr31.opt_blocks_count != 1 ||
 		test_tr31.opt_blocks == NULL ||
 		test_tr31.opt_blocks[0].id != TR31_OPT_BLOCK_KS ||
-		test_tr31.opt_blocks[0].data == NULL ||
-		test_tr31.payload_length != 24 ||
-		test_tr31.payload == NULL ||
-		test_tr31.authenticator_length != 4 ||
-		test_tr31.authenticator == NULL
+		test_tr31.opt_blocks[0].data == NULL
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;
@@ -513,9 +489,9 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test5_kbpk);
 	test_kbpk.data = (void*)test5_kbpk;
-	r = tr31_import(test5_tr31_ascii, &test_kbpk, &test_tr31);
+	r = tr31_import(test5_tr31_ascii, strlen(test5_tr31_ascii), &test_kbpk, &test_tr31);
 	if (r) {
-		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
 	}
 	if (test_tr31.version != TR31_VERSION_B ||
@@ -531,11 +507,7 @@ int main(void)
 		test_tr31.opt_blocks_count != 1 ||
 		test_tr31.opt_blocks == NULL ||
 		test_tr31.opt_blocks[0].id != TR31_OPT_BLOCK_KS ||
-		test_tr31.opt_blocks[0].data == NULL ||
-		test_tr31.payload_length != 24 ||
-		test_tr31.payload == NULL ||
-		test_tr31.authenticator_length != 8 ||
-		test_tr31.authenticator == NULL
+		test_tr31.opt_blocks[0].data == NULL
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;
@@ -583,9 +555,9 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test6_kbpk);
 	test_kbpk.data = (void*)test6_kbpk;
-	r = tr31_import(test6_tr31_ascii, &test_kbpk, &test_tr31);
+	r = tr31_import(test6_tr31_ascii, strlen(test6_tr31_ascii), &test_kbpk, &test_tr31);
 	if (r) {
-		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
 	}
 	if (test_tr31.version != TR31_VERSION_D ||
@@ -599,11 +571,7 @@ int main(void)
 		test_tr31.key.length != sizeof(test6_tr31_key_verify) ||
 		test_tr31.key.data == NULL ||
 		test_tr31.opt_blocks_count != 0 ||
-		test_tr31.opt_blocks != NULL ||
-		test_tr31.payload_length != 32 ||
-		test_tr31.payload == NULL ||
-		test_tr31.authenticator_length != 16 ||
-		test_tr31.authenticator == NULL
+		test_tr31.opt_blocks != NULL
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;
@@ -629,9 +597,9 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test7_kbpk);
 	test_kbpk.data = (void*)test7_kbpk;
-	r = tr31_import(test7_tr31_ascii, &test_kbpk, &test_tr31);
+	r = tr31_import(test7_tr31_ascii, strlen(test7_tr31_ascii), &test_kbpk, &test_tr31);
 	if (r) {
-		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
 	}
 	if (test_tr31.version != TR31_VERSION_D ||
@@ -645,11 +613,7 @@ int main(void)
 		test_tr31.key.length != sizeof(test7_tr31_key_verify) ||
 		test_tr31.key.data == NULL ||
 		test_tr31.opt_blocks_count != 0 ||
-		test_tr31.opt_blocks != NULL ||
-		test_tr31.payload_length != 32 ||
-		test_tr31.payload == NULL ||
-		test_tr31.authenticator_length != 16 ||
-		test_tr31.authenticator == NULL
+		test_tr31.opt_blocks != NULL
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;
@@ -675,9 +639,9 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test8_kbpk);
 	test_kbpk.data = (void*)test8_kbpk;
-	r = tr31_import(test8_tr31_ascii, &test_kbpk, &test_tr31);
+	r = tr31_import(test8_tr31_ascii, strlen(test8_tr31_ascii), &test_kbpk, &test_tr31);
 	if (r) {
-		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
 	}
 	if (test_tr31.version != TR31_VERSION_D ||
@@ -691,11 +655,7 @@ int main(void)
 		test_tr31.key.length != sizeof(test8_tr31_key_verify) ||
 		test_tr31.key.data == NULL ||
 		test_tr31.opt_blocks_count != 0 ||
-		test_tr31.opt_blocks != NULL ||
-		test_tr31.payload_length != 48 ||
-		test_tr31.payload == NULL ||
-		test_tr31.authenticator_length != 16 ||
-		test_tr31.authenticator == NULL
+		test_tr31.opt_blocks != NULL
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;
@@ -721,9 +681,9 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test9_kbpk);
 	test_kbpk.data = (void*)test9_kbpk;
-	r = tr31_import(test9_tr31_ascii, &test_kbpk, &test_tr31);
+	r = tr31_import(test9_tr31_ascii, strlen(test9_tr31_ascii), &test_kbpk, &test_tr31);
 	if (r) {
-		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
 	}
 	if (test_tr31.version != TR31_VERSION_E ||
@@ -737,11 +697,7 @@ int main(void)
 		test_tr31.key.length != sizeof(test9_tr31_key_verify) ||
 		test_tr31.key.data == NULL ||
 		test_tr31.opt_blocks_count != 0 ||
-		test_tr31.opt_blocks != NULL ||
-		test_tr31.payload_length != 18 ||
-		test_tr31.payload == NULL ||
-		test_tr31.authenticator_length != 16 ||
-		test_tr31.authenticator == NULL
+		test_tr31.opt_blocks != NULL
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;
@@ -767,9 +723,9 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test10_kbpk);
 	test_kbpk.data = (void*)test10_kbpk;
-	r = tr31_import(test10_tr31_ascii, &test_kbpk, &test_tr31);
+	r = tr31_import(test10_tr31_ascii, strlen(test10_tr31_ascii), &test_kbpk, &test_tr31);
 	if (r) {
-		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
 	}
 	if (test_tr31.version != TR31_VERSION_D ||
@@ -783,11 +739,7 @@ int main(void)
 		test_tr31.key.length != sizeof(test10_tr31_key_verify) ||
 		test_tr31.key.data == NULL ||
 		test_tr31.opt_blocks_count != 0 ||
-		test_tr31.opt_blocks != NULL ||
-		test_tr31.payload_length != 32 ||
-		test_tr31.payload == NULL ||
-		test_tr31.authenticator_length != 16 ||
-		test_tr31.authenticator == NULL
+		test_tr31.opt_blocks != NULL
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;
@@ -813,9 +765,9 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test11_kbpk);
 	test_kbpk.data = (void*)test11_kbpk;
-	r = tr31_import(test11_tr31_ascii, &test_kbpk, &test_tr31);
+	r = tr31_import(test11_tr31_ascii, strlen(test11_tr31_ascii), &test_kbpk, &test_tr31);
 	if (r) {
-		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
 	}
 	if (test_tr31.version != TR31_VERSION_D ||
@@ -829,11 +781,7 @@ int main(void)
 		test_tr31.key.length != sizeof(test11_tr31_key_verify) ||
 		test_tr31.key.data == NULL ||
 		test_tr31.opt_blocks_count != 0 ||
-		test_tr31.opt_blocks != NULL ||
-		test_tr31.payload_length != 48 ||
-		test_tr31.payload == NULL ||
-		test_tr31.authenticator_length != 16 ||
-		test_tr31.authenticator == NULL
+		test_tr31.opt_blocks != NULL
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;
@@ -859,9 +807,9 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test15_kbpk);
 	test_kbpk.data = (void*)test15_kbpk;
-	r = tr31_import(test15_tr31_ascii, &test_kbpk, &test_tr31);
+	r = tr31_import(test15_tr31_ascii, strlen(test15_tr31_ascii), &test_kbpk, &test_tr31);
 	if (r) {
-		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
 	}
 	if (test_tr31.version != TR31_VERSION_C ||
@@ -877,11 +825,7 @@ int main(void)
 		test_tr31.opt_blocks_count != 1 ||
 		test_tr31.opt_blocks == NULL ||
 		test_tr31.opt_blocks[0].id != TR31_OPT_BLOCK_KS ||
-		test_tr31.opt_blocks[0].data == NULL ||
-		test_tr31.payload_length != 32 ||
-		test_tr31.payload == NULL ||
-		test_tr31.authenticator_length != 4 ||
-		test_tr31.authenticator == NULL
+		test_tr31.opt_blocks[0].data == NULL
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;
@@ -929,9 +873,9 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test16_kbpk);
 	test_kbpk.data = (void*)test16_kbpk;
-	r = tr31_import(test16_tr31_ascii, &test_kbpk, &test_tr31);
+	r = tr31_import(test16_tr31_ascii, strlen(test16_tr31_ascii), &test_kbpk, &test_tr31);
 	if (r) {
-		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
 	}
 	if (test_tr31.version != TR31_VERSION_B ||
@@ -947,11 +891,7 @@ int main(void)
 		test_tr31.opt_blocks_count != 1 ||
 		test_tr31.opt_blocks == NULL ||
 		test_tr31.opt_blocks[0].id != TR31_OPT_BLOCK_KS ||
-		test_tr31.opt_blocks[0].data == NULL ||
-		test_tr31.payload_length != 32 ||
-		test_tr31.payload == NULL ||
-		test_tr31.authenticator_length != 8 ||
-		test_tr31.authenticator == NULL
+		test_tr31.opt_blocks[0].data == NULL
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;
@@ -999,9 +939,9 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test17_kbpk);
 	test_kbpk.data = (void*)test17_kbpk;
-	r = tr31_import(test17_tr31_ascii, &test_kbpk, &test_tr31);
+	r = tr31_import(test17_tr31_ascii, strlen(test17_tr31_ascii), &test_kbpk, &test_tr31);
 	if (r) {
-		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
 	}
 	if (test_tr31.version != TR31_VERSION_D ||
@@ -1022,11 +962,7 @@ int main(void)
 		test_tr31.opt_blocks[2].id != TR31_OPT_BLOCK_TS ||
 		test_tr31.opt_blocks[2].data == NULL ||
 		memcmp(test_tr31.opt_blocks[2].data, test17_tr31_ts_verify, strlen(test17_tr31_ts_verify)) != 0 ||
-		test_tr31.opt_blocks[3].id != TR31_OPT_BLOCK_PB ||
-		test_tr31.payload_length != 1200 ||
-		test_tr31.payload == NULL ||
-		test_tr31.authenticator_length != 16 ||
-		test_tr31.authenticator == NULL
+		test_tr31.opt_blocks[3].id != TR31_OPT_BLOCK_PB
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;
@@ -1082,9 +1018,9 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test18_kbpk);
 	test_kbpk.data = (void*)test18_kbpk;
-	r = tr31_import(test18_tr31_ascii, &test_kbpk, &test_tr31);
+	r = tr31_import(test18_tr31_ascii, strlen(test18_tr31_ascii), &test_kbpk, &test_tr31);
 	if (r) {
-		fprintf(stderr, "tr31_import() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
 	}
 	if (test_tr31.version != TR31_VERSION_D ||
@@ -1105,11 +1041,7 @@ int main(void)
 		test_tr31.opt_blocks[2].id != TR31_OPT_BLOCK_TS ||
 		test_tr31.opt_blocks[2].data == NULL ||
 		memcmp(test_tr31.opt_blocks[2].data, test18_tr31_ts_verify, strlen(test18_tr31_ts_verify)) != 0 ||
-		test_tr31.opt_blocks[3].id != TR31_OPT_BLOCK_PB ||
-		test_tr31.payload_length != 128 ||
-		test_tr31.payload == NULL ||
-		test_tr31.authenticator_length != 16 ||
-		test_tr31.authenticator == NULL
+		test_tr31.opt_blocks[3].id != TR31_OPT_BLOCK_PB
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;

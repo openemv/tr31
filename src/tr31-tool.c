@@ -96,7 +96,9 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state);
 static void* read_file(FILE* file, size_t* len);
 static int parse_hex(const char* hex, void* bin, size_t bin_len);
 static void print_hex(const void* buf, size_t length);
+static void print_str(const void* buf, size_t length);
 static void print_str_with_quotes(const void* buf, size_t length);
+static int tr31_init_from_header(const char* header, struct tr31_ctx_t* tr31_ctx);
 
 // argp option keys
 enum tr31_tool_option_keys_t {
@@ -205,14 +207,14 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 
 				} else {
 					// Copy argument
-					buf_len = strlen(arg) + 1;
+					buf_len = strlen(arg);
 					buf = malloc(buf_len);
 					memcpy(buf, arg, buf_len);
 				}
 
 				// Trim KEYBLOCK argument
 				for (char* str = buf; buf_len; --buf_len) {
-					if (!isalnum(str[buf_len - 1])) {
+					if (!isgraph(str[buf_len - 1])) {
 						str[buf_len - 1] = 0;
 					} else {
 						break;
@@ -289,8 +291,8 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 				argp_error(state, "Export header must be at least 16 characters/bytes");
 			}
 			for (size_t i = 0; i < strlen(arg); ++i) {
-				if (!isalnum(arg[i])) {
-					argp_error(state, "Export header must consist of alphanumeric characters (invalid character '%c' is not allowed)", arg[i]);
+				if (!isprint(arg[i])) {
+					argp_error(state, "Export header must consist of printable characters (invalid character '%c' is not allowed)", arg[i]);
 				}
 			}
 			options->export_header = arg;
@@ -383,8 +385,8 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 				argp_error(state, "Export optional block DA must be a multiple of 5 bytes");
 			}
 			for (size_t i = 0; i < strlen(arg); ++i) {
-				if (!isprint(arg[i]) || isspace(arg[i])) {
-					argp_error(state, "Export header must consist of printable characters (invalid character '%c' is not allowed)", arg[i]);
+				if (!isalnum(arg[i])) {
+					argp_error(state, "Export optional block DA consist of alphanumeric characters (invalid character '%c' is not allowed)", arg[i]);
 				}
 			}
 			options->export_opt_block_DA = arg;
@@ -657,6 +659,117 @@ static void print_str_with_quotes(const void* buf, size_t length)
 	printf("\"");
 }
 
+static int tr31_init_from_header(const char* header, struct tr31_ctx_t* tr31_ctx)
+{
+	int r;
+	size_t header_len;
+	size_t enc_block_size;
+	size_t payload_and_authenticator_len;
+	char* padded_header = NULL;
+	size_t key_block_len;
+
+	header_len = strlen(header);
+	if (header_len < 16) {
+		return TR31_ERROR_INVALID_LENGTH_FIELD;
+	}
+
+	// determine encryption block size and payload+authenticator length
+	switch (header[0]) {
+		case 'A':
+		case 'C':
+			enc_block_size = 8; // DES block size
+			payload_and_authenticator_len = 32 + 8;
+			break;
+
+		case 'B':
+			enc_block_size = 8; // DES block size
+			payload_and_authenticator_len = 32 + 16;
+			break;
+
+		case 'D':
+		case 'E':
+			enc_block_size = 16; // AES block size
+			payload_and_authenticator_len = 48 + 16;
+			break;
+
+		default:
+			return TR31_ERROR_UNSUPPORTED_VERSION;
+	}
+
+	// ensure that header length is a multiple of encryption block size
+	// and add fake optional block padding if necessary
+	if (header_len & (enc_block_size-1)) {
+		unsigned int pb_len = 4; // minimum length of optional block PB
+
+		if (header[12] != '0' || header[13] > '8') {
+			// only support single digit optional block counts below 9 for now
+			return TR31_ERROR_INVALID_NUMBER_OF_OPTIONAL_BLOCKS_FIELD;
+		}
+
+		// compute required padding length
+		if ((header_len + pb_len) & (enc_block_size-1)) { // if further padding is required
+			pb_len = ((header_len + 4 + enc_block_size) & ~(enc_block_size-1)) - header_len;
+		}
+
+		// sanity check
+		if (pb_len < 4 || pb_len > 15) {
+			return -1;
+		}
+
+		// build new header
+		header_len = header_len + pb_len;
+		padded_header = malloc(header_len + 1);
+		snprintf(
+			padded_header,
+			header_len + 1,
+			"%sPB%02X%.*s",
+			header,
+			pb_len,
+			pb_len - 4,
+			"000000000000000"
+		);
+		padded_header[13]++; // increment optional block count
+		header = padded_header;
+	}
+
+	// determine fake key block length to allow parsing of header
+	key_block_len = header_len + payload_and_authenticator_len;
+	if (key_block_len > 9999) {
+		fprintf(stderr, "Export header too large\n");
+		return TR31_ERROR_INVALID_LENGTH_FIELD;
+	}
+
+	// build fake key block to allow parsing of header
+	char tmp_keyblock[key_block_len];
+	memcpy(tmp_keyblock, header, header_len);
+	memset(tmp_keyblock + header_len, '0', sizeof(tmp_keyblock) - header_len);
+
+	// fix length field to allow parsing of header
+	char tmp[5];
+	snprintf(tmp, sizeof(tmp), "%04zu", sizeof(tmp_keyblock));
+	memcpy(tmp_keyblock + 1, tmp, 4);
+
+	// misuse TR-31 import function to parse header into TR-31 context object
+	r = tr31_import(tmp_keyblock, sizeof(tmp_keyblock), NULL, tr31_ctx);
+	if (r) {
+		return r;
+	}
+
+	// cleanup padded header and remove fake optional block PB from context object
+	if (padded_header) {
+		free(padded_header);
+		if (tr31_ctx->opt_blocks_count) {
+			tr31_ctx->opt_blocks_count -= 1;
+			if (tr31_ctx->opt_blocks[tr31_ctx->opt_blocks_count].data) {
+				free(tr31_ctx->opt_blocks[tr31_ctx->opt_blocks_count].data);
+				tr31_ctx->opt_blocks[tr31_ctx->opt_blocks_count].data = NULL;
+			}
+		}
+	}
+
+	return 0;
+}
+
 // TR-31 KBPK populating helper function
 static int populate_kbpk(const struct tr31_tool_options_t* options, unsigned int format_version, struct tr31_key_t* kbpk)
 {
@@ -716,10 +829,10 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 
 	if (options->kbpk) { // if key block protection key was provided
 		// parse and decrypt TR-31 key block
-		r = tr31_import(options->key_block, &kbpk, &tr31_ctx);
+		r = tr31_import(options->key_block, options->key_block_len, &kbpk, &tr31_ctx);
 	} else { // else if no key block protection key was provided
 		// parse TR-31 key block
-		r = tr31_import(options->key_block, NULL, &tr31_ctx);
+		r = tr31_import(options->key_block, options->key_block_len, NULL, &tr31_ctx);
 	}
 	// check for errors
 	if (r) {
@@ -947,7 +1060,10 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 
 	// cleanup
 	tr31_key_release(&kbpk);
-	tr31_release(&tr31_ctx);
+	if (!ret) {
+		// only cleanup TR-31 context object if tr31_import() was successful
+		tr31_release(&tr31_ctx);
+	}
 
 	return ret;
 }
@@ -1003,7 +1119,7 @@ static int populate_tr31_from_template(const struct tr31_tool_options_t* options
 	// populate TR-31 context object
 	r = tr31_init(options->export_format_version, &key, tr31_ctx);
 	if (r) {
-		fprintf(stderr, "tr31_init() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_init() error %d: %s\n", r, tr31_get_error_string(r));
 		return 1;
 	}
 
@@ -1015,46 +1131,8 @@ static int populate_tr31_from_header(const struct tr31_tool_options_t* options, 
 {
 	int r;
 
-	// determine fake key block length to allow parsing of header
-	size_t export_header_len = strlen(options->export_header);
-	size_t tmp_key_block_len = export_header_len;
-	switch (options->export_header[0]) {
-		case 'A':
-		case 'C':
-			tmp_key_block_len += 32 + 8 + 1;
-			break;
-
-		case 'B':
-			tmp_key_block_len += 32 + 16 + 1;
-			break;
-
-		case 'D':
-		case 'E':
-			tmp_key_block_len += 48 + 16 + 1;
-			break;
-
-		default:
-			fprintf(stderr, "Unsupported key block format version\n");
-			return 1;
-	}
-	if (tmp_key_block_len > 9999) {
-		fprintf(stderr, "Export header too large\n");
-		return 1;
-	}
-
-	// build fake key block to allow parsing of header
-	char tmp_keyblock[tmp_key_block_len];
-	memcpy(tmp_keyblock, options->export_header, export_header_len);
-	memset(tmp_keyblock + export_header_len, '0', sizeof(tmp_keyblock) - export_header_len - 1);
-	tmp_keyblock[sizeof(tmp_keyblock) - 1] = 0;
-
-	// fix length field to allow parsing of header
-	char tmp[5];
-	snprintf(tmp, sizeof(tmp), "%04zu", tmp_key_block_len - 1);
-	memcpy(tmp_keyblock + 1, tmp, 4);
-
-	// misuse TR-31 import function to parse header into TR-31 context object
-	r = tr31_import(tmp_keyblock, NULL, tr31_ctx);
+	// parse export header
+	r = tr31_init_from_header(options->export_header, tr31_ctx);
 	if (r) {
 		fprintf(stderr, "Error while parsing export header; error %d: %s\n", r, tr31_get_error_string(r));
 		return 1;
@@ -1063,7 +1141,7 @@ static int populate_tr31_from_header(const struct tr31_tool_options_t* options, 
 	// populate key data
 	r = tr31_key_set_data(&tr31_ctx->key, options->export_key_buf, options->export_key_buf_len);
 	if (r) {
-		fprintf(stderr, "tr31_key_set_data() failed; r=%d\n", r);
+		fprintf(stderr, "tr31_key_set_data() error %d: %s\n", r, tr31_get_error_string(r));
 		return 1;
 	}
 

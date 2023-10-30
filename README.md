@@ -184,7 +184,14 @@ either a combination of the `--export-format-version B`,
 `--export-key-algorithm` and `--export-template` options, or using the
 `--export-header` option. For example:
 ```
-tr31-tool --kbpk AB2E09DB3EF0BA71E0CE6CD755C23A3B --export BF82DAC6A33DF92CE66E15B70E5DCEB6 --export-header B0128B1TX00N0300KS18FFFF00A0200001E00000KC0C000169E3KP0C00ECAD62
+tr31-tool --kbpk AB2E09DB3EF0BA71E0CE6CD755C23A3B --export BF82DAC6A33DF92CE66E15B70E5DCEB6 --export-header B0000B1TX00N0200KS18FFFF00A0200001E00000KC0C000169E3
+```
+
+Individual optional blocks can also be added when exporting a TR-31 key block
+by using the various `--export-opt-block-XX` functions, where `XX` is the
+optional block identifier. For example:
+```
+tr31-tool --kbpk AB2E09DB3EF0BA71E0CE6CD755C23A3B --export BF82DAC6A33DF92CE66E15B70E5DCEB6 --export-header B0000B1TX00N0000 --export-opt-block-KS FFFF00A0200001E00000 --export-opt-block-KC
 ```
 
 Roadmap
