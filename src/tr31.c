@@ -2141,6 +2141,7 @@ exit:
 int tr31_export(
 	const struct tr31_ctx_t* ctx,
 	const struct tr31_key_t* kbpk,
+	uint32_t flags,
 	char* key_block,
 	size_t key_block_buf_len
 )
@@ -2172,7 +2173,7 @@ int tr31_export(
 	// - state.flags
 	// - state.enc_block_size
 	// - state.authenticator_length
-	r = tr31_state_init(ctx->export_flags, ctx->version, &state);
+	r = tr31_state_init(flags, ctx->version, &state);
 	if (r) {
 		// return error value as-is
 		return r;

@@ -821,7 +821,6 @@ int main(void)
 			fprintf(stderr, "tr31_init() error %d: %s\n", r, tr31_get_error_string(r));
 			goto exit;
 		}
-		test_tr31.export_flags = test[i].export_flags;
 		if (test[i].cert_base64_count) {
 			for (size_t cert_idx = 0; cert_idx < test[i].cert_base64_count; ++cert_idx) {
 				r = tr31_opt_block_add_CT(
@@ -877,7 +876,7 @@ int main(void)
 		}
 
 		// Export key block
-		r = tr31_export(&test_tr31, &test[i].kbpk, key_block, sizeof(key_block));
+		r = tr31_export(&test_tr31, &test[i].kbpk, test[i].export_flags, key_block, sizeof(key_block));
 		if (r) {
 			fprintf(stderr, "tr31_export() error %d: %s\n", r, tr31_get_error_string(r));
 			goto exit;

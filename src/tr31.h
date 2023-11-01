@@ -179,7 +179,7 @@ enum tr31_key_version_t {
 
 // TR-31 export flags
 #define TR31_EXPORT_NO_KEY_LENGTH_OBFUSCATION   (0x01) ///< Disable ANSI X9.143 key length obfuscation during key block export
-#define TR31_EXPORT_ZERO_OPT_BLOCK_PB           (0x02) ///< Fill optional block PB using zeros instead of random characters during TR-31 export.
+#define TR31_EXPORT_ZERO_OPT_BLOCK_PB           (0x02) ///< Fill optional block PB using zeros instead of random characters during key block export.
 
 /// TR-31 key object
 struct tr31_key_t {
@@ -273,8 +273,6 @@ struct tr31_ctx_t {
 
 	size_t opt_blocks_count; ///< TR-31 number of optional blocks
 	struct tr31_opt_ctx_t* opt_blocks; ///< TR-31 optional block context objects
-
-	uint32_t export_flags; ///< Flags used during TR-31 export
 };
 
 /// TR-31 library errors
@@ -886,6 +884,7 @@ int tr31_import(
  *
  * @param ctx TR-31 context object input
  * @param kbpk TR-31 key block protection key.
+ * @param flags TR-31 export flags.
  * @param key_block TR-31 key block output. Will contain printable ASCII characters and will be null-terminated.
  * @param key_block_buf_len TR-31 key block output buffer length.
  * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
@@ -893,6 +892,7 @@ int tr31_import(
 int tr31_export(
 	const struct tr31_ctx_t* ctx,
 	const struct tr31_key_t* kbpk,
+	uint32_t flags,
 	char* key_block,
 	size_t key_block_buf_len
 );

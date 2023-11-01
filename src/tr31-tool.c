@@ -1474,9 +1474,6 @@ static int do_tr31_export(const struct tr31_tool_options_t* options)
 		return r;
 	}
 
-	// apply export flags
-	tr31_ctx.export_flags = options->export_flags;
-
 	// populate key block protection key
 	r = populate_kbpk(options, export_format_version, &kbpk);
 	if (r) {
@@ -1486,7 +1483,7 @@ static int do_tr31_export(const struct tr31_tool_options_t* options)
 	// export TR-31 key block
 	key_block_len = 16384;
 	key_block = malloc(key_block_len);
-	r = tr31_export(&tr31_ctx, &kbpk, key_block, key_block_len);
+	r = tr31_export(&tr31_ctx, &kbpk, options->export_flags, key_block, key_block_len);
 	if (r) {
 		fprintf(stderr, "TR-31 export error %d: %s\n", r, tr31_get_error_string(r));
 		return 1;
