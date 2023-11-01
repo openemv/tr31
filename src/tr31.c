@@ -1827,6 +1827,7 @@ int tr31_import(
 	const char* key_block,
 	size_t key_block_len,
 	const struct tr31_key_t* kbpk,
+	uint32_t flags,
 	struct tr31_ctx_t* ctx
 )
 {
@@ -1853,10 +1854,11 @@ int tr31_import(
 
 	// initialise processing state object
 	// this will populate:
+	// - state.flags
 	// - state.enc_block_size
 	// - state.authenticator_length
 	header = (const struct tr31_header_t*)key_block;
-	r = tr31_state_init(0, header->version_id, &state);
+	r = tr31_state_init(flags, header->version_id, &state);
 	if (r) {
 		// return error value as-is
 		return r;

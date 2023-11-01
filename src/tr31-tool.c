@@ -51,6 +51,7 @@ struct tr31_tool_options_t {
 	// valid if import is true
 	size_t key_block_len;
 	char* key_block;
+	uint32_t import_flags;
 
 	// export parameters
 	// valid if export is true
@@ -81,8 +82,6 @@ struct tr31_tool_options_t {
 	const char* export_opt_block_TS_str;
 	bool export_opt_block_WP;
 	uint8_t export_opt_block_WP_value;
-
-	// export flags
 	uint32_t export_flags;
 
 	// kbpk parameters
@@ -750,7 +749,7 @@ static int tr31_init_from_header(const char* header, struct tr31_ctx_t* tr31_ctx
 	memcpy(tmp_keyblock + 1, tmp, 4);
 
 	// misuse TR-31 import function to parse header into TR-31 context object
-	r = tr31_import(tmp_keyblock, sizeof(tmp_keyblock), NULL, tr31_ctx);
+	r = tr31_import(tmp_keyblock, sizeof(tmp_keyblock), NULL, 0, tr31_ctx);
 	if (r) {
 		return r;
 	}
@@ -829,10 +828,10 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 
 	if (options->kbpk) { // if key block protection key was provided
 		// parse and decrypt TR-31 key block
-		r = tr31_import(options->key_block, options->key_block_len, &kbpk, &tr31_ctx);
+		r = tr31_import(options->key_block, options->key_block_len, &kbpk, options->import_flags, &tr31_ctx);
 	} else { // else if no key block protection key was provided
 		// parse TR-31 key block
-		r = tr31_import(options->key_block, options->key_block_len, NULL, &tr31_ctx);
+		r = tr31_import(options->key_block, options->key_block_len, NULL, options->import_flags, &tr31_ctx);
 	}
 	// check for errors
 	if (r) {

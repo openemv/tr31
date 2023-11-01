@@ -225,7 +225,7 @@ int main(void)
 
 	// test key block decryption for format version A
 	printf("Test 1 (Basic format version A)...\n");
-	r = tr31_import(test1_tr31_format_a, strlen(test1_tr31_format_a), &test_kbpk, &test_tr31);
+	r = tr31_import(test1_tr31_format_a, strlen(test1_tr31_format_a), &test_kbpk, 0, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
@@ -261,7 +261,7 @@ int main(void)
 
 	// test key block decryption for format version B
 	printf("Test 1 (Basic format version B)...\n");
-	r = tr31_import(test1_tr31_format_b, strlen(test1_tr31_format_b), &test_kbpk, &test_tr31);
+	r = tr31_import(test1_tr31_format_b, strlen(test1_tr31_format_b), &test_kbpk, 0, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
@@ -297,7 +297,7 @@ int main(void)
 
 	// test key block decryption for format version C
 	printf("Test 1 (Basic format version C)...\n");
-	r = tr31_import(test1_tr31_format_c, strlen(test1_tr31_format_c), &test_kbpk, &test_tr31);
+	r = tr31_import(test1_tr31_format_c, strlen(test1_tr31_format_c), &test_kbpk, 0, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
@@ -339,7 +339,7 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test2_kbpk);
 	test_kbpk.data = (void*)test2_kbpk;
-	r = tr31_import(test2_tr31_ascii, strlen(test2_tr31_ascii), &test_kbpk, &test_tr31);
+	r = tr31_import(test2_tr31_ascii, strlen(test2_tr31_ascii), &test_kbpk, 0, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
@@ -381,7 +381,7 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test3_kbpk);
 	test_kbpk.data = (void*)test3_kbpk;
-	r = tr31_import(test3_tr31_ascii, strlen(test3_tr31_ascii), &test_kbpk, &test_tr31);
+	r = tr31_import(test3_tr31_ascii, strlen(test3_tr31_ascii), &test_kbpk, 0, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
@@ -423,7 +423,7 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test4_kbpk);
 	test_kbpk.data = (void*)test4_kbpk;
-	r = tr31_import(test4_tr31_ascii, strlen(test4_tr31_ascii), &test_kbpk, &test_tr31);
+	r = tr31_import(test4_tr31_ascii, strlen(test4_tr31_ascii), &test_kbpk, 0, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
@@ -489,7 +489,7 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test5_kbpk);
 	test_kbpk.data = (void*)test5_kbpk;
-	r = tr31_import(test5_tr31_ascii, strlen(test5_tr31_ascii), &test_kbpk, &test_tr31);
+	r = tr31_import(test5_tr31_ascii, strlen(test5_tr31_ascii), &test_kbpk, 0, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
@@ -555,7 +555,7 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test6_kbpk);
 	test_kbpk.data = (void*)test6_kbpk;
-	r = tr31_import(test6_tr31_ascii, strlen(test6_tr31_ascii), &test_kbpk, &test_tr31);
+	r = tr31_import(test6_tr31_ascii, strlen(test6_tr31_ascii), &test_kbpk, 0, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
@@ -597,7 +597,7 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test7_kbpk);
 	test_kbpk.data = (void*)test7_kbpk;
-	r = tr31_import(test7_tr31_ascii, strlen(test7_tr31_ascii), &test_kbpk, &test_tr31);
+	r = tr31_import(test7_tr31_ascii, strlen(test7_tr31_ascii), &test_kbpk, 0, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
@@ -639,7 +639,7 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test8_kbpk);
 	test_kbpk.data = (void*)test8_kbpk;
-	r = tr31_import(test8_tr31_ascii, strlen(test8_tr31_ascii), &test_kbpk, &test_tr31);
+	r = tr31_import(test8_tr31_ascii, strlen(test8_tr31_ascii), &test_kbpk, 0, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
@@ -681,7 +681,7 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test9_kbpk);
 	test_kbpk.data = (void*)test9_kbpk;
-	r = tr31_import(test9_tr31_ascii, strlen(test9_tr31_ascii), &test_kbpk, &test_tr31);
+	r = tr31_import(test9_tr31_ascii, strlen(test9_tr31_ascii), &test_kbpk, 0, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
@@ -723,7 +723,7 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test10_kbpk);
 	test_kbpk.data = (void*)test10_kbpk;
-	r = tr31_import(test10_tr31_ascii, strlen(test10_tr31_ascii), &test_kbpk, &test_tr31);
+	r = tr31_import(test10_tr31_ascii, strlen(test10_tr31_ascii), &test_kbpk, 0, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
@@ -765,7 +765,7 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test11_kbpk);
 	test_kbpk.data = (void*)test11_kbpk;
-	r = tr31_import(test11_tr31_ascii, strlen(test11_tr31_ascii), &test_kbpk, &test_tr31);
+	r = tr31_import(test11_tr31_ascii, strlen(test11_tr31_ascii), &test_kbpk, 0, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
@@ -807,7 +807,7 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test15_kbpk);
 	test_kbpk.data = (void*)test15_kbpk;
-	r = tr31_import(test15_tr31_ascii, strlen(test15_tr31_ascii), &test_kbpk, &test_tr31);
+	r = tr31_import(test15_tr31_ascii, strlen(test15_tr31_ascii), &test_kbpk, 0, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
@@ -873,7 +873,7 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test16_kbpk);
 	test_kbpk.data = (void*)test16_kbpk;
-	r = tr31_import(test16_tr31_ascii, strlen(test16_tr31_ascii), &test_kbpk, &test_tr31);
+	r = tr31_import(test16_tr31_ascii, strlen(test16_tr31_ascii), &test_kbpk, 0, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
@@ -939,7 +939,7 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test17_kbpk);
 	test_kbpk.data = (void*)test17_kbpk;
-	r = tr31_import(test17_tr31_ascii, strlen(test17_tr31_ascii), &test_kbpk, &test_tr31);
+	r = tr31_import(test17_tr31_ascii, strlen(test17_tr31_ascii), &test_kbpk, 0, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
@@ -1018,7 +1018,7 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test18_kbpk);
 	test_kbpk.data = (void*)test18_kbpk;
-	r = tr31_import(test18_tr31_ascii, strlen(test18_tr31_ascii), &test_kbpk, &test_tr31);
+	r = tr31_import(test18_tr31_ascii, strlen(test18_tr31_ascii), &test_kbpk, 0, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;

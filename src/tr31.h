@@ -867,6 +867,7 @@ int tr31_opt_block_decode_WP(
  * @param key_block TR-31 key block. Must contain printable ASCII characters. Null-termination not required.
  * @param key_block_len Length of TR-31 key block in bytes, excluding null-termination.
  * @param kbpk TR-31 key block protection key. NULL if not available or decryption is not required.
+ * @param flags TR-31 import flags.
  * @param ctx TR-31 context object output
  * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
  */
@@ -874,6 +875,7 @@ int tr31_import(
 	const char* key_block,
 	size_t key_block_len,
 	const struct tr31_key_t* kbpk,
+	uint32_t flags,
 	struct tr31_ctx_t* ctx
 );
 
