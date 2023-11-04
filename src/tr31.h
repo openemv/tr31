@@ -177,7 +177,8 @@ enum tr31_key_version_t {
 #define TR31_OPT_BLOCK_WP_ASYMMETRIC    (2)    ///< Asymmetric key at risk of quantum computing
 #define TR31_OPT_BLOCK_WP_ASYMMETRIC_LT (3)    ///< Asymmetric key at risk of quantum computing and symmetric key of lesser effective strength
 
-// TR-31 export flags
+// Key block import/export flags
+#define TR31_IMPORT_NO_STRICT_VALIDATION        (0x01) ///< Disable strict ANSI X9.143 / ISO 20038 validation during import. This is useful for importing non-standard key blocks.
 #define TR31_EXPORT_NO_KEY_LENGTH_OBFUSCATION   (0x01) ///< Disable ANSI X9.143 key length obfuscation during key block export
 #define TR31_EXPORT_ZERO_OPT_BLOCK_PB           (0x02) ///< Fill optional block PB using zeros instead of random characters during key block export.
 

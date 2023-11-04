@@ -728,4 +728,52 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 		PROPERTIES
 			PASS_REGULAR_EXPRESSION "^D0128M7HG00N0200HM0621PB0A"
 	)
+
+	# test --import-no-strict-validation with non-standard mode of use
+	add_test(NAME tr31_tool_test45
+		COMMAND tr31-tool --import "B0128B1T900N0300KC0C000169E3KP0C00ECAD62KS18FFFF00A0200001E0000030EFDCB3A740B46D5BA7896587151A41E3D746CF063D0FC2D3FA45B851D06A43" --kbpk AB2E09DB3EF0BA71E0CE6CD755C23A3B --import-no-strict-validation
+	)
+	string(CONCAT tr31_tool_test45_regex
+		"^Key block format version: B[\r\n]"
+		"Key block length: 128 bytes[\r\n]"
+		"Key usage: \\[B1\\] Initial DUKPT Key \\(IK/IPEK\\)[\r\n]"
+		"Key algorithm: \\[T\\] TDES[\r\n]"
+		"Key mode of use: \\[9\\] Unknown key mode of use value[\r\n]"
+		"Key version: Unused[\r\n]"
+		"Key exportability: \\[N\\] Not exportable[\r\n]"
+		"Optional blocks \\[3\\]:[\r\n]"
+		"\t\\[KC\\] Key Check Value \\(KCV\\) of wrapped key: 0169E3 \\(Legacy KCV algorithm\\)[\r\n]"
+		"\t\\[KP\\] Key Check Value \\(KCV\\) of KBPK: ECAD62 \\(Legacy KCV algorithm\\)[\r\n]"
+		"\t\\[KS\\] Initial Key Serial Number \\(KSN\\): FFFF00A0200001E00000[\r\n]"
+		"Key length: 16[\r\n]"
+		"Key value: BF82DAC6A33DF92CE66E15B70E5DCEB6 \\(KCV: 0169E3\\)[\r\n]"
+	)
+	set_tests_properties(tr31_tool_test45
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION ${tr31_tool_test45_regex}
+	)
+
+	# test --import-no-strict-validation with non-standard optional block KS
+	add_test(NAME tr31_tool_test46
+		COMMAND tr31-tool --import "B0120B1TX00N0300KS10DE#GBIC#OPT1KC0C000169E3KP0C00ECAD627E13D36248CFF4CA9D2F880E2401B3727F96C2D92E5FDCA0D932A6DA80CAE8B9" --kbpk AB2E09DB3EF0BA71E0CE6CD755C23A3B --import-no-strict-validation
+	)
+	string(CONCAT tr31_tool_test46_regex
+		"^Key block format version: B[\r\n]"
+		"Key block length: 120 bytes[\r\n]"
+		"Key usage: \\[B1\\] Initial DUKPT Key \\(IK/IPEK\\)[\r\n]"
+		"Key algorithm: \\[T\\] TDES[\r\n]"
+		"Key mode of use: \\[X\\] Key Derivation[\r\n]"
+		"Key version: Unused[\r\n]"
+		"Key exportability: \\[N\\] Not exportable[\r\n]"
+		"Optional blocks \\[3\\]:[\r\n]"
+		"\t\\[KS\\] Initial Key Serial Number \\(KSN\\): DE#GBIC#OPT1[\r\n]"
+		"\t\\[KC\\] Key Check Value \\(KCV\\) of wrapped key: 0169E3 \\(Legacy KCV algorithm\\)[\r\n]"
+		"\t\\[KP\\] Key Check Value \\(KCV\\) of KBPK: ECAD62 \\(Legacy KCV algorithm\\)[\r\n]"
+		"Key length: 16[\r\n]"
+		"Key value: BF82DAC6A33DF92CE66E15B70E5DCEB6 \\(KCV: 0169E3\\)[\r\n]"
+	)
+	set_tests_properties(tr31_tool_test46
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION ${tr31_tool_test46_regex}
+	)
 endif()

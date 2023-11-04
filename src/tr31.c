@@ -127,7 +127,7 @@ static struct tr31_opt_ctx_t* tr31_opt_block_alloc(struct tr31_ctx_t* ctx, unsig
 static inline size_t tr31_opt_block_kcv_data_length(size_t kcv_len);
 static int tr31_opt_block_encode_kcv(uint8_t kcv_algorithm, const void* kcv, size_t kcv_len, char* encoded_data, size_t encoded_data_len);
 static int tr31_opt_block_validate_hash_algorithm(uint8_t hash_algorithm);
-static int tr31_opt_block_parse(const void* ptr, size_t remaining_len, size_t* opt_block_len, struct tr31_opt_ctx_t* opt_ctx);
+static int tr31_opt_block_parse(const struct tr31_state_t* state, const void* ptr, size_t remaining_len, size_t* opt_block_len, struct tr31_opt_ctx_t* opt_ctx);
 static int tr31_opt_block_validate_iso8601(const char* ts_str, size_t ts_str_len);
 static int tr31_opt_block_export(const struct tr31_opt_ctx_t* opt_ctx, size_t remaining_len, size_t* opt_blk_len, void* ptr);
 static int tr31_opt_block_export_PB(const struct tr31_state_t* state, size_t pb_len, struct tr31_opt_blk_t* opt_blk);
@@ -363,9 +363,53 @@ int tr31_key_init(
 
 	memset(key, 0, sizeof(*key));
 
+	// initialise key attributes before validation
+	// tr31_import() may choose to ignore some validation errors
+	key->usage = usage;
+	key->algorithm = algorithm;
+	key->mode_of_use = mode_of_use;
+	if (key_version[0] == '0' && key_version[1] == '0') {
+		key->key_version = TR31_KEY_VERSION_IS_UNUSED;
+		memset(key->key_version_str, 0, sizeof(key->key_version_str));
+	} else if (key_version[0] == 'c') {
+		key->key_version = TR31_KEY_VERSION_IS_COMPONENT;
+		memcpy(key->key_version_str, key_version, 2);
+		key->key_version_str[2] = 0;
+	} else {
+		key->key_version = TR31_KEY_VERSION_IS_VALID;
+		memcpy(key->key_version_str, key_version, 2);
+		key->key_version_str[2] = 0;
+	}
+	key->exportability = exportability;
+
+	// if key data is available, copy it
+	if (data && length) {
+		// validate key length by algorithm
+		switch (algorithm) {
+			case TR31_KEY_ALGORITHM_TDES:
+				if (length > 24) {
+					// invalid TDES key length
+					return TR31_ERROR_INVALID_KEY_LENGTH;
+				}
+				break;
+
+			case TR31_KEY_ALGORITHM_AES:
+				if (length > 32) {
+					// invalid AES key length
+					return TR31_ERROR_INVALID_KEY_LENGTH;
+				}
+				break;
+		}
+
+		r = tr31_key_set_data(key, data, length);
+		if (r) {
+			// return error value as-is
+			return r;
+		}
+	}
+
 	// validate key usage field
 	// see ANSI X9.143:2021, 6.3.1, table 2
-	key->usage = usage;
 	switch (usage) {
 		case TR31_KEY_USAGE_BDK:
 		case TR31_KEY_USAGE_DUKPT_IK:
@@ -419,7 +463,6 @@ int tr31_key_init(
 
 	// validate algorithm field
 	// see ANSI X9.143:2021, 6.3.2, table 3
-	key->algorithm = algorithm;
 	switch (algorithm) {
 		case TR31_KEY_ALGORITHM_AES:
 		case TR31_KEY_ALGORITHM_DES:
@@ -437,7 +480,6 @@ int tr31_key_init(
 
 	// validate mode of use field
 	// see ANSI X9.143:2021, 6.3.3, table 4
-	key->mode_of_use = mode_of_use;
 	switch (mode_of_use) {
 		case TR31_KEY_MODE_OF_USE_ENC_DEC:
 		case TR31_KEY_MODE_OF_USE_MAC:
@@ -458,15 +500,13 @@ int tr31_key_init(
 
 	// validate key version number field
 	// see ANSI X9.143:2021, 6.3.4, table 5
-	r = tr31_key_set_key_version(key, key_version);
+	r = tr31_validate_format_an(key_version, 2);
 	if (r) {
-		// return error value as-is
-		return r;
+		return TR31_ERROR_INVALID_KEY_VERSION_FIELD;
 	}
 
 	// validate exportability field
 	// see ANSI X9.143:2021, 6.3.5, table 6
-	key->exportability = exportability;
 	switch (exportability) {
 		case TR31_KEY_EXPORT_TRUSTED:
 		case TR31_KEY_EXPORT_NONE:
@@ -476,32 +516,6 @@ int tr31_key_init(
 
 		default:
 			return TR31_ERROR_UNSUPPORTED_EXPORTABILITY;
-	}
-
-	// if key data is available, copy it
-	if (data && length) {
-		// validate key length by algorithm
-		switch (algorithm) {
-			case TR31_KEY_ALGORITHM_TDES:
-				if (length > 24) {
-					// invalid TDES key length
-					return TR31_ERROR_INVALID_KEY_LENGTH;
-				}
-				break;
-
-			case TR31_KEY_ALGORITHM_AES:
-				if (length > 32) {
-					// invalid AES key length
-					return TR31_ERROR_INVALID_KEY_LENGTH;
-				}
-				break;
-		}
-
-		r = tr31_key_set_data(key, data, length);
-		if (r) {
-			// return error value as-is
-			return r;
-		}
 	}
 
 	return 0;
@@ -1889,8 +1903,18 @@ int tr31_import(
 		&ctx->key
 	);
 	if (r) {
-		// return error value as-is
-		return r;
+		if (flags & TR31_IMPORT_NO_STRICT_VALIDATION) {
+			// when strict validation is disabled, ignore all key attribute errors
+			if (r < TR31_ERROR_UNSUPPORTED_KEY_USAGE ||
+				r > TR31_ERROR_UNSUPPORTED_EXPORTABILITY
+			) {
+				// return error value as-is
+				return r;
+			}
+		} else {
+			// return error value as-is
+			return r;
+		}
 	}
 
 	// decode number of optional blocks field
@@ -1916,6 +1940,7 @@ int tr31_import(
 		// copy optional block field
 		size_t opt_blk_len;
 		r = tr31_opt_block_parse(
+			&state,
 			ptr,
 			(void*)key_block + key_block_len - ptr,
 			&opt_blk_len,
@@ -2443,6 +2468,7 @@ exit:
 }
 
 static int tr31_opt_block_parse(
+	const struct tr31_state_t* state,
 	const void* ptr,
 	size_t remaining_len,
 	size_t* opt_blk_len,
@@ -2525,8 +2551,21 @@ static int tr31_opt_block_parse(
 	}
 	opt_blk_data = ptr + opt_blk_hdr_len;
 
-	// perform validation of the character or string format required for each
-	// known optional block ID
+	// if strict validation is disabled, validate the format only as
+	// printable ASCII (format PA)
+	if ((state->flags & TR31_IMPORT_NO_STRICT_VALIDATION) != 0) {
+		opt_ctx->data_length = (*opt_blk_len - opt_blk_hdr_len);
+		r = tr31_validate_format_pa(opt_blk_data, opt_ctx->data_length);
+		if (r) {
+			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+		}
+		opt_ctx->data = malloc(opt_ctx->data_length);
+		memcpy(opt_ctx->data, opt_blk_data, opt_ctx->data_length);
+		return 0;
+	}
+
+	// perform strict validation of the character or string format required for
+	// each known optional block ID
 	switch (opt_ctx->id) {
 		// optional blocks to be validated as hex (format H)
 		case TR31_OPT_BLOCK_AL:

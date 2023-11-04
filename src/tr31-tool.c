@@ -102,6 +102,7 @@ static int tr31_init_from_header(const char* header, struct tr31_ctx_t* tr31_ctx
 // argp option keys
 enum tr31_tool_option_keys_t {
 	TR31_TOOL_OPTION_IMPORT = 1,
+	TR31_TOOL_OPTION_IMPORT_NO_STRICT_VALIDATION,
 	TR31_TOOL_OPTION_EXPORT,
 	TR31_TOOL_OPTION_EXPORT_KEY_ALGORITHM,
 	TR31_TOOL_OPTION_EXPORT_FORMAT_VERSION,
@@ -132,6 +133,7 @@ enum tr31_tool_option_keys_t {
 static struct argp_option argp_options[] = {
 	{ NULL, 0, NULL, 0, "Options for decoding/decrypting TR-31 key blocks:", 1 },
 	{ "import", TR31_TOOL_OPTION_IMPORT, "KEYBLOCK", 0, "Import TR-31 key block to decode/decrypt. Use - to read raw bytes from stdin. Optionally specify KBPK (--kbpk) to decrypt." },
+	{ "import-no-strict-validation", TR31_TOOL_OPTION_IMPORT_NO_STRICT_VALIDATION, NULL, 0, "Disable strict validation during key block import" },
 
 	{ NULL, 0, NULL, 0, "Options for encoding/encrypting TR-31 key blocks:", 2 },
 	{ "export", TR31_TOOL_OPTION_EXPORT, "KEY", 0, "Export TR-31 key block containing KEY. Use - to read raw bytes from stdin. Requires KBPK (--kbpk). Requires either --export-key-algorithm, --export-format-version and --export-template, or only --export-header" },
@@ -262,6 +264,10 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			options->key_block = buf;
 			options->key_block_len = buf_len;
 			options->import = true;
+			return 0;
+
+		case TR31_TOOL_OPTION_IMPORT_NO_STRICT_VALIDATION:
+			options->import_flags |= TR31_IMPORT_NO_STRICT_VALIDATION;
 			return 0;
 
 		case TR31_TOOL_OPTION_EXPORT:
