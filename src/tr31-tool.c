@@ -61,6 +61,7 @@ struct tr31_tool_options_t {
 	unsigned int export_format_version;
 	const char* export_template;
 	const char* export_header;
+	struct tr31_ctx_t export_opt_block_list;
 	bool export_opt_block_AL;
 	uint8_t export_opt_block_AL_akl;
 	size_t export_opt_block_BI_buf_len;
@@ -108,6 +109,7 @@ enum tr31_tool_option_keys_t {
 	TR31_TOOL_OPTION_EXPORT_FORMAT_VERSION,
 	TR31_TOOL_OPTION_EXPORT_TEMPLATE,
 	TR31_TOOL_OPTION_EXPORT_HEADER,
+	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_VERBATIM,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_AL,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_BI,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_CT_X509,
@@ -141,6 +143,7 @@ static struct argp_option argp_options[] = {
 	{ "export-format-version", TR31_TOOL_OPTION_EXPORT_FORMAT_VERSION, "A|B|C|D|E", 0, "TR-31 format version to use for export." },
 	{ "export-template", TR31_TOOL_OPTION_EXPORT_TEMPLATE, "KEK|BDK|IK", 0, "TR-31 key block template to use for export." },
 	{ "export-header", TR31_TOOL_OPTION_EXPORT_HEADER, "KEYBLOCK-HEADER", 0, "TR-31 key block header to use for export. Key block length field in the header will be ignored." },
+	{ "export-opt-block", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_VERBATIM, "ASCII", 0, "Add verbatim optional block, including ID and length (for example \"KS10DE#GBIC#OPT1\") during TR-31 export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-AL", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_AL, "Ephemeral|Static", 0, "Add optional block AL (Asymmetric Key Life) during TR-31 export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-BI", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_BI, "BDK-ID", 0, "Add optional block BI (Base Derivation Key Identifier) during TR-31 export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-CT-X509", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_CT_X509, "base64", 0, "Add optional block CT (X.509 Public Key Certificate) during TR-31 export. May be used with either --export-template or --export-header." },
@@ -302,6 +305,42 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			}
 			options->export_header = arg;
 			return 0;
+
+		case TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_VERBATIM: {
+			int r;
+			size_t arg_len = strlen(arg);
+			struct tr31_ctx_t tmp_tr31;
+
+			// instead of re-implementing optional block parsing, misuse the
+			// existing TR-31 parsing using a fake header
+			char* fake_header = malloc(16 + arg_len + 1); // tr31_init_from_header() expects null-termination
+			memcpy(fake_header, "D0000D0TB00N0100", 16);
+			memcpy(fake_header + 16, arg, arg_len);
+			fake_header[16 + arg_len] = 0; // tr31_init_from_header() expects null-termination
+			r = tr31_init_from_header(fake_header, &tmp_tr31);
+			free(fake_header);
+			if (r) {
+				argp_error(state, "Error while parsing verbatim optional block (%s): %s", arg, tr31_get_error_string(r));
+			}
+
+			// add verbatim optional block to list and cleanup temporary tr31
+			r = tr31_opt_block_add(
+				&options->export_opt_block_list,
+				tmp_tr31.opt_blocks[0].id,
+				tmp_tr31.opt_blocks[0].data,
+				tmp_tr31.opt_blocks[0].data_length
+			);
+			tr31_release(&tmp_tr31);
+			if (r) {
+				argp_error(state, "Failed to add verbatim optional block %c%c; error %d: %s\n",
+					arg[0],
+					arg[1],
+					r,
+					tr31_get_error_string(r)
+				);
+			}
+			return 0;
+		}
 
 		case TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_AL:
 			if (strcmp(arg, "Ephemeral") == 0) {
@@ -755,7 +794,7 @@ static int tr31_init_from_header(const char* header, struct tr31_ctx_t* tr31_ctx
 	memcpy(tmp_keyblock + 1, tmp, 4);
 
 	// misuse TR-31 import function to parse header into TR-31 context object
-	r = tr31_import(tmp_keyblock, sizeof(tmp_keyblock), NULL, 0, tr31_ctx);
+	r = tr31_import(tmp_keyblock, sizeof(tmp_keyblock), NULL, TR31_IMPORT_NO_STRICT_VALIDATION, tr31_ctx);
 	if (r) {
 		return r;
 	}
@@ -1158,6 +1197,32 @@ static int populate_opt_blocks(const struct tr31_tool_options_t* options, struct
 {
 	int r;
 
+	// populate verbatim optional blocks from list
+	// - the opt_blocks field cannot be copied directly to tr31_ctx because an
+	//   export header may already have provided some optional blocks and this
+	//   list should be appended to those
+	// - these optional blocks will not follow the alphabetic ordering of the
+	//   standardised optional blocks that are added later in this function
+	for (size_t i = 0; i < options->export_opt_block_list.opt_blocks_count; ++i) {
+		struct tr31_opt_ctx_t* opt_block = &options->export_opt_block_list.opt_blocks[i];
+
+		r = tr31_opt_block_add(
+			tr31_ctx,
+			opt_block->id,
+			opt_block->data,
+			opt_block->data_length
+		);
+		if (r) {
+			char ascii_buf[3];
+			fprintf(stderr, "Failed to add optional block %s; error %d: %s\n",
+				tr31_get_opt_block_id_ascii(opt_block->id, ascii_buf, sizeof(ascii_buf)),
+				r,
+				tr31_get_error_string(r)
+			);
+			return 1;
+		}
+	}
+
 	if (options->export_opt_block_AL) {
 		r = tr31_opt_block_add_AL(tr31_ctx, options->export_opt_block_AL_akl);
 		if (r) {
@@ -1548,6 +1613,9 @@ exit:
 		free(options.export_key_buf);
 		options.export_key_buf = NULL;
 		options.export_key_buf_len = 0;
+	}
+	if (options.export_opt_block_list.opt_blocks) {
+		tr31_release(&options.export_opt_block_list);
 	}
 	if (options.export_opt_block_CT) {
 		free(options.export_opt_block_CT);

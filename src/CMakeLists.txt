@@ -776,4 +776,13 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 		PROPERTIES
 			PASS_REGULAR_EXPRESSION ${tr31_tool_test46_regex}
 	)
+
+	# test --export-opt-block with non-standard optional block KS
+	add_test(NAME tr31_tool_test47
+		COMMAND tr31-tool --kbpk 1D22BF32387C600AD97F9B97A51311AC --export E8BC63E5479455E26577F715D587FE68 --export-header "B0000B1TX00N0100LB0FProprietary" --export-opt-block "KS10DE#GBIC#OPT1"
+	)
+	set_tests_properties(tr31_tool_test47
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^B0136B1TX00N0300LB0FProprietaryKS10DE#GBIC#OPT1PB09"
+	)
 endif()
