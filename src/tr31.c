@@ -672,6 +672,108 @@ int tr31_init(
 	return 0;
 }
 
+int tr31_init_from_header(
+	const char* key_block_header,
+	size_t key_block_header_len,
+	struct tr31_ctx_t* ctx
+)
+{
+	int r;
+	const struct tr31_header_t* header;
+	const void* ptr;
+
+	if (!key_block_header || !ctx) {
+		return -1;
+	}
+
+	// NOTE: the implementation of this function should be kept up to date
+	// with the implementation of tr31_import()
+
+	// validate minimum key block header length
+	if (key_block_header_len < sizeof(struct tr31_header_t)) {
+		return TR31_ERROR_INVALID_LENGTH;
+	}
+
+	// validate key block header as printable ASCII (format PA)
+	r = tr31_validate_format_pa(key_block_header, key_block_header_len);
+	if (r) {
+		return TR31_ERROR_INVALID_KEY_BLOCK_STRING;
+	}
+
+	// initialise TR-31 context object
+	header = (const struct tr31_header_t*)key_block_header;
+	r = tr31_init(header->version_id, NULL, ctx);
+	if (r) {
+		// return error value as-is
+		return r;
+	}
+
+	// decode header fields associated with wrapped key
+	r = tr31_key_init(
+		ntohs(header->key_usage),
+		header->algorithm,
+		header->mode_of_use,
+		header->key_version,
+		header->exportability,
+		NULL,
+		0,
+		&ctx->key
+	);
+	if (r) {
+		// return error value as-is
+		return r;
+	}
+
+	// decode number of optional blocks field
+	int opt_blocks_count = dec_to_int(header->opt_blocks_count, sizeof(header->opt_blocks_count));
+	if (opt_blocks_count < 0) {
+		return TR31_ERROR_INVALID_NUMBER_OF_OPTIONAL_BLOCKS_FIELD;
+	}
+	ctx->opt_blocks_count = opt_blocks_count;
+
+	// decode optional blocks
+	// see ANSI X9.143:2021, 6.3.6
+	ptr = header + 1; // optional blocks, if any, are after the header
+	if (ctx->opt_blocks_count) {
+		ctx->opt_blocks = calloc(ctx->opt_blocks_count, sizeof(ctx->opt_blocks[0]));
+	}
+	for (int i = 0; i < opt_blocks_count; ++i) {
+		// ensure that current pointer is valid for minimal optional block
+		if (ptr + sizeof(struct tr31_opt_blk_t) - (void*)header > key_block_header_len) {
+			r = TR31_ERROR_INVALID_LENGTH;
+			goto error;
+		}
+
+		// copy optional block field
+		size_t opt_blk_len;
+		r = tr31_opt_block_parse(
+			ptr,
+			(void*)key_block_header + key_block_header_len - ptr,
+			&opt_blk_len,
+			&ctx->opt_blocks[i]
+		);
+		if (r) {
+			// return error value as-is
+			goto error;
+		}
+
+		// advance current pointer
+		ptr += opt_blk_len;
+	}
+
+	// NOTE: the total optional block length is intentially ignored and not
+	// validated against the encryption block length
+
+	// success
+	r = 0;
+	goto exit;
+
+error:
+	tr31_release(ctx);
+exit:
+	return r;
+}
+
 static struct tr31_opt_ctx_t* tr31_opt_block_alloc(
 	struct tr31_ctx_t* ctx,
 	unsigned int id,
@@ -1520,6 +1622,7 @@ int tr31_import(
 			return -1;
 	}
 
+	// success
 	r = 0;
 	goto exit;
 
@@ -1803,6 +1906,7 @@ int tr31_export(
 		goto error;
 	}
 
+	// success
 	r = 0;
 	goto exit;
 

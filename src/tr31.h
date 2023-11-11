@@ -356,6 +356,30 @@ int tr31_init(
 );
 
 /**
+ * Initialise TR-31 context object from key block header. The header may also
+ * include optional blocks.
+ *
+ * @note The length specified in the key block header will be ignored.
+ *
+ * @note The total length of all optional blocks will not be validated against
+ *       the encryption block length and it is therefore not necessary, but
+ *       also not prohibited, to include optional block 'PB' for padding.
+ *
+ * @note Use @ref tr31_release() to release internal resources when done.
+ *
+ * @param key_block_header Key block header. If present, key block payload and
+ *        authenticator will be ignored.
+ * @param key_block_header_len Length of @p key_block_header in bytes. Must be
+ *        at least 16 bytes.
+ * @param ctx TR-31 context object output
+ */
+int tr31_init_from_header(
+	const char* key_block_header,
+	size_t key_block_header_len,
+	struct tr31_ctx_t* ctx
+);
+
+/**
  * Add optional block to TR-31 context object
  *
  * @note This function requires an initialised TR-31 context object to be provided.
