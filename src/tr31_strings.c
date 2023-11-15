@@ -39,7 +39,7 @@
 #endif // TR31_ENABLE_DATETIME_CONVERSION
 
 // Helper functions
-static const char* tr31_opt_block_alf_get_string(const struct tr31_opt_ctx_t* opt_block);
+static const char* tr31_opt_block_akl_get_string(const struct tr31_opt_ctx_t* opt_block);
 static const char* tr31_opt_block_BI_get_string(const struct tr31_opt_ctx_t* opt_block);
 static const char* tr31_opt_block_CT_get_string(const struct tr31_opt_ctx_t* opt_block);
 static const char* tr31_opt_block_hmac_get_string(const struct tr31_opt_ctx_t* opt_block);
@@ -58,7 +58,7 @@ int tr31_opt_block_data_get_desc(const struct tr31_opt_ctx_t* opt_block, char* s
 
 	switch (opt_block->id) {
 		case TR31_OPT_BLOCK_AL:
-			simple_str = tr31_opt_block_alf_get_string(opt_block);
+			simple_str = tr31_opt_block_akl_get_string(opt_block);
 			break;
 
 		case TR31_OPT_BLOCK_BI:
@@ -96,24 +96,34 @@ int tr31_opt_block_data_get_desc(const struct tr31_opt_ctx_t* opt_block, char* s
 	return 0;
 }
 
-static const char* tr31_opt_block_alf_get_string(const struct tr31_opt_ctx_t* opt_block)
+static const char* tr31_opt_block_akl_get_string(const struct tr31_opt_ctx_t* opt_block)
 {
-	const uint8_t* data;
+	int r;
+	struct tr31_opt_blk_akl_data_t akl_data;
 
-	if (!opt_block ||
-		opt_block->id != TR31_OPT_BLOCK_AL ||
-		opt_block->data_length != 2
-	) {
+	// Use canary value to know whether AKL version was decoded
+	akl_data.version = 0xFF;
+	r = tr31_opt_block_decode_AL(opt_block, &akl_data);
+	if (r < 0) {
 		return NULL;
 	}
-	data = opt_block->data;
-
-	if (data[0] != TR31_OPT_BLOCK_AL_VERSION_1) {
-		return "Unknown AFL version";
+	if (r > 0) {
+		// If at least the AKL version is available, report it as unknown
+		if (akl_data.version != 0xFF &&
+			akl_data.version != TR31_OPT_BLOCK_AL_VERSION_1
+		) {
+			return "Unknown AKL version";
+		} else {
+			// Invalid
+			return NULL;
+		}
 	}
 
 	// See ANSI X9.143:2021, 6.3.6.1, table 8
-	switch (data[1]) {
+	if (akl_data.version != TR31_OPT_BLOCK_AL_VERSION_1) {
+		return "Unknown AKL version";
+	}
+	switch (akl_data.v1.akl) {
 		case TR31_OPT_BLOCK_AL_AKL_EPHEMERAL: return "Ephemeral";
 		case TR31_OPT_BLOCK_AL_AKL_STATIC: return "Static";
 	}
@@ -123,18 +133,16 @@ static const char* tr31_opt_block_alf_get_string(const struct tr31_opt_ctx_t* op
 
 static const char* tr31_opt_block_BI_get_string(const struct tr31_opt_ctx_t* opt_block)
 {
-	const uint8_t* data;
+	int r;
+	struct tr31_opt_blk_bdkid_data_t bdkid_data;
 
-	if (!opt_block ||
-		opt_block->id != TR31_OPT_BLOCK_BI ||
-		(opt_block->data_length != 6 && opt_block->data_length != 5)
-	) {
+	r = tr31_opt_block_decode_BI(opt_block, &bdkid_data);
+	if (r) {
 		return NULL;
 	}
-	data = opt_block->data;
 
 	// See ANSI X9.143:2021, 6.3.6.2, table 9
-	switch (data[0]) {
+	switch (bdkid_data.key_type) {
 		case TR31_OPT_BLOCK_BI_TDES_DUKPT: return "Key Set ID";
 		case TR31_OPT_BLOCK_BI_AES_DUKPT: return "Base Derivation Key ID";
 	}
@@ -169,18 +177,25 @@ static const char* tr31_opt_block_CT_get_string(const struct tr31_opt_ctx_t* opt
 
 static const char* tr31_opt_block_hmac_get_string(const struct tr31_opt_ctx_t* opt_block)
 {
-	const uint8_t* data;
+	int r;
+	uint8_t hash_algorithm;
 
-	if (!opt_block ||
-		opt_block->id != TR31_OPT_BLOCK_HM ||
-		opt_block->data_length != 1
-	) {
+	// Use canary value to know whether hash algorithm was decoded
+	hash_algorithm = 0xFF;
+	r = tr31_opt_block_decode_HM(opt_block, &hash_algorithm);
+	if (r < 0) {
 		return NULL;
 	}
-	data = opt_block->data;
+	if (r > 0) {
+		if (hash_algorithm != 0xFF) {
+			return "Unknown";
+		} else {
+			return NULL;
+		}
+	}
 
 	// See ANSI X9.143:2021, 6.3.6.5, table 13
-	switch (data[0]) {
+	switch (hash_algorithm) {
 		case TR31_OPT_BLOCK_HM_SHA1:            return "SHA-1";
 		case TR31_OPT_BLOCK_HM_SHA224:          return "SHA-224";
 		case TR31_OPT_BLOCK_HM_SHA256:          return "SHA-256";
@@ -201,24 +216,17 @@ static const char* tr31_opt_block_hmac_get_string(const struct tr31_opt_ctx_t* o
 
 static const char* tr31_opt_block_kcv_get_string(const struct tr31_opt_ctx_t* opt_block)
 {
-	const uint8_t* data;
+	int r;
+	struct tr31_opt_blk_kcv_data_t kcv_data;
 
-	if (!opt_block ||
-		opt_block->data_length < 2
-	) {
+	r = tr31_opt_block_decode_kcv(opt_block, &kcv_data);
+	if (r) {
 		return NULL;
 	}
-	if (opt_block->id != TR31_OPT_BLOCK_KC &&
-		opt_block->id != TR31_OPT_BLOCK_KP &&
-		opt_block->id != TR31_OPT_BLOCK_PK
-	) {
-		return NULL;
-	}
-	data = opt_block->data;
 
 	// See ANSI X9.143:2021, 6.3.6.7, table 15
 	// See ANSI X9.143:2021, 6.3.6.12, table 20
-	switch (data[0]) {
+	switch (kcv_data.kcv_algorithm) {
 		case TR31_OPT_BLOCK_KCV_LEGACY: return "Legacy KCV algorithm";
 		case TR31_OPT_BLOCK_KCV_CMAC: return "CMAC based KCV";
 	}
@@ -354,28 +362,38 @@ static int tr31_opt_block_iso8601_get_string(const struct tr31_opt_ctx_t* opt_bl
 
 static const char* tr31_opt_block_wrapping_pedigree_get_string(const struct tr31_opt_ctx_t* opt_block)
 {
-	const uint8_t* data;
 
-	if (!opt_block ||
-		opt_block->id != TR31_OPT_BLOCK_WP ||
-		opt_block->data_length != 3
-	) {
+	int r;
+	struct tr31_opt_blk_wp_data_t wp_data;
+
+	// Use canary value to know whether WP version was decoded
+	wp_data.version = 0xFF;
+	r = tr31_opt_block_decode_WP(opt_block, &wp_data);
+	if (r < 0) {
 		return NULL;
 	}
-	data = opt_block->data;
+	if (r > 0) {
+		// If at least the WP version is available, report it as unknown
+		if (wp_data.version != 0xFF &&
+			wp_data.version != TR31_OPT_BLOCK_WP_VERSION_0
+		) {
+			return "Unknown wrapping pedigree version";
+		} else {
+			// Invalid
+			return NULL;
+		}
+	}
 
-	if (data[0] != '0' || data[1] != '0') {
+	if (wp_data.version != TR31_OPT_BLOCK_WP_VERSION_0) {
 		return "Unknown wrapping pedigree version";
 	}
 
 	// See ANSI X9.143:2021, 6.3.6.15, table 23
-	if ((data[2] & 0xF0) == 0x30) { // ASCII number
-		switch (data[2] & 0x0F) {
-			case TR31_OPT_BLOCK_WP_EQ_GT: return "Equal or greater effective strength";
-			case TR31_OPT_BLOCK_WP_LT: return "Lesser effective strength";
-			case TR31_OPT_BLOCK_WP_ASYMMETRIC: return "Asymmetric key at risk of quantum computing";
-			case TR31_OPT_BLOCK_WP_ASYMMETRIC_LT: return "Asymmetric key at risk of quantum computing and symmetric key of lesser effective strength";
-		}
+	switch (wp_data.v0.wrapping_pedigree) {
+		case TR31_OPT_BLOCK_WP_EQ_GT: return "Equal or greater effective strength";
+		case TR31_OPT_BLOCK_WP_LT: return "Lesser effective strength";
+		case TR31_OPT_BLOCK_WP_ASYMMETRIC: return "Asymmetric key at risk of quantum computing";
+		case TR31_OPT_BLOCK_WP_ASYMMETRIC_LT: return "Asymmetric key at risk of quantum computing and symmetric key of lesser effective strength";
 	}
 
 	return "Unknown";

@@ -186,7 +186,7 @@ static const char test17_tr31_ascii[] =
 
 	// MAC
 	"CDE1B75F3299D4544787A07F6A9F7127";
-static const uint8_t test17_tr31_kp_verify[] = { 0x01, 0xD7, 0x7F, 0x00, 0x77, 0x24 };
+static const uint8_t test17_kcv_kbpk_verify[] = { 0xD7, 0x7F, 0x00, 0x77, 0x24 };
 static const char test17_tr31_ts_verify[] = "20200818221218Z";
 
 // ANSI X9.143:2021, 8.6
@@ -203,7 +203,7 @@ static const char test18_tr31_ascii[] =
 
 	// MAC
 	"F6186011C7BE905F875B24C5D05EA14E";
-static const uint8_t test18_tr31_kp_verify[] = { 0x01, 0x23, 0x31, 0x55, 0x0B, 0xC9 };
+static const uint8_t test18_kcv_kbpk_verify[] = { 0x23, 0x31, 0x55, 0x0B, 0xC9 };
 static const char test18_tr31_ts_verify[] = "20200818004100Z";
 
 int main(void)
@@ -211,6 +211,9 @@ int main(void)
 	int r;
 	struct tr31_key_t test_kbpk;
 	struct tr31_ctx_t test_tr31;
+	const struct tr31_opt_ctx_t* opt_ctx;
+	uint8_t ksn[20];
+	struct tr31_opt_blk_kcv_data_t kcv_data;
 
 	// populate key block protection key
 	memset(&test_kbpk, 0, sizeof(test_kbpk));
@@ -222,7 +225,7 @@ int main(void)
 
 	// test key block decryption for format version A
 	printf("Test 1 (Basic format version A)...\n");
-	r = tr31_import(test1_tr31_format_a, strlen(test1_tr31_format_a), &test_kbpk, &test_tr31);
+	r = tr31_import(test1_tr31_format_a, strlen(test1_tr31_format_a), &test_kbpk, 0, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
@@ -258,7 +261,7 @@ int main(void)
 
 	// test key block decryption for format version B
 	printf("Test 1 (Basic format version B)...\n");
-	r = tr31_import(test1_tr31_format_b, strlen(test1_tr31_format_b), &test_kbpk, &test_tr31);
+	r = tr31_import(test1_tr31_format_b, strlen(test1_tr31_format_b), &test_kbpk, 0, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
@@ -294,7 +297,7 @@ int main(void)
 
 	// test key block decryption for format version C
 	printf("Test 1 (Basic format version C)...\n");
-	r = tr31_import(test1_tr31_format_c, strlen(test1_tr31_format_c), &test_kbpk, &test_tr31);
+	r = tr31_import(test1_tr31_format_c, strlen(test1_tr31_format_c), &test_kbpk, 0, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
@@ -336,7 +339,7 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test2_kbpk);
 	test_kbpk.data = (void*)test2_kbpk;
-	r = tr31_import(test2_tr31_ascii, strlen(test2_tr31_ascii), &test_kbpk, &test_tr31);
+	r = tr31_import(test2_tr31_ascii, strlen(test2_tr31_ascii), &test_kbpk, 0, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
@@ -378,7 +381,7 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test3_kbpk);
 	test_kbpk.data = (void*)test3_kbpk;
-	r = tr31_import(test3_tr31_ascii, strlen(test3_tr31_ascii), &test_kbpk, &test_tr31);
+	r = tr31_import(test3_tr31_ascii, strlen(test3_tr31_ascii), &test_kbpk, 0, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
@@ -420,7 +423,7 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test4_kbpk);
 	test_kbpk.data = (void*)test4_kbpk;
-	r = tr31_import(test4_tr31_ascii, strlen(test4_tr31_ascii), &test_kbpk, &test_tr31);
+	r = tr31_import(test4_tr31_ascii, strlen(test4_tr31_ascii), &test_kbpk, 0, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
@@ -438,9 +441,7 @@ int main(void)
 		test_tr31.opt_blocks_count != 1 ||
 		test_tr31.opt_blocks == NULL ||
 		test_tr31.opt_blocks[0].id != TR31_OPT_BLOCK_KS ||
-		test_tr31.opt_blocks[0].data_length != sizeof(test4_tr31_ksn_verify) ||
-		test_tr31.opt_blocks[0].data == NULL ||
-		memcmp(test_tr31.opt_blocks[0].data, test4_tr31_ksn_verify, sizeof(test4_tr31_ksn_verify)) != 0
+		test_tr31.opt_blocks[0].data == NULL
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;
@@ -456,6 +457,28 @@ int main(void)
 		r = 1;
 		goto exit;
 	}
+	opt_ctx = tr31_opt_block_find(&test_tr31, TR31_OPT_BLOCK_KS);
+	if (opt_ctx != &test_tr31.opt_blocks[0]) {
+		fprintf(stderr, "tr31_opt_block_find() failed; r=%d\n", r);
+		r = 1;
+		goto exit;
+	}
+	if (opt_ctx->data_length != sizeof(test4_tr31_ksn_verify) * 2) {
+		fprintf(stderr, "TR-31 optional block KS data length is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	memset(ksn, 0, sizeof(ksn));
+	r = tr31_opt_block_decode_KS(opt_ctx, ksn, sizeof(test4_tr31_ksn_verify));
+	if (r) {
+		fprintf(stderr, "tr31_opt_block_decode_KS() failed; r=%d\n", r);
+		goto exit;
+	}
+	if (memcmp(ksn, test4_tr31_ksn_verify, sizeof(test4_tr31_ksn_verify)) != 0) {
+		fprintf(stderr, "TR-31 optional block KS decoded data is incorrect\n");
+		r = 1;
+		goto exit;
+	}
 	tr31_release(&test_tr31);
 
 	// TR-31:2018, A.7.3.2
@@ -466,7 +489,7 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test5_kbpk);
 	test_kbpk.data = (void*)test5_kbpk;
-	r = tr31_import(test5_tr31_ascii, strlen(test5_tr31_ascii), &test_kbpk, &test_tr31);
+	r = tr31_import(test5_tr31_ascii, strlen(test5_tr31_ascii), &test_kbpk, 0, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
@@ -484,9 +507,7 @@ int main(void)
 		test_tr31.opt_blocks_count != 1 ||
 		test_tr31.opt_blocks == NULL ||
 		test_tr31.opt_blocks[0].id != TR31_OPT_BLOCK_KS ||
-		test_tr31.opt_blocks[0].data_length != sizeof(test5_tr31_ksn_verify) ||
-		test_tr31.opt_blocks[0].data == NULL ||
-		memcmp(test_tr31.opt_blocks[0].data, test5_tr31_ksn_verify, sizeof(test5_tr31_ksn_verify)) != 0
+		test_tr31.opt_blocks[0].data == NULL
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;
@@ -502,6 +523,28 @@ int main(void)
 		r = 1;
 		goto exit;
 	}
+	opt_ctx = tr31_opt_block_find(&test_tr31, TR31_OPT_BLOCK_KS);
+	if (opt_ctx != &test_tr31.opt_blocks[0]) {
+		fprintf(stderr, "tr31_opt_block_find() failed; r=%d\n", r);
+		r = 1;
+		goto exit;
+	}
+	if (opt_ctx->data_length != sizeof(test5_tr31_ksn_verify) * 2) {
+		fprintf(stderr, "TR-31 optional block KS data length is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	memset(ksn, 0, sizeof(ksn));
+	r = tr31_opt_block_decode_KS(opt_ctx, ksn, sizeof(test5_tr31_ksn_verify));
+	if (r) {
+		fprintf(stderr, "tr31_opt_block_decode_KS() failed; r=%d\n", r);
+		goto exit;
+	}
+	if (memcmp(ksn, test5_tr31_ksn_verify, sizeof(test5_tr31_ksn_verify)) != 0) {
+		fprintf(stderr, "TR-31 optional block KS decoded data is incorrect\n");
+		r = 1;
+		goto exit;
+	}
 	tr31_release(&test_tr31);
 
 	// TR-31:2018, A.7.4
@@ -512,7 +555,7 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test6_kbpk);
 	test_kbpk.data = (void*)test6_kbpk;
-	r = tr31_import(test6_tr31_ascii, strlen(test6_tr31_ascii), &test_kbpk, &test_tr31);
+	r = tr31_import(test6_tr31_ascii, strlen(test6_tr31_ascii), &test_kbpk, 0, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
@@ -554,7 +597,7 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test7_kbpk);
 	test_kbpk.data = (void*)test7_kbpk;
-	r = tr31_import(test7_tr31_ascii, strlen(test7_tr31_ascii), &test_kbpk, &test_tr31);
+	r = tr31_import(test7_tr31_ascii, strlen(test7_tr31_ascii), &test_kbpk, 0, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
@@ -596,7 +639,7 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test8_kbpk);
 	test_kbpk.data = (void*)test8_kbpk;
-	r = tr31_import(test8_tr31_ascii, strlen(test8_tr31_ascii), &test_kbpk, &test_tr31);
+	r = tr31_import(test8_tr31_ascii, strlen(test8_tr31_ascii), &test_kbpk, 0, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
@@ -638,7 +681,7 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test9_kbpk);
 	test_kbpk.data = (void*)test9_kbpk;
-	r = tr31_import(test9_tr31_ascii, strlen(test9_tr31_ascii), &test_kbpk, &test_tr31);
+	r = tr31_import(test9_tr31_ascii, strlen(test9_tr31_ascii), &test_kbpk, 0, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
@@ -680,7 +723,7 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test10_kbpk);
 	test_kbpk.data = (void*)test10_kbpk;
-	r = tr31_import(test10_tr31_ascii, strlen(test10_tr31_ascii), &test_kbpk, &test_tr31);
+	r = tr31_import(test10_tr31_ascii, strlen(test10_tr31_ascii), &test_kbpk, 0, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
@@ -722,7 +765,7 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test11_kbpk);
 	test_kbpk.data = (void*)test11_kbpk;
-	r = tr31_import(test11_tr31_ascii, strlen(test11_tr31_ascii), &test_kbpk, &test_tr31);
+	r = tr31_import(test11_tr31_ascii, strlen(test11_tr31_ascii), &test_kbpk, 0, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
@@ -764,7 +807,7 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test15_kbpk);
 	test_kbpk.data = (void*)test15_kbpk;
-	r = tr31_import(test15_tr31_ascii, strlen(test15_tr31_ascii), &test_kbpk, &test_tr31);
+	r = tr31_import(test15_tr31_ascii, strlen(test15_tr31_ascii), &test_kbpk, 0, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
@@ -782,9 +825,7 @@ int main(void)
 		test_tr31.opt_blocks_count != 1 ||
 		test_tr31.opt_blocks == NULL ||
 		test_tr31.opt_blocks[0].id != TR31_OPT_BLOCK_KS ||
-		test_tr31.opt_blocks[0].data_length != sizeof(test15_tr31_ksn_verify) ||
-		test_tr31.opt_blocks[0].data == NULL ||
-		memcmp(test_tr31.opt_blocks[0].data, test15_tr31_ksn_verify, sizeof(test15_tr31_ksn_verify)) != 0
+		test_tr31.opt_blocks[0].data == NULL
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;
@@ -800,6 +841,28 @@ int main(void)
 		r = 1;
 		goto exit;
 	}
+	opt_ctx = tr31_opt_block_find(&test_tr31, TR31_OPT_BLOCK_KS);
+	if (opt_ctx != &test_tr31.opt_blocks[0]) {
+		fprintf(stderr, "tr31_opt_block_find() failed; r=%d\n", r);
+		r = 1;
+		goto exit;
+	}
+	if (opt_ctx->data_length != sizeof(test15_tr31_ksn_verify) * 2) {
+		fprintf(stderr, "TR-31 optional block KS data length is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	memset(ksn, 0, sizeof(ksn));
+	r = tr31_opt_block_decode_KS(opt_ctx, ksn, sizeof(test15_tr31_ksn_verify));
+	if (r) {
+		fprintf(stderr, "tr31_opt_block_decode_KS() failed; r=%d\n", r);
+		goto exit;
+	}
+	if (memcmp(ksn, test15_tr31_ksn_verify, sizeof(test15_tr31_ksn_verify)) != 0) {
+		fprintf(stderr, "TR-31 optional block KS decoded data is incorrect\n");
+		r = 1;
+		goto exit;
+	}
 	tr31_release(&test_tr31);
 
 	// ANSI X9.143:2021, 8.4.2
@@ -810,7 +873,7 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test16_kbpk);
 	test_kbpk.data = (void*)test16_kbpk;
-	r = tr31_import(test16_tr31_ascii, strlen(test16_tr31_ascii), &test_kbpk, &test_tr31);
+	r = tr31_import(test16_tr31_ascii, strlen(test16_tr31_ascii), &test_kbpk, 0, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
@@ -828,9 +891,7 @@ int main(void)
 		test_tr31.opt_blocks_count != 1 ||
 		test_tr31.opt_blocks == NULL ||
 		test_tr31.opt_blocks[0].id != TR31_OPT_BLOCK_KS ||
-		test_tr31.opt_blocks[0].data_length != sizeof(test16_tr31_ksn_verify) ||
-		test_tr31.opt_blocks[0].data == NULL ||
-		memcmp(test_tr31.opt_blocks[0].data, test16_tr31_ksn_verify, sizeof(test16_tr31_ksn_verify)) != 0
+		test_tr31.opt_blocks[0].data == NULL
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
 		r = 1;
@@ -846,6 +907,28 @@ int main(void)
 		r = 1;
 		goto exit;
 	}
+	opt_ctx = tr31_opt_block_find(&test_tr31, TR31_OPT_BLOCK_KS);
+	if (opt_ctx != &test_tr31.opt_blocks[0]) {
+		fprintf(stderr, "tr31_opt_block_find() failed; r=%d\n", r);
+		r = 1;
+		goto exit;
+	}
+	if (opt_ctx->data_length != sizeof(test16_tr31_ksn_verify) * 2) {
+		fprintf(stderr, "TR-31 optional block KS data length is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	memset(ksn, 0, sizeof(ksn));
+	r = tr31_opt_block_decode_KS(opt_ctx, ksn, sizeof(test16_tr31_ksn_verify));
+	if (r) {
+		fprintf(stderr, "tr31_opt_block_decode_KS() failed; r=%d\n", r);
+		goto exit;
+	}
+	if (memcmp(ksn, test16_tr31_ksn_verify, sizeof(test16_tr31_ksn_verify)) != 0) {
+		fprintf(stderr, "TR-31 optional block KS decoded data is incorrect\n");
+		r = 1;
+		goto exit;
+	}
 	tr31_release(&test_tr31);
 
 	// ANSI X9.143:2021, 8.5
@@ -856,7 +939,7 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test17_kbpk);
 	test_kbpk.data = (void*)test17_kbpk;
-	r = tr31_import(test17_tr31_ascii, strlen(test17_tr31_ascii), &test_kbpk, &test_tr31);
+	r = tr31_import(test17_tr31_ascii, strlen(test17_tr31_ascii), &test_kbpk, 0, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
@@ -873,18 +956,75 @@ int main(void)
 		test_tr31.opt_blocks_count != 4 ||
 		test_tr31.opt_blocks == NULL ||
 		test_tr31.opt_blocks[0].id != TR31_OPT_BLOCK_CT ||
-		test_tr31.opt_blocks[0].data_length != 0x500 - 10 ||
+		test_tr31.opt_blocks[0].data == NULL ||
 		test_tr31.opt_blocks[1].id != TR31_OPT_BLOCK_KP ||
-		test_tr31.opt_blocks[1].data_length != sizeof(test17_tr31_kp_verify) ||
 		test_tr31.opt_blocks[1].data == NULL ||
-		memcmp(test_tr31.opt_blocks[1].data, test17_tr31_kp_verify, sizeof(test17_tr31_kp_verify)) != 0 ||
 		test_tr31.opt_blocks[2].id != TR31_OPT_BLOCK_TS ||
-		test_tr31.opt_blocks[2].data_length != strlen(test17_tr31_ts_verify) ||
 		test_tr31.opt_blocks[2].data == NULL ||
-		memcmp(test_tr31.opt_blocks[2].data, test17_tr31_ts_verify, strlen(test17_tr31_ts_verify)) != 0 ||
 		test_tr31.opt_blocks[3].id != TR31_OPT_BLOCK_PB
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	opt_ctx = tr31_opt_block_find(&test_tr31, TR31_OPT_BLOCK_CT);
+	if (opt_ctx != &test_tr31.opt_blocks[0]) {
+		fprintf(stderr, "tr31_opt_block_find() failed; r=%d\n", r);
+		r = 1;
+		goto exit;
+	}
+	if (opt_ctx->data_length != 0x500 - 10) { // total length - id and extended length field
+		fprintf(stderr, "TR-31 optional block CT data length is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	if (memcmp(opt_ctx->data, test17_tr31_ascii + 26, opt_ctx->data_length) != 0) {
+		fprintf(stderr, "TR-31 optional block CT data is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	opt_ctx = tr31_opt_block_find(&test_tr31, TR31_OPT_BLOCK_KP);
+	if (opt_ctx != &test_tr31.opt_blocks[1]) {
+		fprintf(stderr, "tr31_opt_block_find() failed; r=%d\n", r);
+		r = 1;
+		goto exit;
+	}
+	if (opt_ctx->data_length != (sizeof(test17_kcv_kbpk_verify) + 1) * 2) {
+		fprintf(stderr, "TR-31 optional block KP data length is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	memset(&kcv_data, 0, sizeof(kcv_data));
+	r = tr31_opt_block_decode_KP(opt_ctx, &kcv_data);
+	if (r) {
+		fprintf(stderr, "tr31_opt_block_decode_KP() failed; r=%d\n", r);
+		goto exit;
+	}
+	if (kcv_data.kcv_algorithm != TR31_OPT_BLOCK_KCV_CMAC) {
+		fprintf(stderr, "TR-31 optional block KP algorithm is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	if (kcv_data.kcv_len != sizeof(test17_kcv_kbpk_verify) ||
+		memcmp(kcv_data.kcv, test17_kcv_kbpk_verify, sizeof(test17_kcv_kbpk_verify)) != 0
+	) {
+		fprintf(stderr, "TR-31 optional block KP data is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	opt_ctx = tr31_opt_block_find(&test_tr31, TR31_OPT_BLOCK_TS);
+	if (opt_ctx != &test_tr31.opt_blocks[2]) {
+		fprintf(stderr, "tr31_opt_block_find() failed; r=%d\n", r);
+		r = 1;
+		goto exit;
+	}
+	if (opt_ctx->data_length != strlen(test17_tr31_ts_verify)) {
+		fprintf(stderr, "TR-31 optional block TS data length is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	if (memcmp(opt_ctx->data, test17_tr31_ts_verify, opt_ctx->data_length) != 0) {
+		fprintf(stderr, "TR-31 optional block TS data is incorrect\n");
 		r = 1;
 		goto exit;
 	}
@@ -898,7 +1038,7 @@ int main(void)
 	test_kbpk.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 	test_kbpk.length = sizeof(test18_kbpk);
 	test_kbpk.data = (void*)test18_kbpk;
-	r = tr31_import(test18_tr31_ascii, strlen(test18_tr31_ascii), &test_kbpk, &test_tr31);
+	r = tr31_import(test18_tr31_ascii, strlen(test18_tr31_ascii), &test_kbpk, 0, &test_tr31);
 	if (r) {
 		fprintf(stderr, "tr31_import() error %d: %s\n", r, tr31_get_error_string(r));
 		goto exit;
@@ -915,18 +1055,75 @@ int main(void)
 		test_tr31.opt_blocks_count != 4 ||
 		test_tr31.opt_blocks == NULL ||
 		test_tr31.opt_blocks[0].id != TR31_OPT_BLOCK_CT ||
-		test_tr31.opt_blocks[0].data_length != 0x5CC - 10 ||
+		test_tr31.opt_blocks[0].data == NULL ||
 		test_tr31.opt_blocks[1].id != TR31_OPT_BLOCK_KP ||
-		test_tr31.opt_blocks[1].data_length != sizeof(test18_tr31_kp_verify) ||
 		test_tr31.opt_blocks[1].data == NULL ||
-		memcmp(test_tr31.opt_blocks[1].data, test18_tr31_kp_verify, sizeof(test18_tr31_kp_verify)) != 0 ||
 		test_tr31.opt_blocks[2].id != TR31_OPT_BLOCK_TS ||
-		test_tr31.opt_blocks[2].data_length != strlen(test18_tr31_ts_verify) ||
 		test_tr31.opt_blocks[2].data == NULL ||
-		memcmp(test_tr31.opt_blocks[2].data, test18_tr31_ts_verify, strlen(test18_tr31_ts_verify)) != 0 ||
 		test_tr31.opt_blocks[3].id != TR31_OPT_BLOCK_PB
 	) {
 		fprintf(stderr, "TR-31 context is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	opt_ctx = tr31_opt_block_find(&test_tr31, TR31_OPT_BLOCK_CT);
+	if (opt_ctx != &test_tr31.opt_blocks[0]) {
+		fprintf(stderr, "tr31_opt_block_find() failed; r=%d\n", r);
+		r = 1;
+		goto exit;
+	}
+	if (opt_ctx->data_length != 0x5CC - 10) { // total length - id and extended length field
+		fprintf(stderr, "TR-31 optional block CT data length is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	if (memcmp(opt_ctx->data, test18_tr31_ascii + 26, opt_ctx->data_length) != 0) {
+		fprintf(stderr, "TR-31 optional block CT data is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	opt_ctx = tr31_opt_block_find(&test_tr31, TR31_OPT_BLOCK_KP);
+	if (opt_ctx != &test_tr31.opt_blocks[1]) {
+		fprintf(stderr, "tr31_opt_block_find() failed; r=%d\n", r);
+		r = 1;
+		goto exit;
+	}
+	if (opt_ctx->data_length != (sizeof(test18_kcv_kbpk_verify) + 1) * 2) {
+		fprintf(stderr, "TR-31 optional block KP data length is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	memset(&kcv_data, 0, sizeof(kcv_data));
+	r = tr31_opt_block_decode_KP(opt_ctx, &kcv_data);
+	if (r) {
+		fprintf(stderr, "tr31_opt_block_decode_KP() failed; r=%d\n", r);
+		goto exit;
+	}
+	if (kcv_data.kcv_algorithm != TR31_OPT_BLOCK_KCV_CMAC) {
+		fprintf(stderr, "TR-31 optional block KP algorithm is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	if (kcv_data.kcv_len != sizeof(test18_kcv_kbpk_verify) ||
+		memcmp(kcv_data.kcv, test18_kcv_kbpk_verify, sizeof(test18_kcv_kbpk_verify)) != 0
+	) {
+		fprintf(stderr, "TR-31 optional block KP data is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	opt_ctx = tr31_opt_block_find(&test_tr31, TR31_OPT_BLOCK_TS);
+	if (opt_ctx != &test_tr31.opt_blocks[2]) {
+		fprintf(stderr, "tr31_opt_block_find() failed; r=%d\n", r);
+		r = 1;
+		goto exit;
+	}
+	if (opt_ctx->data_length != strlen(test18_tr31_ts_verify)) {
+		fprintf(stderr, "TR-31 optional block TS data length is incorrect\n");
+		r = 1;
+		goto exit;
+	}
+	if (memcmp(opt_ctx->data, test18_tr31_ts_verify, opt_ctx->data_length) != 0) {
+		fprintf(stderr, "TR-31 optional block TS data is incorrect\n");
 		r = 1;
 		goto exit;
 	}

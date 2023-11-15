@@ -197,7 +197,6 @@ tr31-tool --kbpk AB2E09DB3EF0BA71E0CE6CD755C23A3B --export BF82DAC6A33DF92CE66E1
 Roadmap
 -------
 
-* Add getter functions for optional blocks
 * Implement key block translation
 * Implement key block component combination
 * Add CPack packaging for Windows and MacOS

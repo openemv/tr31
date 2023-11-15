@@ -51,6 +51,7 @@ struct tr31_tool_options_t {
 	// valid if import is true
 	size_t key_block_len;
 	char* key_block;
+	uint32_t import_flags;
 
 	// export parameters
 	// valid if export is true
@@ -60,6 +61,7 @@ struct tr31_tool_options_t {
 	unsigned int export_format_version;
 	const char* export_template;
 	const char* export_header;
+	struct tr31_ctx_t export_opt_block_list;
 	bool export_opt_block_AL;
 	uint8_t export_opt_block_AL_akl;
 	size_t export_opt_block_BI_buf_len;
@@ -81,8 +83,6 @@ struct tr31_tool_options_t {
 	const char* export_opt_block_TS_str;
 	bool export_opt_block_WP;
 	uint8_t export_opt_block_WP_value;
-
-	// export flags
 	uint32_t export_flags;
 
 	// kbpk parameters
@@ -102,11 +102,13 @@ static void print_str_with_quotes(const void* buf, size_t length);
 // argp option keys
 enum tr31_tool_option_keys_t {
 	TR31_TOOL_OPTION_IMPORT = 1,
+	TR31_TOOL_OPTION_IMPORT_NO_STRICT_VALIDATION,
 	TR31_TOOL_OPTION_EXPORT,
 	TR31_TOOL_OPTION_EXPORT_KEY_ALGORITHM,
 	TR31_TOOL_OPTION_EXPORT_FORMAT_VERSION,
 	TR31_TOOL_OPTION_EXPORT_TEMPLATE,
 	TR31_TOOL_OPTION_EXPORT_HEADER,
+	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_VERBATIM,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_AL,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_BI,
 	TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_CT_X509,
@@ -132,6 +134,7 @@ enum tr31_tool_option_keys_t {
 static struct argp_option argp_options[] = {
 	{ NULL, 0, NULL, 0, "Options for decoding/decrypting TR-31 key blocks:", 1 },
 	{ "import", TR31_TOOL_OPTION_IMPORT, "KEYBLOCK", 0, "Import TR-31 key block to decode/decrypt. Use - to read raw bytes from stdin. Optionally specify KBPK (--kbpk) to decrypt." },
+	{ "import-no-strict-validation", TR31_TOOL_OPTION_IMPORT_NO_STRICT_VALIDATION, NULL, 0, "Disable strict validation during key block import" },
 
 	{ NULL, 0, NULL, 0, "Options for encoding/encrypting TR-31 key blocks:", 2 },
 	{ "export", TR31_TOOL_OPTION_EXPORT, "KEY", 0, "Export TR-31 key block containing KEY. Use - to read raw bytes from stdin. Requires KBPK (--kbpk). Requires either --export-key-algorithm, --export-format-version and --export-template, or only --export-header" },
@@ -139,6 +142,7 @@ static struct argp_option argp_options[] = {
 	{ "export-format-version", TR31_TOOL_OPTION_EXPORT_FORMAT_VERSION, "A|B|C|D|E", 0, "TR-31 format version to use for export." },
 	{ "export-template", TR31_TOOL_OPTION_EXPORT_TEMPLATE, "KEK|BDK|IK", 0, "TR-31 key block template to use for export." },
 	{ "export-header", TR31_TOOL_OPTION_EXPORT_HEADER, "KEYBLOCK-HEADER", 0, "TR-31 key block header to use for export. Key block length field in the header will be ignored." },
+	{ "export-opt-block", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_VERBATIM, "ASCII", 0, "Add verbatim optional block, including ID and length (for example \"KS10DE#GBIC#OPT1\") during TR-31 export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-AL", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_AL, "Ephemeral|Static", 0, "Add optional block AL (Asymmetric Key Life) during TR-31 export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-BI", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_BI, "BDK-ID", 0, "Add optional block BI (Base Derivation Key Identifier) during TR-31 export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-CT-X509", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_CT_X509, "base64", 0, "Add optional block CT (X.509 Public Key Certificate) during TR-31 export. May be used with either --export-template or --export-header." },
@@ -264,6 +268,10 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			options->import = true;
 			return 0;
 
+		case TR31_TOOL_OPTION_IMPORT_NO_STRICT_VALIDATION:
+			options->import_flags |= TR31_IMPORT_NO_STRICT_VALIDATION;
+			return 0;
+
 		case TR31_TOOL_OPTION_EXPORT:
 			options->export_key_buf = buf;
 			options->export_key_buf_len = buf_len;
@@ -296,6 +304,49 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			}
 			options->export_header = arg;
 			return 0;
+
+		case TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_VERBATIM: {
+			int r;
+			size_t arg_len = strlen(arg);
+			size_t fake_header_len;
+			char* fake_header;
+			struct tr31_ctx_t tmp_tr31;
+
+			// instead of re-implementing optional block parsing, misuse the
+			// existing TR-31 parsing using a fake header
+			fake_header_len = 16 + arg_len;
+			fake_header = malloc(fake_header_len);
+			memcpy(fake_header, "D0000D0TB00N0100", 16);
+			memcpy(fake_header + 16, arg, arg_len);
+			r = tr31_init_from_header(
+				fake_header,
+				fake_header_len,
+				TR31_IMPORT_NO_STRICT_VALIDATION,
+				&tmp_tr31
+			);
+			free(fake_header);
+			if (r) {
+				argp_error(state, "Error while parsing verbatim optional block (%s): %s", arg, tr31_get_error_string(r));
+			}
+
+			// add verbatim optional block to list and cleanup temporary tr31
+			r = tr31_opt_block_add(
+				&options->export_opt_block_list,
+				tmp_tr31.opt_blocks[0].id,
+				tmp_tr31.opt_blocks[0].data,
+				tmp_tr31.opt_blocks[0].data_length
+			);
+			tr31_release(&tmp_tr31);
+			if (r) {
+				argp_error(state, "Failed to add verbatim optional block %c%c; error %d: %s\n",
+					arg[0],
+					arg[1],
+					r,
+					tr31_get_error_string(r)
+				);
+			}
+			return 0;
+		}
 
 		case TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_AL:
 			if (strcmp(arg, "Ephemeral") == 0) {
@@ -717,10 +768,10 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 
 	if (options->kbpk) { // if key block protection key was provided
 		// parse and decrypt TR-31 key block
-		r = tr31_import(options->key_block, options->key_block_len, &kbpk, &tr31_ctx);
+		r = tr31_import(options->key_block, options->key_block_len, &kbpk, options->import_flags, &tr31_ctx);
 	} else { // else if no key block protection key was provided
 		// parse TR-31 key block
-		r = tr31_import(options->key_block, options->key_block_len, NULL, &tr31_ctx);
+		r = tr31_import(options->key_block, options->key_block_len, NULL, options->import_flags, &tr31_ctx);
 	}
 	// check for errors
 	if (r) {
@@ -769,24 +820,133 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 			);
 
 			switch (tr31_ctx.opt_blocks[i].id) {
-				case TR31_OPT_BLOCK_BI:
+				case TR31_OPT_BLOCK_AL: {
+					struct tr31_opt_blk_akl_data_t akl_data;
+					r = tr31_opt_block_decode_AL(&tr31_ctx.opt_blocks[i], &akl_data);
+					if (r || akl_data.version != TR31_OPT_BLOCK_AL_VERSION_1) {
+						// invalid; print as string
+						print_str(tr31_ctx.opt_blocks[i].data, tr31_ctx.opt_blocks[i].data_length);
+						break;
+					}
+					// valid; assume version 1 and print AKL as hex
+					printf("v1, ");
+					print_hex(&akl_data.v1.akl, sizeof(akl_data.v1.akl));
+					break;
+				}
+
+				case TR31_OPT_BLOCK_BI: {
+					struct tr31_opt_blk_bdkid_data_t bdkid_data;
+					r = tr31_opt_block_decode_BI(&tr31_ctx.opt_blocks[i], &bdkid_data);
+					if (r) {
+						// invalid; print as string
+						print_str(tr31_ctx.opt_blocks[i].data, tr31_ctx.opt_blocks[i].data_length);
+						break;
+					}
+					// valid; print as hex
+					print_hex(bdkid_data.bdkid, bdkid_data.bdkid_len);
+					break;
+				}
+
+				case TR31_OPT_BLOCK_DA: {
+					size_t da_attr_count;
+					size_t da_data_len;
+					struct tr31_opt_blk_da_data_t* da_data;
+					if (tr31_ctx.opt_blocks[i].data_length < 2) {
+						// invalid; print as string
+						print_str(tr31_ctx.opt_blocks[i].data, tr31_ctx.opt_blocks[i].data_length);
+						break;
+					}
+					da_attr_count = (tr31_ctx.opt_blocks[i].data_length - 2) / 5;
+					da_data_len = sizeof(struct tr31_opt_blk_da_attr_t)
+						* da_attr_count
+						+ sizeof(struct tr31_opt_blk_da_data_t);
+					da_data = malloc(da_data_len);
+					r = tr31_opt_block_decode_DA(&tr31_ctx.opt_blocks[i], da_data, da_data_len);
+					if (r) {
+						// invalid; print as string
+						print_str(tr31_ctx.opt_blocks[i].data, tr31_ctx.opt_blocks[i].data_length);
+						free(da_data);
+						break;
+					}
+					for (size_t i = 0; i < da_attr_count; ++i) {
+						printf("%s%s%c%c%c",
+							i == 0 ? "" : ",",
+							tr31_get_key_usage_ascii(da_data->attr[i].key_usage, ascii_buf, sizeof(ascii_buf)),
+							da_data->attr[i].algorithm,
+							da_data->attr[i].mode_of_use,
+							da_data->attr[i].exportability
+						);
+					}
+					free(da_data);
+					break;
+				}
+
+				case TR31_OPT_BLOCK_HM: {
+					uint8_t hash_algorithm;
+					r = tr31_opt_block_decode_HM(&tr31_ctx.opt_blocks[i], &hash_algorithm);
+					if (r) {
+						// invalid; print as string
+						print_str(tr31_ctx.opt_blocks[i].data, tr31_ctx.opt_blocks[i].data_length);
+						break;
+					}
+					// valid; print as hex
+					print_hex(&hash_algorithm, sizeof(hash_algorithm));
+					break;
+				}
+
+				case TR31_OPT_BLOCK_IK: {
+					uint8_t ikid[8];
+					r = tr31_opt_block_decode_IK(&tr31_ctx.opt_blocks[i], ikid, sizeof(ikid));
+					if (r) {
+						// invalid; print as string
+						print_str(tr31_ctx.opt_blocks[i].data, tr31_ctx.opt_blocks[i].data_length);
+						break;
+					}
+					// valid; print as hex
+					print_hex(ikid, sizeof(ikid));
+					break;
+				}
+
+				case TR31_OPT_BLOCK_KS: {
+					uint8_t iksn[10];
+					r = tr31_opt_block_decode_KS(&tr31_ctx.opt_blocks[i], iksn, sizeof(iksn));
+					if (r) {
+						// invalid; print as string
+						print_str(tr31_ctx.opt_blocks[i].data, tr31_ctx.opt_blocks[i].data_length);
+						break;
+					}
+					// valid; print as hex
+					print_hex(iksn, sizeof(iksn));
+					break;
+				}
+
 				case TR31_OPT_BLOCK_KC:
 				case TR31_OPT_BLOCK_KP:
-				case TR31_OPT_BLOCK_PK:
-					// for some optional blocks, skip the first byte
-					// the first byte will be decoded by tr31_get_opt_block_data_string()
-					if (tr31_ctx.opt_blocks[i].data_length > 1) {
-						print_hex(tr31_ctx.opt_blocks[i].data + 1, tr31_ctx.opt_blocks[i].data_length - 1);
+				case TR31_OPT_BLOCK_PK: {
+					struct tr31_opt_blk_kcv_data_t kcv_data;
+					r = tr31_opt_block_decode_kcv(&tr31_ctx.opt_blocks[i], &kcv_data);
+					if (r) {
+						// invalid; print as string
+						print_str(tr31_ctx.opt_blocks[i].data, tr31_ctx.opt_blocks[i].data_length);
+						break;
 					}
+					// valid; print as hex
+					print_hex(kcv_data.kcv, kcv_data.kcv_len);
 					break;
+				}
 
-				case TR31_OPT_BLOCK_DA:
-				case TR31_OPT_BLOCK_WP:
-					// for some optional blocks, skip the first two bytes
-					if (tr31_ctx.opt_blocks[i].data_length > 2) {
-						print_str(tr31_ctx.opt_blocks[i].data + 2, tr31_ctx.opt_blocks[i].data_length - 2);
+				case TR31_OPT_BLOCK_WP: {
+					struct tr31_opt_blk_wp_data_t wp_data;
+					r = tr31_opt_block_decode_WP(&tr31_ctx.opt_blocks[i], &wp_data);
+					if (r || wp_data.version != TR31_OPT_BLOCK_WP_VERSION_0) {
+						// invalid; print as string
+						print_str(tr31_ctx.opt_blocks[i].data, tr31_ctx.opt_blocks[i].data_length);
+						break;
 					}
+					// valid; assume version 00 and print wrapping pedigree digit
+					print_str(tr31_ctx.opt_blocks[i].data + 2, 1);
 					break;
+				}
 
 				case TR31_OPT_BLOCK_CT:
 					// for certificates and certificate chains, skip the first two bytes and use quotes
@@ -802,9 +962,9 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 					print_str_with_quotes(tr31_ctx.opt_blocks[i].data, tr31_ctx.opt_blocks[i].data_length);
 					break;
 
-				// print all other optional blocks, including proprietary ones, as hex
+				// print all other optional blocks, including proprietary ones, verbatim
 				default:
-					print_hex(tr31_ctx.opt_blocks[i].data, tr31_ctx.opt_blocks[i].data_length);
+					print_str(tr31_ctx.opt_blocks[i].data, tr31_ctx.opt_blocks[i].data_length);
 			}
 
 			r = tr31_opt_block_data_get_desc(&tr31_ctx.opt_blocks[i], opt_block_data_str, sizeof(opt_block_data_str));
@@ -911,7 +1071,12 @@ static int populate_tr31_from_header(const struct tr31_tool_options_t* options, 
 	int r;
 
 	// parse export header
-	r = tr31_init_from_header(options->export_header, strlen(options->export_header), tr31_ctx);
+	r = tr31_init_from_header(
+		options->export_header,
+		strlen(options->export_header),
+		TR31_IMPORT_NO_STRICT_VALIDATION,
+		tr31_ctx
+	);
 	if (r) {
 		fprintf(stderr, "Error while parsing export header; error %d: %s\n", r, tr31_get_error_string(r));
 		return 1;
@@ -931,6 +1096,32 @@ static int populate_tr31_from_header(const struct tr31_tool_options_t* options, 
 static int populate_opt_blocks(const struct tr31_tool_options_t* options, struct tr31_ctx_t* tr31_ctx)
 {
 	int r;
+
+	// populate verbatim optional blocks from list
+	// - the opt_blocks field cannot be copied directly to tr31_ctx because an
+	//   export header may already have provided some optional blocks and this
+	//   list should be appended to those
+	// - these optional blocks will not follow the alphabetic ordering of the
+	//   standardised optional blocks that are added later in this function
+	for (size_t i = 0; i < options->export_opt_block_list.opt_blocks_count; ++i) {
+		struct tr31_opt_ctx_t* opt_block = &options->export_opt_block_list.opt_blocks[i];
+
+		r = tr31_opt_block_add(
+			tr31_ctx,
+			opt_block->id,
+			opt_block->data,
+			opt_block->data_length
+		);
+		if (r) {
+			char ascii_buf[3];
+			fprintf(stderr, "Failed to add optional block %s; error %d: %s\n",
+				tr31_get_opt_block_id_ascii(opt_block->id, ascii_buf, sizeof(ascii_buf)),
+				r,
+				tr31_get_error_string(r)
+			);
+			return 1;
+		}
+	}
 
 	if (options->export_opt_block_AL) {
 		r = tr31_opt_block_add_AL(tr31_ctx, options->export_opt_block_AL_akl);
@@ -1253,9 +1444,6 @@ static int do_tr31_export(const struct tr31_tool_options_t* options)
 		return r;
 	}
 
-	// apply export flags
-	tr31_ctx.export_flags = options->export_flags;
-
 	// populate key block protection key
 	r = populate_kbpk(options, export_format_version, &kbpk);
 	if (r) {
@@ -1265,7 +1453,7 @@ static int do_tr31_export(const struct tr31_tool_options_t* options)
 	// export TR-31 key block
 	key_block_len = 16384;
 	key_block = malloc(key_block_len);
-	r = tr31_export(&tr31_ctx, &kbpk, key_block, key_block_len);
+	r = tr31_export(&tr31_ctx, &kbpk, options->export_flags, key_block, key_block_len);
 	if (r) {
 		fprintf(stderr, "TR-31 export error %d: %s\n", r, tr31_get_error_string(r));
 		return 1;
@@ -1325,6 +1513,9 @@ exit:
 		free(options.export_key_buf);
 		options.export_key_buf = NULL;
 		options.export_key_buf_len = 0;
+	}
+	if (options.export_opt_block_list.opt_blocks) {
+		tr31_release(&options.export_opt_block_list);
 	}
 	if (options.export_opt_block_CT) {
 		free(options.export_opt_block_CT);

@@ -121,9 +121,13 @@ static void int_to_hex(unsigned int value, char* str, size_t str_len);
 static int hex_to_bin(const char* hex, size_t hex_len, void* bin, size_t bin_len);
 static int bin_to_hex(const void* bin, size_t bin_len, char* str, size_t str_len);
 static int tr31_validate_format_an(const char* buf, size_t buf_len);
+static int tr31_validate_format_h(const char* buf, size_t buf_len);
 static int tr31_validate_format_pa(const char* buf, size_t buf_len);
 static struct tr31_opt_ctx_t* tr31_opt_block_alloc(struct tr31_ctx_t* ctx, unsigned int id, size_t length);
-static int tr31_opt_block_parse(const void* ptr, size_t remaining_len, size_t* opt_block_len, struct tr31_opt_ctx_t* opt_ctx);
+static inline size_t tr31_opt_block_kcv_data_length(size_t kcv_len);
+static int tr31_opt_block_encode_kcv(uint8_t kcv_algorithm, const void* kcv, size_t kcv_len, char* encoded_data, size_t encoded_data_len);
+static int tr31_opt_block_validate_hash_algorithm(uint8_t hash_algorithm);
+static int tr31_opt_block_parse(const struct tr31_state_t* state, const void* ptr, size_t remaining_len, size_t* opt_block_len, struct tr31_opt_ctx_t* opt_ctx);
 static int tr31_opt_block_validate_iso8601(const char* ts_str, size_t ts_str_len);
 static int tr31_opt_block_export(const struct tr31_opt_ctx_t* opt_ctx, size_t remaining_len, size_t* opt_blk_len, void* ptr);
 static int tr31_opt_block_export_PB(const struct tr31_state_t* state, size_t pb_len, struct tr31_opt_blk_t* opt_blk);
@@ -302,6 +306,24 @@ static int tr31_validate_format_an(const char* buf, size_t buf_len)
 	return 0;
 }
 
+static int tr31_validate_format_h(const char* buf, size_t buf_len)
+{
+	while (buf_len--) {
+		// hex characters are in the ranges 0x30 - 0x39 and 0x41 - 0x46
+		// lower case characters are not allowed
+		// see ANSI X9.143:2021, 4
+		if ((*buf < 0x30 || *buf > 0x39) &&
+			(*buf < 0x41 || *buf > 0x46)
+		) {
+			return -1;
+		}
+
+		++buf;
+	}
+
+	return 0;
+}
+
 static int tr31_validate_format_pa(const char* buf, size_t buf_len)
 {
 	while (buf_len--) {
@@ -341,9 +363,53 @@ int tr31_key_init(
 
 	memset(key, 0, sizeof(*key));
 
+	// initialise key attributes before validation
+	// tr31_import() may choose to ignore some validation errors
+	key->usage = usage;
+	key->algorithm = algorithm;
+	key->mode_of_use = mode_of_use;
+	if (key_version[0] == '0' && key_version[1] == '0') {
+		key->key_version = TR31_KEY_VERSION_IS_UNUSED;
+		memset(key->key_version_str, 0, sizeof(key->key_version_str));
+	} else if (key_version[0] == 'c') {
+		key->key_version = TR31_KEY_VERSION_IS_COMPONENT;
+		memcpy(key->key_version_str, key_version, 2);
+		key->key_version_str[2] = 0;
+	} else {
+		key->key_version = TR31_KEY_VERSION_IS_VALID;
+		memcpy(key->key_version_str, key_version, 2);
+		key->key_version_str[2] = 0;
+	}
+	key->exportability = exportability;
+
+	// if key data is available, copy it
+	if (data && length) {
+		// validate key length by algorithm
+		switch (algorithm) {
+			case TR31_KEY_ALGORITHM_TDES:
+				if (length > 24) {
+					// invalid TDES key length
+					return TR31_ERROR_INVALID_KEY_LENGTH;
+				}
+				break;
+
+			case TR31_KEY_ALGORITHM_AES:
+				if (length > 32) {
+					// invalid AES key length
+					return TR31_ERROR_INVALID_KEY_LENGTH;
+				}
+				break;
+		}
+
+		r = tr31_key_set_data(key, data, length);
+		if (r) {
+			// return error value as-is
+			return r;
+		}
+	}
+
 	// validate key usage field
 	// see ANSI X9.143:2021, 6.3.1, table 2
-	key->usage = usage;
 	switch (usage) {
 		case TR31_KEY_USAGE_BDK:
 		case TR31_KEY_USAGE_DUKPT_IK:
@@ -397,7 +463,6 @@ int tr31_key_init(
 
 	// validate algorithm field
 	// see ANSI X9.143:2021, 6.3.2, table 3
-	key->algorithm = algorithm;
 	switch (algorithm) {
 		case TR31_KEY_ALGORITHM_AES:
 		case TR31_KEY_ALGORITHM_DES:
@@ -415,7 +480,6 @@ int tr31_key_init(
 
 	// validate mode of use field
 	// see ANSI X9.143:2021, 6.3.3, table 4
-	key->mode_of_use = mode_of_use;
 	switch (mode_of_use) {
 		case TR31_KEY_MODE_OF_USE_ENC_DEC:
 		case TR31_KEY_MODE_OF_USE_MAC:
@@ -436,15 +500,13 @@ int tr31_key_init(
 
 	// validate key version number field
 	// see ANSI X9.143:2021, 6.3.4, table 5
-	r = tr31_key_set_key_version(key, key_version);
+	r = tr31_validate_format_an(key_version, 2);
 	if (r) {
-		// return error value as-is
-		return r;
+		return TR31_ERROR_INVALID_KEY_VERSION_FIELD;
 	}
 
 	// validate exportability field
 	// see ANSI X9.143:2021, 6.3.5, table 6
-	key->exportability = exportability;
 	switch (exportability) {
 		case TR31_KEY_EXPORT_TRUSTED:
 		case TR31_KEY_EXPORT_NONE:
@@ -454,32 +516,6 @@ int tr31_key_init(
 
 		default:
 			return TR31_ERROR_UNSUPPORTED_EXPORTABILITY;
-	}
-
-	// if key data is available, copy it
-	if (data && length) {
-		// validate key length by algorithm
-		switch (algorithm) {
-			case TR31_KEY_ALGORITHM_TDES:
-				if (length > 24) {
-					// invalid TDES key length
-					return TR31_ERROR_INVALID_KEY_LENGTH;
-				}
-				break;
-
-			case TR31_KEY_ALGORITHM_AES:
-				if (length > 32) {
-					// invalid AES key length
-					return TR31_ERROR_INVALID_KEY_LENGTH;
-				}
-				break;
-		}
-
-		r = tr31_key_set_data(key, data, length);
-		if (r) {
-			// return error value as-is
-			return r;
-		}
 	}
 
 	return 0;
@@ -675,11 +711,13 @@ int tr31_init(
 int tr31_init_from_header(
 	const char* key_block_header,
 	size_t key_block_header_len,
+	uint32_t flags,
 	struct tr31_ctx_t* ctx
 )
 {
 	int r;
 	const struct tr31_header_t* header;
+	struct tr31_state_t state;
 	const void* ptr;
 
 	if (!key_block_header || !ctx) {
@@ -700,8 +738,17 @@ int tr31_init_from_header(
 		return TR31_ERROR_INVALID_KEY_BLOCK_STRING;
 	}
 
-	// initialise TR-31 context object
+	// initialise processing state object
+	// this will populate:
+	// - state.flags
 	header = (const struct tr31_header_t*)key_block_header;
+	r = tr31_state_init(flags, header->version_id, &state);
+	if (r) {
+		// return error value as-is
+		return r;
+	}
+
+	// initialise TR-31 context object
 	r = tr31_init(header->version_id, NULL, ctx);
 	if (r) {
 		// return error value as-is
@@ -720,8 +767,18 @@ int tr31_init_from_header(
 		&ctx->key
 	);
 	if (r) {
-		// return error value as-is
-		return r;
+		if (flags & TR31_IMPORT_NO_STRICT_VALIDATION) {
+			// when strict validation is disabled, ignore all key attribute errors
+			if (r < TR31_ERROR_UNSUPPORTED_KEY_USAGE ||
+				r > TR31_ERROR_UNSUPPORTED_EXPORTABILITY
+			) {
+				// return error value as-is
+				return r;
+			}
+		} else {
+			// return error value as-is
+			return r;
+		}
 	}
 
 	// decode number of optional blocks field
@@ -747,6 +804,7 @@ int tr31_init_from_header(
 		// copy optional block field
 		size_t opt_blk_len;
 		r = tr31_opt_block_parse(
+			&state,
 			ptr,
 			(void*)key_block_header + key_block_header_len - ptr,
 			&opt_blk_len,
@@ -845,6 +903,7 @@ int tr31_opt_block_add(
 	size_t length
 )
 {
+	int r;
 	struct tr31_opt_ctx_t* opt_ctx;
 
 	if (!ctx) {
@@ -854,9 +913,16 @@ int tr31_opt_block_add(
 		return -2;
 	}
 
+	if (data && length) {
+		r = tr31_validate_format_pa(data, length);
+		if (r) {
+			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+		}
+	}
+
 	opt_ctx = tr31_opt_block_alloc(ctx, id, length);
 	if (!opt_ctx) {
-		return -3;
+		return TR31_ERROR_DUPLICATE_OPTIONAL_BLOCK_ID;
 	}
 
 	if (data && length) {
@@ -867,24 +933,233 @@ int tr31_opt_block_add(
 	return 0;
 }
 
+struct tr31_opt_ctx_t* tr31_opt_block_find(struct tr31_ctx_t* ctx, unsigned int id)
+{
+	if (!ctx) {
+		return NULL;
+	}
+
+	for (size_t i = 0; i < ctx->opt_blocks_count; ++i) {
+		if (ctx->opt_blocks[i].id == id) {
+			return &ctx->opt_blocks[i];
+		}
+	}
+
+	return NULL;
+}
+
+static inline size_t tr31_opt_block_kcv_data_length(size_t kcv_len)
+{
+	return (kcv_len + 1) * 2;
+}
+
+static int tr31_opt_block_encode_kcv(
+	uint8_t kcv_algorithm,
+	const void* kcv,
+	size_t kcv_len,
+	char* encoded_data,
+	size_t encoded_data_len
+)
+{
+	int r;
+	uint8_t buf[6];
+	size_t buf_len;
+
+	if (!kcv || !kcv_len || !encoded_data || !encoded_data_len) {
+		return -1;
+	}
+
+	// validate KCV length according to KCV algorithm
+	// see ANSI X9.143:2021, 6.3.6.7, table 15
+	// see ANSI X9.143:2021, 6.3.6.12, table 20
+	// KCV lengths should comply with ANSI X9.24-1, Annex A
+	if (kcv_algorithm == TR31_OPT_BLOCK_KCV_LEGACY) {
+		if (kcv_len > 3) {
+			// Legacy KCV should be truncated to 3 bytes or less
+			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+		}
+	} else if (kcv_algorithm == TR31_OPT_BLOCK_KCV_CMAC) {
+		if (kcv_len > 5) {
+			// CMAC KCV should be truncated to 5 bytes or less
+			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+		}
+	} else {
+		// Unknown KCV algorithm
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+
+	buf_len = kcv_len + 1;
+	if (buf_len > sizeof(buf)) {
+		return -2;
+	}
+	if (buf_len * 2 > encoded_data_len) {
+		return -3;
+	}
+
+	buf[0] = kcv_algorithm;
+	memcpy(&buf[1], kcv, kcv_len);
+	r = bin_to_hex(
+		buf,
+		buf_len,
+		encoded_data,
+		encoded_data_len
+	);
+	if (r) {
+		return -4;
+	}
+
+	return 0;
+}
+
+int tr31_opt_block_decode_kcv(
+	const struct tr31_opt_ctx_t* opt_ctx,
+	struct tr31_opt_blk_kcv_data_t* kcv_data
+)
+{
+	int r;
+
+	if (!opt_ctx || !kcv_data) {
+		return -1;
+	}
+
+	// decode optional block data and validate
+	// see ANSI X9.143:2021, 6.3.6.7, table 15
+	// see ANSI X9.143:2021, 6.3.6.12, table 20
+	// KCV lengths should comply with ANSI X9.24-1, Annex A
+	if (opt_ctx->data_length < 2 + 1) { // KCV algorithm and at least one KCV digit
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+	r = hex_to_bin(
+		opt_ctx->data,
+		2,
+		&kcv_data->kcv_algorithm,
+		sizeof(kcv_data->kcv_algorithm)
+	);
+	if (r) {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+	switch (kcv_data->kcv_algorithm) {
+		case TR31_OPT_BLOCK_KCV_LEGACY:
+			// at most 6 KCV digits, thus 3 KCV bytes
+			if (opt_ctx->data_length > tr31_opt_block_kcv_data_length(3)) {
+				// too many KCV digits for legacy KCV algorithm
+				// see ANSI X9.24-1:2017, Annex A
+				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+			}
+			break;
+
+		case TR31_OPT_BLOCK_KCV_CMAC:
+			// at most 10 KCV digits, thus 5 KCV bytes
+			if (opt_ctx->data_length > tr31_opt_block_kcv_data_length(5)) {
+				// too many KCV digits for CMAC KCV algorithm
+				// see ANSI X9.24-1:2017, Annex A
+				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+			}
+			break;
+
+		default:
+			// unknown KCV algorithm
+			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+
+	kcv_data->kcv_len = (opt_ctx->data_length - 2) / 2;
+	r = hex_to_bin(
+		opt_ctx->data + 2,
+		opt_ctx->data_length - 2,
+		&kcv_data->kcv,
+		kcv_data->kcv_len
+	);
+	if (r) {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+	return 0;
+}
+
 int tr31_opt_block_add_AL(
 	struct tr31_ctx_t* ctx,
 	uint8_t akl
 )
 {
+	int r;
 	uint8_t buf[2];
+	char encoded_data[4];
+
+	if (!ctx) {
+		return -1;
+	}
 
 	if (akl != TR31_OPT_BLOCK_AL_AKL_EPHEMERAL &&
-		akl != TR31_OPT_BLOCK_AL_AKL_STATIC)
-	{
+		akl != TR31_OPT_BLOCK_AL_AKL_STATIC
+	) {
 		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 	}
 
+	// encode optional block data
 	// assume AKL optional block version 1
 	// see ANSI X9.143:2021, 6.3.6.1, table 8
 	buf[0] = TR31_OPT_BLOCK_AL_VERSION_1;
 	buf[1] = akl;
-	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_AL, buf, sizeof(buf));
+	r = bin_to_hex(
+		buf,
+		sizeof(buf),
+		encoded_data,
+		sizeof(encoded_data)
+	);
+	if (r) {
+		return -2;
+	}
+
+	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_AL, encoded_data, sizeof(buf) * 2);
+}
+
+int tr31_opt_block_decode_AL(
+	const struct tr31_opt_ctx_t* opt_ctx,
+	struct tr31_opt_blk_akl_data_t* akl_data
+)
+{
+	int r;
+
+	if (!opt_ctx || !akl_data) {
+		return -1;
+	}
+
+	if (opt_ctx->id != TR31_OPT_BLOCK_AL) {
+		return -2;
+	}
+
+	// decode optional block data and validate
+	// see ANSI X9.143:2021, 6.3.6.1, table 8
+	if (opt_ctx->data_length < 2) {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+	r = hex_to_bin(opt_ctx->data, 2, &akl_data->version, sizeof(akl_data->version));
+	if (r) {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+	if (akl_data->version == TR31_OPT_BLOCK_AL_VERSION_1) {
+		uint8_t akl = 0xFF;
+
+		// decode AKL optional block version 1
+		if (opt_ctx->data_length != 4) {
+			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+		}
+		r = hex_to_bin(opt_ctx->data + 2, 2, &akl, sizeof(akl));
+		if (r) {
+			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+		}
+		if (akl != TR31_OPT_BLOCK_AL_AKL_EPHEMERAL &&
+			akl != TR31_OPT_BLOCK_AL_AKL_STATIC
+		) {
+			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+		}
+		akl_data->v1.akl = akl;
+
+	} else {
+		// unsupported AKL version
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+
+	return 0;
 }
 
 int tr31_opt_block_add_BI(
@@ -894,7 +1169,10 @@ int tr31_opt_block_add_BI(
 	size_t bdkid_len
 )
 {
+	int r;
 	uint8_t buf[6];
+	size_t buf_len;
+	char encoded_data[12];
 
 	if (!ctx || !bdkid) {
 		return -1;
@@ -904,12 +1182,18 @@ int tr31_opt_block_add_BI(
 	// see ANSI X9.143:2021, 6.3.6.2, table 9
 	switch (key_type) {
 		case TR31_OPT_BLOCK_BI_TDES_DUKPT:
+			if (ctx->key.algorithm != TR31_KEY_ALGORITHM_TDES) {
+				return TR31_ERROR_UNSUPPORTED_ALGORITHM;
+			}
 			if (bdkid_len != 5) {
 				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 			}
 			break;
 
 		case TR31_OPT_BLOCK_BI_AES_DUKPT:
+			if (ctx->key.algorithm != TR31_KEY_ALGORITHM_AES) {
+				return TR31_ERROR_UNSUPPORTED_ALGORITHM;
+			}
 			if (bdkid_len != 4) {
 				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 			}
@@ -919,10 +1203,71 @@ int tr31_opt_block_add_BI(
 			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 	}
 
-	// NOTE: tr31_opt_block_export() will hex encode this optional block
+	// encode optional block data
 	buf[0] = key_type;
 	memcpy(&buf[1], bdkid, bdkid_len);
-	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_BI, buf, bdkid_len + 1);
+	buf_len = bdkid_len + 1;
+	r = bin_to_hex(
+		buf,
+		buf_len,
+		encoded_data,
+		sizeof(encoded_data)
+	);
+	if (r) {
+		return -2;
+	}
+
+	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_BI, encoded_data, buf_len * 2);
+}
+
+int tr31_opt_block_decode_BI(
+	const struct tr31_opt_ctx_t* opt_ctx,
+	struct tr31_opt_blk_bdkid_data_t* bdkid_data
+)
+{
+	int r;
+
+	if (!opt_ctx || !bdkid_data) {
+		return -1;
+	}
+
+	if (opt_ctx->id != TR31_OPT_BLOCK_BI) {
+		return -2;
+	}
+
+	// decode optional block data and validate
+	// see ANSI X9.143:2021, 6.3.6.2, table 9
+	r = hex_to_bin(opt_ctx->data, 2, &bdkid_data->key_type, sizeof(bdkid_data->key_type));
+	if (r) {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+	switch (bdkid_data->key_type) {
+		case TR31_OPT_BLOCK_BI_TDES_DUKPT:
+			if (opt_ctx->data_length != 12) {
+				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+			}
+
+			// 5 bytes for TDES DUKPT
+			bdkid_data->bdkid_len = 5;
+			break;
+
+		case TR31_OPT_BLOCK_BI_AES_DUKPT:
+			if (opt_ctx->data_length != 10) {
+				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+			}
+
+			// 4 bytes for AES DUKPT
+			bdkid_data->bdkid_len = 4;
+			break;
+
+		default:
+			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+	r = hex_to_bin(opt_ctx->data + 2, opt_ctx->data_length - 2, &bdkid_data->bdkid, bdkid_data->bdkid_len);
+	if (r) {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+	return 0;
 }
 
 int tr31_opt_block_add_CT(
@@ -1039,7 +1384,6 @@ int tr31_opt_block_add_CT(
 		struct tr31_opt_ctx_t* opt_ctx;
 
 		// add new optional block CT
-		// NOTE: tr31_opt_block_export() copies this optional block verbatim
 		opt_ctx = tr31_opt_block_alloc(ctx, TR31_OPT_BLOCK_CT, cert_base64_len + 2);
 		if (!opt_ctx) {
 			return -2;
@@ -1075,7 +1419,6 @@ int tr31_opt_block_add_DA(
 		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 	}
 
-	// NOTE: tr31_opt_block_export() copies this optional block verbatim
 	opt_ctx = tr31_opt_block_alloc(ctx, TR31_OPT_BLOCK_DA, da_len + 2);
 	if (!opt_ctx) {
 		return -2;
@@ -1086,15 +1429,65 @@ int tr31_opt_block_add_DA(
 	return r;
 }
 
-int tr31_opt_block_add_HM(
-	struct tr31_ctx_t* ctx,
-	uint8_t hash_algorithm
+int tr31_opt_block_decode_DA(
+	const struct tr31_opt_ctx_t* opt_ctx,
+	struct tr31_opt_blk_da_data_t* da_data,
+	size_t da_data_len
 )
 {
-	if (!ctx) {
+	size_t count;
+	const uint8_t* da_attr;
+
+	if (!opt_ctx || !da_data || !da_data_len) {
 		return -1;
 	}
 
+	if (opt_ctx->id != TR31_OPT_BLOCK_DA) {
+		return -2;
+	}
+
+	// decode optional block DA version
+	// see ANSI X9.143:2021, 6.3.6.1, table 8
+	if (opt_ctx->data_length < 2) {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+	da_data->version = hex_to_int(opt_ctx->data, 2);
+	if (da_data->version != TR31_OPT_BLOCK_DA_VERSION_1) {
+		// unsupported DA version
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+
+	// validate optional block length
+	if (opt_ctx->data_length < 7 ||
+		(opt_ctx->data_length - 2) % 5 != 0
+	) {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+	count = (opt_ctx->data_length - 2) / 5;
+
+	// validate output data length
+	if (da_data_len != sizeof(struct tr31_opt_blk_da_attr_t) * count + sizeof(struct tr31_opt_blk_da_data_t)) {
+		return -3;
+	}
+
+	// decode optional block DA version 1
+	// see ANSI X9.143:2021, 6.3.6.1, table 8
+	da_attr = opt_ctx->data + 2;
+	for (size_t i = 0; i < count; ++i) {
+		uint16_t key_usage_raw = da_attr[0];
+		key_usage_raw += da_attr[1] << 8;
+		da_data->attr[i].key_usage = ntohs(key_usage_raw);
+		da_data->attr[i].algorithm = da_attr[2];
+		da_data->attr[i].mode_of_use = da_attr[3];
+		da_data->attr[i].exportability = da_attr[4];
+		da_attr += 5;
+	}
+
+	return 0;
+}
+
+static int tr31_opt_block_validate_hash_algorithm(uint8_t hash_algorithm)
+{
 	// validate hash algorithm
 	// see ANSI X9.143:2021, 6.3.6.5, table 13
 	switch (hash_algorithm) {
@@ -1111,13 +1504,79 @@ int tr31_opt_block_add_HM(
 		case TR31_OPT_BLOCK_HM_SHA3_512:
 		case TR31_OPT_BLOCK_HM_SHAKE128:
 		case TR31_OPT_BLOCK_HM_SHAKE256:
-			break;
+			// valid
+			return 0;
 
 		default:
 			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 	}
+}
 
-	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_HM, &hash_algorithm, 1);
+int tr31_opt_block_add_HM(
+	struct tr31_ctx_t* ctx,
+	uint8_t hash_algorithm
+)
+{
+	int r;
+	char encoded_data[2];
+
+	if (!ctx) {
+		return -1;
+	}
+
+	// validate hash algorithm
+	// see ANSI X9.143:2021, 6.3.6.5, table 13
+	r = tr31_opt_block_validate_hash_algorithm(hash_algorithm);
+	if (r) {
+		// return error value as-is
+		return r;
+	}
+
+	// encode optional block data
+	r = bin_to_hex(
+		&hash_algorithm,
+		sizeof(hash_algorithm),
+		encoded_data,
+		sizeof(encoded_data)
+	);
+	if (r) {
+		return -2;
+	}
+
+	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_HM, encoded_data, sizeof(encoded_data));
+}
+
+int tr31_opt_block_decode_HM(
+	const struct tr31_opt_ctx_t* opt_ctx,
+	uint8_t* hash_algorithm
+)
+{
+	int r;
+
+	if (!opt_ctx || !hash_algorithm) {
+		return -1;
+	}
+
+	if (opt_ctx->id != TR31_OPT_BLOCK_HM) {
+		return -2;
+	}
+
+	// decode optional block data and validate
+	// see ANSI X9.143:2021, 6.3.6.5, table 13
+	if (opt_ctx->data_length != 2) {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+	r = hex_to_bin(opt_ctx->data, 2, hash_algorithm, sizeof(*hash_algorithm));
+	if (r) {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+	r = tr31_opt_block_validate_hash_algorithm(*hash_algorithm);
+	if (r) {
+		// return error value as-is
+		return r;
+	}
+
+	return 0;
 }
 
 int tr31_opt_block_add_IK(
@@ -1126,6 +1585,9 @@ int tr31_opt_block_add_IK(
 	size_t ikid_len
 )
 {
+	int r;
+	char encoded_data[16];
+
 	if (!ctx || !ikid) {
 		return -1;
 	}
@@ -1136,7 +1598,50 @@ int tr31_opt_block_add_IK(
 		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 	}
 
-	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_IK, ikid, ikid_len);
+	// encode optional block data
+	r = bin_to_hex(
+		ikid,
+		ikid_len,
+		encoded_data,
+		sizeof(encoded_data)
+	);
+	if (r) {
+		return -2;
+	}
+
+	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_IK, encoded_data, sizeof(encoded_data));
+}
+
+int tr31_opt_block_decode_IK(
+	const struct tr31_opt_ctx_t* opt_ctx,
+	void* ikid,
+	size_t ikid_len
+)
+{
+	int r;
+
+	if (!opt_ctx || !ikid) {
+		return -1;
+	}
+
+	if (opt_ctx->id != TR31_OPT_BLOCK_IK) {
+		return -2;
+	}
+
+	// IKID must be 8 bytes (thus 16 hex digits)
+	// see ANSI X9.143:2021, 6.3.6.6, table 14
+	if (ikid_len != 8) {
+		return -3;
+	}
+	if (opt_ctx->data_length != 16) {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+	r = hex_to_bin(opt_ctx->data, opt_ctx->data_length, ikid, ikid_len);
+	if (r) {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+
+	return 0;
 }
 
 int tr31_opt_block_add_KC(struct tr31_ctx_t* ctx)
@@ -1145,10 +1650,42 @@ int tr31_opt_block_add_KC(struct tr31_ctx_t* ctx)
 	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_KC, NULL, 0);
 }
 
+int tr31_opt_block_decode_KC(
+	const struct tr31_opt_ctx_t* opt_ctx,
+	struct tr31_opt_blk_kcv_data_t* kcv_data
+)
+{
+	if (!opt_ctx || !kcv_data) {
+		return -1;
+	}
+
+	if (opt_ctx->id != TR31_OPT_BLOCK_KC) {
+		return -2;
+	}
+
+	return tr31_opt_block_decode_kcv(opt_ctx, kcv_data);
+}
+
 int tr31_opt_block_add_KP(struct tr31_ctx_t* ctx)
 {
 	// add empty KP optional block to be finalised by tr31_export()
 	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_KP, NULL, 0);
+}
+
+int tr31_opt_block_decode_KP(
+	const struct tr31_opt_ctx_t* opt_ctx,
+	struct tr31_opt_blk_kcv_data_t* kcv_data
+)
+{
+	if (!opt_ctx || !kcv_data) {
+		return -1;
+	}
+
+	if (opt_ctx->id != TR31_OPT_BLOCK_KP) {
+		return -2;
+	}
+
+	return tr31_opt_block_decode_kcv(opt_ctx, kcv_data);
 }
 
 int tr31_opt_block_add_KS(
@@ -1157,6 +1694,9 @@ int tr31_opt_block_add_KS(
 	size_t iksn_len
 )
 {
+	int r;
+	char encoded_data[20];
+
 	if (!ctx || !iksn) {
 		return -1;
 	}
@@ -1169,7 +1709,56 @@ int tr31_opt_block_add_KS(
 		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 	}
 
-	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_KS, iksn, iksn_len);
+	// encode optional block data
+	r = bin_to_hex(
+		iksn,
+		iksn_len,
+		encoded_data,
+		sizeof(encoded_data)
+	);
+	if (r) {
+		return -2;
+	}
+
+	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_KS, encoded_data, iksn_len * 2);
+}
+
+int tr31_opt_block_decode_KS(
+	const struct tr31_opt_ctx_t* opt_ctx,
+	void* iksn,
+	size_t iksn_len
+)
+{
+	int r;
+
+	if (!opt_ctx || !iksn) {
+		return -1;
+	}
+
+	if (opt_ctx->id != TR31_OPT_BLOCK_KS) {
+		return -2;
+	}
+
+	// IKSN must be 10 bytes (thus 20 hex digits)
+	// see ANSI X9.143:2021, 6.3.6.8, table 16
+	// NOTE: this implementation also allows 8 bytes (thus 16 hex digits) for
+	// compatibility with other legacy implementations
+	if (iksn_len != 10 && iksn_len != 8) {
+		return -3;
+	}
+	if (opt_ctx->data_length != 20 && opt_ctx->data_length != 16) {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+	r = hex_to_bin(opt_ctx->data, opt_ctx->data_length, iksn, iksn_len);
+	if (r) {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+	if (iksn_len == 10 && opt_ctx->data_length == 16) {
+		// zero last two bytes if there is a length mismatch
+		memset(iksn + 8, 0, 2);
+	}
+
+	return 0;
 }
 
 int tr31_opt_block_add_KV(
@@ -1224,34 +1813,47 @@ int tr31_opt_block_add_PK(
 	size_t kcv_len
 )
 {
-	uint8_t buf[6];
+	int r;
+	char encoded_data[12];
 
 	if (!ctx || !kcv) {
 		return -1;
 	}
 
-	// validate KCV length according to KCV algorithm
-	// KCV lengths should comply with ANSI X9.24-1, Annex A
-	// see ANSI X9.143:2021, 6.3.6.12, table 20
-	if (kcv_algorithm == TR31_OPT_BLOCK_KCV_LEGACY) {
-		if (kcv_len > 3) {
-			// Legacy KCV should be truncated to 3 bytes or less
-			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
-		}
-	} else if (kcv_algorithm == TR31_OPT_BLOCK_KCV_CMAC) {
-		if (kcv_len > 5) {
-			// CMAC KCV should be truncated to 5 bytes or less
-			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
-		}
-	} else {
-		// Unknown KCV algorithm
-		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	r = tr31_opt_block_encode_kcv(
+		kcv_algorithm,
+		kcv,
+		kcv_len,
+		encoded_data,
+		sizeof(encoded_data)
+	);
+	if (r) {
+		// return error value as-is
+		return r;
 	}
 
-	// NOTE: tr31_opt_block_export() will hex encode this optional block
-	buf[0] = kcv_algorithm;
-	memcpy(&buf[1], kcv, kcv_len);
-	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_PK, buf, kcv_len + 1);
+	return tr31_opt_block_add(
+		ctx,
+		TR31_OPT_BLOCK_PK,
+		encoded_data,
+		tr31_opt_block_kcv_data_length(kcv_len)
+	);
+}
+
+int tr31_opt_block_decode_PK(
+	const struct tr31_opt_ctx_t* opt_ctx,
+	struct tr31_opt_blk_kcv_data_t* kcv_data
+)
+{
+	if (!opt_ctx || !kcv_data) {
+		return -1;
+	}
+
+	if (opt_ctx->id != TR31_OPT_BLOCK_PK) {
+		return -2;
+	}
+
+	return tr31_opt_block_decode_kcv(opt_ctx, kcv_data);
 }
 
 int tr31_opt_block_add_TC(
@@ -1308,19 +1910,62 @@ int tr31_opt_block_add_WP(
 	}
 
 	// assume wrapping pedigree optional block version 00
-	// unfortunately optional block WP carries an odd number of hex digits and
-	// therefore the digits must be encoded here instead of in
-	// tr31_opt_block_export()
 	// see ANSI X9.143:2021, 6.3.6.15, table 23
 	int_to_hex(TR31_OPT_BLOCK_WP_VERSION_0, buf, 2);
 	int_to_hex(wrapping_pedigree, buf + 2, 1);
 	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_WP, buf, sizeof(buf));
 }
 
+int tr31_opt_block_decode_WP(
+	const struct tr31_opt_ctx_t* opt_ctx,
+	struct tr31_opt_blk_wp_data_t* wp_data
+)
+{
+	int r;
+
+	if (!opt_ctx || !wp_data) {
+		return -1;
+	}
+
+	if (opt_ctx->id != TR31_OPT_BLOCK_WP) {
+		return -2;
+	}
+
+	// decode optional block data and validate
+	// see ANSI X9.143:2021, 6.3.6.15, table 23
+	if (opt_ctx->data_length < 2) {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+	r = hex_to_bin(opt_ctx->data, 2, &wp_data->version, sizeof(wp_data->version));
+	if (r) {
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+	if (wp_data->version == TR31_OPT_BLOCK_WP_VERSION_0) {
+		uint8_t wrapping_pedigree;
+
+		// decode WP optional block version 00
+		if (opt_ctx->data_length != 3) {
+			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+		}
+		wrapping_pedigree = hex_to_int(opt_ctx->data + 2, 1);
+		if (wrapping_pedigree > 3) {
+			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+		}
+		wp_data->v0.wrapping_pedigree = wrapping_pedigree;
+
+	} else {
+		// unsupported AKL version
+		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+	}
+
+	return 0;
+}
+
 int tr31_import(
 	const char* key_block,
 	size_t key_block_len,
 	const struct tr31_key_t* kbpk,
+	uint32_t flags,
 	struct tr31_ctx_t* ctx
 )
 {
@@ -1347,10 +1992,11 @@ int tr31_import(
 
 	// initialise processing state object
 	// this will populate:
+	// - state.flags
 	// - state.enc_block_size
 	// - state.authenticator_length
 	header = (const struct tr31_header_t*)key_block;
-	r = tr31_state_init(0, header->version_id, &state);
+	r = tr31_state_init(flags, header->version_id, &state);
 	if (r) {
 		// return error value as-is
 		return r;
@@ -1381,8 +2027,18 @@ int tr31_import(
 		&ctx->key
 	);
 	if (r) {
-		// return error value as-is
-		return r;
+		if (flags & TR31_IMPORT_NO_STRICT_VALIDATION) {
+			// when strict validation is disabled, ignore all key attribute errors
+			if (r < TR31_ERROR_UNSUPPORTED_KEY_USAGE ||
+				r > TR31_ERROR_UNSUPPORTED_EXPORTABILITY
+			) {
+				// return error value as-is
+				return r;
+			}
+		} else {
+			// return error value as-is
+			return r;
+		}
 	}
 
 	// decode number of optional blocks field
@@ -1408,6 +2064,7 @@ int tr31_import(
 		// copy optional block field
 		size_t opt_blk_len;
 		r = tr31_opt_block_parse(
+			&state,
 			ptr,
 			(void*)key_block + key_block_len - ptr,
 			&opt_blk_len,
@@ -1636,6 +2293,7 @@ exit:
 int tr31_export(
 	const struct tr31_ctx_t* ctx,
 	const struct tr31_key_t* kbpk,
+	uint32_t flags,
 	char* key_block,
 	size_t key_block_buf_len
 )
@@ -1664,9 +2322,10 @@ int tr31_export(
 
 	// initialise processing state object
 	// this will populate:
+	// - state.flags
 	// - state.enc_block_size
 	// - state.authenticator_length
-	r = tr31_state_init(ctx->export_flags, ctx->version, &state);
+	r = tr31_state_init(flags, ctx->version, &state);
 	if (r) {
 		// return error value as-is
 		return r;
@@ -1710,10 +2369,19 @@ int tr31_export(
 
 			// build optional block KC (KCV of wrapped key)
 			// see ANSI X9.143:2021, 6.3.6.7
-			ctx->opt_blocks[i].data_length = ctx->key.kcv_len + 1; // +1 for KCV algorithm
+			ctx->opt_blocks[i].data_length = tr31_opt_block_kcv_data_length(ctx->key.kcv_len);
 			ctx->opt_blocks[i].data = calloc(1, ctx->opt_blocks[i].data_length);
-			memcpy(ctx->opt_blocks[i].data, &ctx->key.kcv_algorithm, 1);
-			memcpy(ctx->opt_blocks[i].data + 1, ctx->key.kcv, ctx->key.kcv_len);
+			r = tr31_opt_block_encode_kcv(
+				ctx->key.kcv_algorithm,
+				ctx->key.kcv,
+				ctx->key.kcv_len,
+				ctx->opt_blocks[i].data,
+				ctx->opt_blocks[i].data_length
+			);
+			if (r) {
+				// internal error
+				return -3;
+			}
 		}
 
 		// if optional block KP is present with no data
@@ -1727,10 +2395,19 @@ int tr31_export(
 
 			// build optional block KP (KCV of KBPK)
 			// see ANSI X9.143:2021, 6.3.6.7
-			ctx->opt_blocks[i].data_length = kbpk->kcv_len + 1; // +1 for KCV algorithm
+			ctx->opt_blocks[i].data_length = tr31_opt_block_kcv_data_length(kbpk->kcv_len);
 			ctx->opt_blocks[i].data = calloc(1, ctx->opt_blocks[i].data_length);
-			memcpy(ctx->opt_blocks[i].data, &kbpk->kcv_algorithm, 1);
-			memcpy(ctx->opt_blocks[i].data + 1, kbpk->kcv, kbpk->kcv_len);
+			r = tr31_opt_block_encode_kcv(
+				kbpk->kcv_algorithm,
+				kbpk->kcv,
+				kbpk->kcv_len,
+				ctx->opt_blocks[i].data,
+				ctx->opt_blocks[i].data_length
+			);
+			if (r) {
+				// internal error
+				return -4;
+			}
 		}
 	}
 
@@ -1889,7 +2566,7 @@ int tr31_export(
 
 		default:
 			// invalid format version
-			r = -3;
+			r = -5;
 			goto error;
 	}
 
@@ -1902,7 +2579,7 @@ int tr31_export(
 	);
 	if (r) {
 		// internal error
-		r = -4;
+		r = -6;
 		goto error;
 	}
 
@@ -1917,6 +2594,7 @@ exit:
 }
 
 static int tr31_opt_block_parse(
+	const struct tr31_state_t* state,
 	const void* ptr,
 	size_t remaining_len,
 	size_t* opt_blk_len,
@@ -1999,8 +2677,23 @@ static int tr31_opt_block_parse(
 	}
 	opt_blk_data = ptr + opt_blk_hdr_len;
 
+	// if strict validation is disabled, validate the format only as
+	// printable ASCII (format PA)
+	if ((state->flags & TR31_IMPORT_NO_STRICT_VALIDATION) != 0) {
+		opt_ctx->data_length = (*opt_blk_len - opt_blk_hdr_len);
+		r = tr31_validate_format_pa(opt_blk_data, opt_ctx->data_length);
+		if (r) {
+			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+		}
+		opt_ctx->data = malloc(opt_ctx->data_length);
+		memcpy(opt_ctx->data, opt_blk_data, opt_ctx->data_length);
+		return 0;
+	}
+
+	// perform strict validation of the character or string format required for
+	// each known optional block ID
 	switch (opt_ctx->id) {
-		// optional blocks to be decoded as hex
+		// optional blocks to be validated as hex (format H)
 		case TR31_OPT_BLOCK_AL:
 		case TR31_OPT_BLOCK_BI:
 		case TR31_OPT_BLOCK_HM:
@@ -2009,22 +2702,23 @@ static int tr31_opt_block_parse(
 		case TR31_OPT_BLOCK_KP:
 		case TR31_OPT_BLOCK_KS:
 		case TR31_OPT_BLOCK_PK:
-			opt_ctx->data_length = (*opt_blk_len - opt_blk_hdr_len) / 2;
-			opt_ctx->data = calloc(1, opt_ctx->data_length);
-			r = hex_to_bin(opt_blk_data, opt_ctx->data_length * 2, opt_ctx->data, opt_ctx->data_length);
+			opt_ctx->data_length = (*opt_blk_len - opt_blk_hdr_len);
+			r = tr31_validate_format_h(opt_blk_data, opt_ctx->data_length);
 			if (r) {
 				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 			}
+			opt_ctx->data = malloc(opt_ctx->data_length);
+			memcpy(opt_ctx->data, opt_blk_data, opt_ctx->data_length);
 			return 0;
 
 		// optional blocks to be validated as alphanumeric (format AN)
 		case TR31_OPT_BLOCK_DA:
 			opt_ctx->data_length = (*opt_blk_len - opt_blk_hdr_len);
-			opt_ctx->data = calloc(1, opt_ctx->data_length);
 			r = tr31_validate_format_an(opt_blk_data, opt_ctx->data_length);
 			if (r) {
 				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 			}
+			opt_ctx->data = malloc(opt_ctx->data_length);
 			memcpy(opt_ctx->data, opt_blk_data, opt_ctx->data_length);
 			return 0;
 
@@ -2032,11 +2726,11 @@ static int tr31_opt_block_parse(
 		case TR31_OPT_BLOCK_LB:
 		case TR31_OPT_BLOCK_PB:
 			opt_ctx->data_length = (*opt_blk_len - opt_blk_hdr_len);
-			opt_ctx->data = calloc(1, opt_ctx->data_length);
 			r = tr31_validate_format_pa(opt_blk_data, opt_ctx->data_length);
 			if (r) {
 				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 			}
+			opt_ctx->data = malloc(opt_ctx->data_length);
 			memcpy(opt_ctx->data, opt_blk_data, opt_ctx->data_length);
 			return 0;
 
@@ -2044,18 +2738,23 @@ static int tr31_opt_block_parse(
 		case TR31_OPT_BLOCK_TC:
 		case TR31_OPT_BLOCK_TS:
 			opt_ctx->data_length = (*opt_blk_len - opt_blk_hdr_len);
-			opt_ctx->data = calloc(1, opt_ctx->data_length);
 			r = tr31_opt_block_validate_iso8601(opt_blk_data, opt_ctx->data_length);
 			if (r) {
 				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 			}
+			opt_ctx->data = malloc(opt_ctx->data_length);
 			memcpy(opt_ctx->data, opt_blk_data, opt_ctx->data_length);
 			return 0;
 
-		// copy all other optional blocks, including proprietary ones, verbatim
+		// all other optional blocks, including proprietary ones, to be
+		// validated as printable ASCII (format PA)
 		default:
 			opt_ctx->data_length = (*opt_blk_len - opt_blk_hdr_len);
-			opt_ctx->data = calloc(1, opt_ctx->data_length);
+			r = tr31_validate_format_pa(opt_blk_data, opt_ctx->data_length);
+			if (r) {
+				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+			}
+			opt_ctx->data = malloc(opt_ctx->data_length);
 			memcpy(opt_ctx->data, opt_blk_data, opt_ctx->data_length);
 			return 0;
 	}
@@ -2116,10 +2815,7 @@ static int tr31_opt_block_export(
 	void* ptr
 )
 {
-	int r;
 	struct tr31_opt_blk_hdr_t* opt_blk_hdr;
-	size_t encoded_data_length;
-	bool encode_hex = false;
 	const size_t opt_blk_len_byte_count = 4; // must be 4 according to ANSI X9.143:2021, 6.2, table 1
 	size_t opt_blk_hdr_len;
 	void* opt_blk_data;
@@ -2143,31 +2839,10 @@ static int tr31_opt_block_export(
 	// populate optional block id
 	opt_blk_hdr->id = htons(opt_ctx->id);
 
-	// determine optional block data length according to encoding
-	switch (opt_ctx->id) {
-		// optional blocks to be encoded as hex
-		case TR31_OPT_BLOCK_AL:
-		case TR31_OPT_BLOCK_BI:
-		case TR31_OPT_BLOCK_HM:
-		case TR31_OPT_BLOCK_IK:
-		case TR31_OPT_BLOCK_KC:
-		case TR31_OPT_BLOCK_KP:
-		case TR31_OPT_BLOCK_KS:
-		case TR31_OPT_BLOCK_PK:
-			encoded_data_length = opt_ctx->data_length * 2;
-			encode_hex = true;
-			break;
-
-		// optional blocks to be copied verbatim
-		default:
-			encoded_data_length = opt_ctx->data_length;
-			break;
-	}
-
 	// populate optional block length
-	if (encoded_data_length + sizeof(struct tr31_opt_blk_hdr_t) < 256) {
+	if (sizeof(struct tr31_opt_blk_hdr_t) + opt_ctx->data_length < 256) {
 		// short optional block length
-		*opt_blk_len = encoded_data_length + sizeof(struct tr31_opt_blk_hdr_t);
+		*opt_blk_len = sizeof(struct tr31_opt_blk_hdr_t) + opt_ctx->data_length;
 		if (*opt_blk_len > remaining_len) {
 			// optional block length exceeds remaining key block length
 			return TR31_ERROR_INVALID_LENGTH;
@@ -2177,10 +2852,10 @@ static int tr31_opt_block_export(
 		// remember header length for later computations
 		opt_blk_hdr_len = sizeof(struct tr31_opt_blk_hdr_t);
 
-	} else if (encoded_data_length + sizeof(struct tr31_opt_blk_hdr_ext_t) + opt_blk_len_byte_count < 65536) {
+	} else if (sizeof(struct tr31_opt_blk_hdr_ext_t) + opt_blk_len_byte_count + opt_ctx->data_length < 65536) {
 		// extended optional block length
 		struct tr31_opt_blk_hdr_ext_t* opt_blk_hdr_ext = ptr;
-		*opt_blk_len = encoded_data_length + sizeof(struct tr31_opt_blk_hdr_ext_t) + opt_blk_len_byte_count;
+		*opt_blk_len = sizeof(struct tr31_opt_blk_hdr_ext_t) + opt_blk_len_byte_count + opt_ctx->data_length;
 		if (*opt_blk_len > remaining_len) {
 			// optional block length exceeds remaining key block length
 			return TR31_ERROR_INVALID_LENGTH;
@@ -2201,21 +2876,7 @@ static int tr31_opt_block_export(
 	opt_blk_data = ptr + opt_blk_hdr_len;
 
 	// populate optional block data
-	if (encode_hex) {
-		// encode as hex
-		r = bin_to_hex(
-			opt_ctx->data,
-			opt_ctx->data_length,
-			opt_blk_data,
-			opt_ctx->data_length * 2
-		);
-		if (r) {
-			return -2;
-		}
-	} else {
-		// copy verbatim
-		memcpy(opt_blk_data, opt_ctx->data, opt_ctx->data_length);
-	}
+	memcpy(opt_blk_data, opt_ctx->data, opt_ctx->data_length);
 
 	return 0;
 }
@@ -2999,7 +3660,9 @@ void tr31_release(struct tr31_ctx_t* ctx)
 
 	if (ctx->opt_blocks) {
 		for (size_t i = 0; i < ctx->opt_blocks_count; ++i) {
-			free(ctx->opt_blocks[i].data);
+			if (ctx->opt_blocks[i].data) {
+				free(ctx->opt_blocks[i].data);
+			}
 			ctx->opt_blocks[i].data = NULL;
 		}
 
@@ -3025,6 +3688,7 @@ const char* tr31_get_error_string(enum tr31_error_t error)
 		case TR31_ERROR_INVALID_KEY_VERSION_FIELD: return "Invalid key version field";
 		case TR31_ERROR_UNSUPPORTED_EXPORTABILITY: return "Unsupported key exportability";
 		case TR31_ERROR_INVALID_NUMBER_OF_OPTIONAL_BLOCKS_FIELD: return "Invalid number of optional blocks field";
+		case TR31_ERROR_DUPLICATE_OPTIONAL_BLOCK_ID: return "Duplicate optional block identifier";
 		case TR31_ERROR_INVALID_OPTIONAL_BLOCK_LENGTH: return "Invalid optional block length";
 		case TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA: return "Invalid optional block data";
 		case TR31_ERROR_INVALID_OPTIONAL_BLOCK_PADDING: return "Invalid optional block padding";

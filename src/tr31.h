@@ -177,9 +177,10 @@ enum tr31_key_version_t {
 #define TR31_OPT_BLOCK_WP_ASYMMETRIC    (2)    ///< Asymmetric key at risk of quantum computing
 #define TR31_OPT_BLOCK_WP_ASYMMETRIC_LT (3)    ///< Asymmetric key at risk of quantum computing and symmetric key of lesser effective strength
 
-// TR-31 export flags
+// Key block import/export flags
+#define TR31_IMPORT_NO_STRICT_VALIDATION        (0x01) ///< Disable strict ANSI X9.143 / ISO 20038 validation during import. This is useful for importing non-standard key blocks.
 #define TR31_EXPORT_NO_KEY_LENGTH_OBFUSCATION   (0x01) ///< Disable ANSI X9.143 key length obfuscation during key block export
-#define TR31_EXPORT_ZERO_OPT_BLOCK_PB           (0x02) ///< Fill optional block PB using zeros instead of random characters during TR-31 export.
+#define TR31_EXPORT_ZERO_OPT_BLOCK_PB           (0x02) ///< Fill optional block PB using zeros instead of random characters during key block export.
 
 /// TR-31 key object
 struct tr31_key_t {
@@ -208,6 +209,52 @@ struct tr31_opt_ctx_t {
 	void* data; ///< TR-31 optional block data
 };
 
+/// Decoded optional block Asymmetric Key Life (AKL) data
+struct tr31_opt_blk_akl_data_t {
+	uint8_t version; ///< Asymmetric Key Life (AKL) version
+	/// Asymmetric Key Life (AKL) version 1
+	struct v1_t {
+		uint8_t akl; ///< Asymmetric Key Life (AKL)
+	} v1; ///< Asymmetric Key Life (AKL) version 1. Valid if @ref tr31_opt_blk_akl_data_t.version is @ref TR31_OPT_BLOCK_AL_VERSION_1
+};
+
+/// Decoded optional block Base Derivation Key Identifier (BDK ID) data
+struct tr31_opt_blk_bdkid_data_t {
+	uint8_t key_type; ///< DUKPT key type. Either @ref TR31_OPT_BLOCK_BI_TDES_DUKPT or @ref TR31_OPT_BLOCK_BI_AES_DUKPT.
+	size_t bdkid_len; ///< Length of @ref tr31_opt_blk_bdkid_data_t.bdkid in bytes. Must be 5 bytes for TDES DUKPT or 4 bytes for AES DUKPT (according to ANSI X9.143:2021, 6.3.6.2, table 9)
+	uint8_t bdkid[5]; ///< Key Set ID (KSI) or Base Derivation Key ID (BDK ID)
+};
+
+/// Decoded Derivation Allowed (DA) attributes
+struct tr31_opt_blk_da_attr_t {
+	unsigned int key_usage; ///< Derivation Allowed: key usage
+	unsigned int algorithm; ///< Derivation Allowed: key algorithm
+	unsigned int mode_of_use; ///< Derivation Allowed: mode of use
+	unsigned int exportability; ///< Derivation Allowed: exportability
+};
+
+/// Decoded Derivation(s) Allowed (DA) data
+struct tr31_opt_blk_da_data_t {
+	unsigned int version; ///< Derivation(s) Allowed (DA) version
+	struct tr31_opt_blk_da_attr_t attr[]; ///< Derivation Allowed (DA) array
+};
+
+/// Decoded optional block Key Check Value (KCV) data
+struct tr31_opt_blk_kcv_data_t {
+	uint8_t kcv_algorithm; ///< KCV algorithm output. Either @ref TR31_OPT_BLOCK_KCV_LEGACY or @ref TR31_OPT_BLOCK_KCV_CMAC.
+	size_t kcv_len; ///< Length of @ref tr31_opt_blk_kcv_data_t.kcv in bytes. Must be at most 3 bytes for legacy KCV or at most 5 bytes for CMAC KCV (according to ANSI X9.24-1)
+	uint8_t kcv[5]; ///< Key Check Value (KCV)
+};
+
+/// Decoded optional block Wrapping Pedigree (WP) data
+struct tr31_opt_blk_wp_data_t {
+	uint8_t version; ///<Wrapping Pedigree (WP) format version
+	/// Wrapping Pedigree (WP) version 0
+	struct v0_t {
+		uint8_t wrapping_pedigree; ///< Wrapping Pedigree value
+	} v0; ///< Wrapping Pedigree (WP) version 0. Valid if @ref tr31_opt_blk_wp_data_t.version is @ref TR31_OPT_BLOCK_WP_VERSION_0
+};
+
 /**
  * @brief TR-31 context object
  * This object is typically populated by @ref tr31_import().
@@ -227,8 +274,6 @@ struct tr31_ctx_t {
 
 	size_t opt_blocks_count; ///< TR-31 number of optional blocks
 	struct tr31_opt_ctx_t* opt_blocks; ///< TR-31 optional block context objects
-
-	uint32_t export_flags; ///< Flags used during TR-31 export
 };
 
 /// TR-31 library errors
@@ -243,6 +288,7 @@ enum tr31_error_t {
 	TR31_ERROR_INVALID_KEY_VERSION_FIELD, ///< Invalid key version field
 	TR31_ERROR_UNSUPPORTED_EXPORTABILITY, ///< Unsupported key exportability
 	TR31_ERROR_INVALID_NUMBER_OF_OPTIONAL_BLOCKS_FIELD, ///< Invalid number of optional blocks field
+	TR31_ERROR_DUPLICATE_OPTIONAL_BLOCK_ID, ///< Duplicate optional block identifier
 	TR31_ERROR_INVALID_OPTIONAL_BLOCK_LENGTH, ///< Invalid optional block length
 	TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA, ///< Invalid optional block data
 	TR31_ERROR_INVALID_OPTIONAL_BLOCK_PADDING, ///< Invalid optional block padding
@@ -371,11 +417,13 @@ int tr31_init(
  *        authenticator will be ignored.
  * @param key_block_header_len Length of @p key_block_header in bytes. Must be
  *        at least 16 bytes.
+ * @param flags TR-31 import flags.
  * @param ctx TR-31 context object output
  */
 int tr31_init_from_header(
 	const char* key_block_header,
 	size_t key_block_header_len,
+	uint32_t flags,
 	struct tr31_ctx_t* ctx
 );
 
@@ -386,7 +434,7 @@ int tr31_init_from_header(
  *
  * @param ctx TR-31 context object
  * @param id TR-31 optional block identifier (see ANSI X9.143:2021, 6.3.6, table 7)
- * @param data TR-31 optional block data
+ * @param data TR-31 optional block data. Must be printable ASCII (format PA).
  * @param length Length of TR-31 optional block data in bytes
  * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
  */
@@ -395,6 +443,34 @@ int tr31_opt_block_add(
 	unsigned int id,
 	const void* data,
 	size_t length
+);
+
+/**
+ * Find optional block in TR-31 context object
+ *
+ * @note This function requires an initialised TR-31 context object to be provided.
+ *
+ * @param ctx TR-31 context object
+ * @param id TR-31 optional block identifier (see ANSI X9.143:2021, 6.3.6, table 7)
+ * @return Pointer to optional block context object, if found. Otherwise NULL.
+ */
+struct tr31_opt_ctx_t* tr31_opt_block_find(struct tr31_ctx_t* ctx, unsigned int id);
+
+/**
+ * Decode optional block containing Key Check Value (KCV) data. This may be
+ * optional block 'KC', 'KP', 'PK' or any other proprietary optional block with
+ * the same format.
+ *
+ * @note This function complies with ANSI X9.143 and ISO 20038, and will fail
+ *       for non-compliant encodings of this optional block.
+ *
+ * @param opt_ctx TR-31 optional block context object
+ * @param kcv_data Decoded optional block Key Check Value (KCV) data output
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
+ */
+int tr31_opt_block_decode_kcv(
+	const struct tr31_opt_ctx_t* opt_ctx,
+	struct tr31_opt_blk_kcv_data_t* kcv_data
 );
 
 /**
@@ -413,8 +489,23 @@ int tr31_opt_block_add_AL(
 );
 
 /**
- * Add optional block 'BI' for Base Derviation Key Identifier for DUKPT to
- * TR-31 context object.
+ * Decode optional block 'AL' for Asymmetric Key Life (AKL) of wrapped key.
+ *
+ * @note This function complies with ANSI X9.143 and will fail for
+ *       non-compliant encodings of this optional block.
+ *
+ * @param opt_ctx TR-31 optional block context object
+ * @param akl_data Decoded Asymmetric Key Life (AKL) data output
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
+ */
+int tr31_opt_block_decode_AL(
+	const struct tr31_opt_ctx_t* opt_ctx,
+	struct tr31_opt_blk_akl_data_t* akl_data
+);
+
+/**
+ * Add optional block 'BI' for Base Derivation Key Identifier (BDK ID) for
+ * DUKPT to TR-31 context object.
  *
  * @note This function requires an initialised TR-31 context object to be provided.
  *
@@ -429,6 +520,22 @@ int tr31_opt_block_add_BI(
 	uint8_t key_type,
 	const void* bdkid,
 	size_t bdkid_len
+);
+
+/**
+ * Decode optional block 'BI' for Base Derivation Key Identifier (BDK ID) for
+ * DUKPT.
+ *
+ * @note This function complies with ANSI X9.143 and will fail for
+ *       non-compliant encodings of this optional block.
+ *
+ * @param opt_ctx TR-31 optional block context object
+ * @param bdkid_data Decoded Base Derivation Key ID (BDK ID) data output
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
+ */
+int tr31_opt_block_decode_BI(
+	const struct tr31_opt_ctx_t* opt_ctx,
+	struct tr31_opt_blk_bdkid_data_t* bdkid_data
 );
 
 /**
@@ -471,18 +578,60 @@ int tr31_opt_block_add_DA(
 );
 
 /**
+ * Decode optional block 'DA' for Derivation(s) Allowed for Derivation Keys.
+ * The caller is responsible for computing the length of the output data and
+ * allocating a suitable buffer. The length can be calculated using:
+ * @code
+ * if (opt_ctx->data_length > 2) {
+ *     da_attr_count = (opt_ctx->data_length - 2) / 5;
+ *     da_data_len = sizeof(struct tr31_opt_blk_da_attr_t) * da_attr_count
+ *         + sizeof(struct tr31_opt_blk_da_data_t);
+ *     da_data = malloc(da_data_len);
+ * }
+ * @endcode
+ *
+ * @note This function complies with ANSI X9.143 and will fail for
+ *       non-compliant encodings of this optional block.
+ *
+ * @param opt_ctx TR-31 optional block context object
+ * @param da_data Decoded Derivation(s) Allowed (DA) data output
+ * @param da_data_len Length of @p da_data in bytes. See function description.
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
+ */
+int tr31_opt_block_decode_DA(
+	const struct tr31_opt_ctx_t* opt_ctx,
+	struct tr31_opt_blk_da_data_t* da_data,
+	size_t da_data_len
+);
+
+/**
  * Add optional block 'HM' for HMAC hash algorithm of wrapped key to TR-31
  * context object.
  *
  * @note This function requires an initialised TR-31 context object to be provided.
  *
  * @param ctx TR-31 context object
- * @param hash_algorithm TR-31 HMAC hash algorithm (see ANSI X9.143:2021, 6.3.6.5, table 13)
+ * @param hash_algorithm HMAC hash algorithm (see ANSI X9.143:2021, 6.3.6.5, table 13)
  * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
  */
 int tr31_opt_block_add_HM(
 	struct tr31_ctx_t* ctx,
 	uint8_t hash_algorithm
+);
+
+/**
+ * Decode optional block 'HM' for HMAC hash algorithm of wrapped key.
+ *
+ * @note This function complies with ANSI X9.143 and will fail for
+ *       non-compliant encodings of this optional block.
+ *
+ * @param opt_ctx TR-31 optional block context object
+ * @param hash_algorithm HMAC hash algorithm output
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
+ */
+int tr31_opt_block_decode_HM(
+	const struct tr31_opt_ctx_t* opt_ctx,
+	uint8_t* hash_algorithm
 );
 
 /**
@@ -503,6 +652,24 @@ int tr31_opt_block_add_IK(
 );
 
 /**
+ * Decode optional block 'IK' for Initial Key Identifier (IKID) of
+ * Initial AES DUKPT Key.
+ *
+ * @note This function complies with ANSI X9.143 and will fail for
+ *       non-compliant encodings of this optional block.
+ *
+ * @param opt_ctx TR-31 optional block context object
+ * @param ikid Initial Key Identifier (IKID) output
+ * @param ikid_len of @p ikid in bytes. Must be 8 bytes.
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
+ */
+int tr31_opt_block_decode_IK(
+	const struct tr31_opt_ctx_t* opt_ctx,
+	void* ikid,
+	size_t ikid_len
+);
+
+/**
  * Add optional block 'KC' for Key Check Value (KCV) of wrapped key to TR-31
  * context object. This function will not compute the KCV but cause it to be
  * computed by @ref tr31_export().
@@ -513,6 +680,22 @@ int tr31_opt_block_add_IK(
  * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
  */
 int tr31_opt_block_add_KC(struct tr31_ctx_t* ctx);
+
+/**
+ * Decode optional block 'KC' for Key Check Value (KCV) of wrapped key.
+ * This function will not compute the KCV.
+ *
+ * @note This function complies with ANSI X9.143 and ISO 20038, and will fail
+ *       for non-compliant encodings of this optional block.
+ *
+ * @param opt_ctx TR-31 optional block context object
+ * @param kcv_data Decoded optional block Key Check Value (KCV) data output
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
+ */
+int tr31_opt_block_decode_KC(
+	const struct tr31_opt_ctx_t* opt_ctx,
+	struct tr31_opt_blk_kcv_data_t* kcv_data
+);
 
 /**
  * Add optional block 'KP' for Key Check Value (KCV) of Key Block Protection
@@ -527,7 +710,23 @@ int tr31_opt_block_add_KC(struct tr31_ctx_t* ctx);
 int tr31_opt_block_add_KP(struct tr31_ctx_t* ctx);
 
 /**
- * Add optional block 'KS' for Initial Key Serial Number (KSN) of
+ * Decode optional block 'KP' for Key Check Value (KCV) of Key Block Protection
+ * Key (KBPK). This function will not compute the KCV.
+ *
+ * @note This function complies with ANSI X9.143 and ISO 20038, and will fail
+ *       for non-compliant encodings of this optional block.
+ *
+ * @param opt_ctx TR-31 optional block context object
+ * @param kcv_data Decoded optional block Key Check Value (KCV) data output
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
+ */
+int tr31_opt_block_decode_KP(
+	const struct tr31_opt_ctx_t* opt_ctx,
+	struct tr31_opt_blk_kcv_data_t* kcv_data
+);
+
+/**
+ * Add optional block 'KS' for Initial Key Serial Number (IKSN) of
  * Initial TDES DUKPT key to TR-31 context object.
  *
  * @note This function requires an initialised TR-31 context object to be provided.
@@ -540,6 +739,24 @@ int tr31_opt_block_add_KP(struct tr31_ctx_t* ctx);
 int tr31_opt_block_add_KS(
 	struct tr31_ctx_t* ctx,
 	const void* iksn,
+	size_t iksn_len
+);
+
+/**
+ * Decode optional block 'KS' for Initial Key Serial Number (IKSN) of
+ * Initial TDES DUKPT key.
+ *
+ * @note This function complies with ANSI X9.143 and ISO 20038, and will fail
+ *       for non-compliant encodings of this optional block.
+ *
+ * @param opt_ctx TR-31 optional block context object
+ * @param iksn Initial Key Serial Number (IKSN) output
+ * @param iksn_len of @p iksn in bytes. Must be 10 bytes (according to ANSI X9.143:2021, 6.3.6.8, table 16) or 8 bytes (for legacy implementations).
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
+ */
+int tr31_opt_block_decode_KS(
+	const struct tr31_opt_ctx_t* opt_ctx,
+	void* iksn,
 	size_t iksn_len
 );
 
@@ -594,6 +811,22 @@ int tr31_opt_block_add_PK(
 );
 
 /**
+ * Decode optional block 'PK' for Key Check Value (KCV) of export protection
+ * key.
+ *
+ * @note This function complies with ANSI X9.143 and will fail for
+ *       non-compliant encodings of this optional block.
+ *
+ * @param opt_ctx TR-31 optional block context object
+ * @param kcv_data Decoded optional block Key Check Value (KCV) data output
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
+ */
+int tr31_opt_block_decode_PK(
+	const struct tr31_opt_ctx_t* opt_ctx,
+	struct tr31_opt_blk_kcv_data_t* kcv_data
+);
+
+/**
  * Add optional block 'TC' for time of creation of the wrapped key to TR-31
  * context object
  *
@@ -624,7 +857,7 @@ int tr31_opt_block_add_TS(
 );
 
 /**
- * Add optional block 'WP' for wrapping pedigree to TR-31 context object.
+ * Add optional block 'WP' for Wrapping Pedigree to TR-31 context object.
  *
  * @note This function requires an initialised TR-31 context object to be provided.
  *
@@ -638,6 +871,21 @@ int tr31_opt_block_add_WP(
 );
 
 /**
+ * Decode optional block 'WP' for Wrapping Pedigree.
+ *
+ * @note This function complies with ANSI X9.143 and will fail for
+ *       non-compliant encodings of this optional block.
+ *
+ * @param opt_ctx TR-31 optional block context object
+ * @param wp_data Decoded Wrapping Pedigree (WP) data output
+ * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
+ */
+int tr31_opt_block_decode_WP(
+	const struct tr31_opt_ctx_t* opt_ctx,
+	struct tr31_opt_blk_wp_data_t* wp_data
+);
+
+/**
  * Import TR-31 key block. This function will also decrypt the key data if possible.
  *
  * @note This function will populate a new TR-31 context object.
@@ -646,6 +894,7 @@ int tr31_opt_block_add_WP(
  * @param key_block TR-31 key block. Must contain printable ASCII characters. Null-termination not required.
  * @param key_block_len Length of TR-31 key block in bytes, excluding null-termination.
  * @param kbpk TR-31 key block protection key. NULL if not available or decryption is not required.
+ * @param flags TR-31 import flags.
  * @param ctx TR-31 context object output
  * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
  */
@@ -653,6 +902,7 @@ int tr31_import(
 	const char* key_block,
 	size_t key_block_len,
 	const struct tr31_key_t* kbpk,
+	uint32_t flags,
 	struct tr31_ctx_t* ctx
 );
 
@@ -663,6 +913,7 @@ int tr31_import(
  *
  * @param ctx TR-31 context object input
  * @param kbpk TR-31 key block protection key.
+ * @param flags TR-31 export flags.
  * @param key_block TR-31 key block output. Will contain printable ASCII characters and will be null-terminated.
  * @param key_block_buf_len TR-31 key block output buffer length.
  * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
@@ -670,6 +921,7 @@ int tr31_import(
 int tr31_export(
 	const struct tr31_ctx_t* ctx,
 	const struct tr31_key_t* kbpk,
+	uint32_t flags,
 	char* key_block,
 	size_t key_block_buf_len
 );
