@@ -740,6 +740,7 @@ static int populate_kbpk(const struct tr31_tool_options_t* options, unsigned int
 		TR31_KEY_MODE_OF_USE_ENC_DEC,
 		"00",
 		TR31_KEY_EXPORT_NONE,
+		TR31_KEY_CONTEXT_STORAGE,
 		options->kbpk_buf,
 		options->kbpk_buf_len,
 		kbpk
@@ -804,6 +805,10 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 	printf("Key exportability: [%c] %s\n",
 		tr31_ctx.key.exportability,
 		tr31_get_key_exportability_string(tr31_ctx.key.exportability)
+	);
+	printf("Key context: [%c] %s\n",
+		tr31_ctx.key.key_context,
+		tr31_get_key_context_string(tr31_ctx.key.key_context)
 	);
 
 	// print optional blocks, if available
@@ -1029,12 +1034,14 @@ static int populate_tr31_from_template(const struct tr31_tool_options_t* options
 		key.mode_of_use = TR31_KEY_MODE_OF_USE_ENC_DEC;
 		key.key_version = TR31_KEY_VERSION_IS_UNUSED;
 		key.exportability = TR31_KEY_EXPORT_TRUSTED;
+		key.key_context = TR31_KEY_CONTEXT_NONE;
 
 	} else if (strcmp(options->export_template, "BDK") == 0) {
 		key.usage = TR31_KEY_USAGE_BDK;
 		key.mode_of_use = TR31_KEY_MODE_OF_USE_DERIVE;
 		key.key_version = TR31_KEY_VERSION_IS_UNUSED;
 		key.exportability = TR31_KEY_EXPORT_TRUSTED;
+		key.key_context = TR31_KEY_CONTEXT_NONE;
 
 	} else if (strcmp(options->export_template, "IK") == 0 ||
 		strcmp(options->export_template, "IPEK") == 0
@@ -1044,6 +1051,7 @@ static int populate_tr31_from_template(const struct tr31_tool_options_t* options
 		key.mode_of_use = TR31_KEY_MODE_OF_USE_DERIVE;
 		key.key_version = TR31_KEY_VERSION_IS_UNUSED;
 		key.exportability = TR31_KEY_EXPORT_NONE;
+		key.key_context = TR31_KEY_CONTEXT_NONE;
 
 	} else {
 		fprintf(stderr, "Unsupported template \"%s\"\n", options->export_template);

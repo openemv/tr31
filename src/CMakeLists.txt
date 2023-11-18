@@ -176,6 +176,7 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 		"Key mode of use: \\[X\\] Key Derivation[\r\n]"
 		"Key version: Unused[\r\n]"
 		"Key exportability: \\[N\\] Not exportable[\r\n]"
+		"Key context: \\[0\\] Determined by wrapping key[\r\n]"
 		"Optional blocks \\[3\\]:[\r\n]"
 		"\t\\[KS\\] Initial Key Serial Number \\(KSN\\): FFFF00A0200001E00000[\r\n]"
 		"\t\\[KC\\] Key Check Value \\(KCV\\) of wrapped key: 0169E3 \\(Legacy KCV algorithm\\)[\r\n]"
@@ -199,6 +200,7 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 		"Key mode of use: \\[N\\] No special restrictions[\r\n]"
 		"Key version: Unused[\r\n]"
 		"Key exportability: \\[N\\] Not exportable[\r\n]"
+		"Key context: \\[0\\] Determined by wrapping key[\r\n]"
 		"Key length: 16[\r\n]"
 		"Key value: 1FA1F7CEC798D91545DA8AE0C7796BD9 \\(KCV: FF5087\\)[\r\n]"
 	)
@@ -218,6 +220,7 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 		"Key mode of use: \\[N\\] No special restrictions[\r\n]"
 		"Key version: Unused[\r\n]"
 		"Key exportability: \\[N\\] Not exportable[\r\n]"
+		"Key context: \\[0\\] Determined by wrapping key[\r\n]"
 		"Key length: 32[\r\n]"
 		"Key value: 6189A1111AAB43DC8BEAEEAE29799C4212070D66F8933EFACE8879C7DB609DEA \\(KCV: 69EBA40B13\\)[\r\n]"
 	)
@@ -237,6 +240,7 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 		"Key mode of use: \\[N\\] No special restrictions[\r\n]"
 		"Key version: Unused[\r\n]"
 		"Key exportability: \\[N\\] Not exportable[\r\n]"
+		"Key context: \\[0\\] Determined by wrapping key[\r\n]"
 		"Key length: 32[\r\n]"
 		"Key value: 6189A1111AAB43DC8BEAEEAE29799C4212070D66F8933EFACE8879C7DB609DEA \\(KCV: 69EBA40B13\\)[\r\n]"
 	)
@@ -256,6 +260,7 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 		"Key mode of use: \\[N\\] No special restrictions[\r\n]"
 		"Key version: Unused[\r\n]"
 		"Key exportability: \\[N\\] Not exportable[\r\n]"
+		"Key context: \\[0\\] Determined by wrapping key[\r\n]"
 		"Key length: 32[\r\n]"
 		"Key value: BE19E6A07A760F10EF8E83A226B63AAD141F463FDDD4F47DB244B4023EC3CACC \\(KCV: 0A00E31EEB\\)[\r\n]"
 	)
@@ -520,6 +525,7 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 		"Key mode of use: \\[X\\] Key Derivation[\r\n]"
 		"Key version: Unused[\r\n]"
 		"Key exportability: \\[E\\] Exportable in a trusted key block only[\r\n]"
+		"Key context: \\[0\\] Determined by wrapping key[\r\n]"
 		"Optional blocks \\[3\\]:[\r\n]"
 		"\t\\[BI\\] Base Derivation Key \\(BDK\\) Identifier: 08793E2500 \\(Key Set ID\\)[\r\n]"
 		"\t\\[KC\\] Key Check Value \\(KCV\\) of wrapped key: F4B08D \\(Legacy KCV algorithm\\)[\r\n]"
@@ -551,6 +557,7 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 		"Key mode of use: \\[X\\] Key Derivation[\r\n]"
 		"Key version: Unused[\r\n]"
 		"Key exportability: \\[E\\] Exportable in a trusted key block only[\r\n]"
+		"Key context: \\[0\\] Determined by wrapping key[\r\n]"
 		"Optional blocks \\[5\\]:[\r\n]"
 		"\t\\[DA\\] Derivation\\(s\\) Allowed for Derivation Keys: D2ABN,D3AEN[\r\n]"
 		"\t\\[LB\\] Label: \"My Great Key\"[\r\n]"
@@ -584,6 +591,7 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 		"Key mode of use: \\[G\\] MAC Generate Only[\r\n]"
 		"Key version: Unused[\r\n]"
 		"Key exportability: \\[N\\] Not exportable[\r\n]"
+		"Key context: \\[0\\] Determined by wrapping key[\r\n]"
 		"Optional blocks \\[2\\]:[\r\n]"
 		"\t\\[HM\\] Hash algorithm for HMAC: 21 \\(SHA-256\\)[\r\n]"
 		"\t\\[PB\\] Padding Block: \"5V5E8F\"[\r\n]"
@@ -607,6 +615,7 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 		"Key mode of use: \\[S\\] Signature Only[\r\n]"
 		"Key version: Unused[\r\n]"
 		"Key exportability: \\[N\\] Not exportable[\r\n]"
+		"Key context: \\[0\\] Determined by wrapping key[\r\n]"
 		"Optional blocks \\[4\\]:[\r\n]"
 		"\t\\[CT\\] Public Key Certificate: \"MIIDszCCApugAwIB.*F3\\+vpN\\+5iZMRNv7Z\" \\(X\\.509 certificate\\)[\r\n]"
 		"\t\\[KP\\] Key Check Value \\(KCV\\) of KBPK: D77F007724 \\(CMAC based KCV\\)[\r\n]"
@@ -632,6 +641,7 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 		"Key mode of use: \\[S\\] Signature Only[\r\n]"
 		"Key version: Unused[\r\n]"
 		"Key exportability: \\[N\\] Not exportable[\r\n]"
+		"Key context: \\[0\\] Determined by wrapping key[\r\n]"
 		"Optional blocks \\[4\\]:[\r\n]"
 		"\t\\[CT\\] Public Key Certificate: \"0002F0MIICLjCCAd.*K2LlUqpN/069y5s=\" \\(Certificate chain\\)[\r\n]"
 		"\t\\[KP\\] Key Check Value \\(KCV\\) of KBPK: 2331550BC9 \\(CMAC based KCV\\)[\r\n]"
@@ -688,6 +698,7 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 		"Key mode of use: \\[S\\] Signature Only[\r\n]"
 		"Key version: Unused[\r\n]"
 		"Key exportability: \\[N\\] Not exportable[\r\n]"
+		"Key context: \\[0\\] Determined by wrapping key[\r\n]"
 		"Optional blocks \\[5\\]:[\r\n]"
 		"\t\\[AL\\] Asymmetric Key Life \\(AKL\\): v1, 01 \\(Static\\)[\r\n]"
 		"\t\\[CT\\] Public Key Certificate: \"0002F0MIICLjCCAd.*K2LlUqpN/069y5s=\" \\(Certificate chain\\)[\r\n]"
@@ -741,6 +752,7 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 		"Key mode of use: \\[9\\] Unknown key mode of use value[\r\n]"
 		"Key version: Unused[\r\n]"
 		"Key exportability: \\[N\\] Not exportable[\r\n]"
+		"Key context: \\[0\\] Determined by wrapping key[\r\n]"
 		"Optional blocks \\[3\\]:[\r\n]"
 		"\t\\[KC\\] Key Check Value \\(KCV\\) of wrapped key: 0169E3 \\(Legacy KCV algorithm\\)[\r\n]"
 		"\t\\[KP\\] Key Check Value \\(KCV\\) of KBPK: ECAD62 \\(Legacy KCV algorithm\\)[\r\n]"
@@ -765,6 +777,7 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 		"Key mode of use: \\[X\\] Key Derivation[\r\n]"
 		"Key version: Unused[\r\n]"
 		"Key exportability: \\[N\\] Not exportable[\r\n]"
+		"Key context: \\[0\\] Determined by wrapping key[\r\n]"
 		"Optional blocks \\[3\\]:[\r\n]"
 		"\t\\[KS\\] Initial Key Serial Number \\(KSN\\): DE#GBIC#OPT1[\r\n]"
 		"\t\\[KC\\] Key Check Value \\(KCV\\) of wrapped key: 0169E3 \\(Legacy KCV algorithm\\)[\r\n]"
@@ -793,5 +806,35 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 	set_tests_properties(tr31_tool_test48
 		PROPERTIES
 			PASS_REGULAR_EXPRESSION "^B012099TX00N0200LB0FProprietaryPB09"
+	)
+
+	# test --import with non-zero key context
+	add_test(NAME tr31_tool_test49
+		COMMAND tr31-tool --import "B0096B1TX00N002042D72C7FF16FC1A9B1F9488AAAB27AEFDA96AA79D247071CD64F1CAA898006E8C03DFBF0EAC064D0" --kbpk AB2E09DB3EF0BA71E0CE6CD755C23A3B
+	)
+	string(CONCAT tr31_tool_test49_regex
+		"^Key block format version: B[\r\n]"
+		"Key block length: 96 bytes[\r\n]"
+		"Key usage: \\[B1\\] Initial DUKPT Key \\(IK/IPEK\\)[\r\n]"
+		"Key algorithm: \\[T\\] TDES[\r\n]"
+		"Key mode of use: \\[X\\] Key Derivation[\r\n]"
+		"Key version: Unused[\r\n]"
+		"Key exportability: \\[N\\] Not exportable[\r\n]"
+		"Key context: \\[2\\] Key exchange context only[\r\n]"
+		"Key length: 16[\r\n]"
+		"Key value: BF82DAC6A33DF92CE66E15B70E5DCEB6 \\(KCV: 0169E3\\)[\r\n]"
+	)
+	set_tests_properties(tr31_tool_test49
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION ${tr31_tool_test49_regex}
+	)
+
+	# test --export with non-zero key context
+	add_test(NAME tr31_tool_test50
+		COMMAND tr31-tool --kbpk AB2E09DB3EF0BA71E0CE6CD755C23A3B --export BF82DAC6A33DF92CE66E15B70E5DCEB6 --export-header "B0000B1TX00N0020"
+	)
+	set_tests_properties(tr31_tool_test50
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^B0096B1TX00N0020[A-Z0-9]*[\r\n]"
 	)
 endif()

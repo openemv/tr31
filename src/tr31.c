@@ -52,7 +52,8 @@ struct tr31_header_t {
 	char key_version[2];
 	uint8_t exportability;
 	char opt_blocks_count[2];
-	char reserved[2];
+	char key_context;
+	char reserved;
 } __attribute__((packed));
 
 // TR-31 optional block header with short length
@@ -350,6 +351,7 @@ int tr31_key_init(
 	unsigned int mode_of_use,
 	const char* key_version,
 	unsigned int exportability,
+	unsigned int key_context,
 	const void* data,
 	size_t length,
 	struct tr31_key_t* key
@@ -381,6 +383,7 @@ int tr31_key_init(
 		key->key_version_str[2] = 0;
 	}
 	key->exportability = exportability;
+	key->key_context = key_context;
 
 	// if key data is available, copy it
 	if (data && length) {
@@ -518,6 +521,19 @@ int tr31_key_init(
 			return TR31_ERROR_UNSUPPORTED_EXPORTABILITY;
 	}
 
+	// validate key context field
+	// see ANSI X9.143:2021, 6.2, table 1
+	switch (key_context) {
+		case TR31_KEY_CONTEXT_NONE:
+		case TR31_KEY_CONTEXT_STORAGE:
+		case TR31_KEY_CONTEXT_EXCHANGE:
+			// supported
+			break;
+
+		default:
+			return TR31_ERROR_UNSUPPORTED_KEY_CONTEXT;
+	}
+
 	return 0;
 }
 
@@ -555,6 +571,7 @@ int tr31_key_copy(
 		src->mode_of_use,
 		key_version,
 		src->exportability,
+		src->key_context,
 		src->data,
 		src->length,
 		key
@@ -762,6 +779,7 @@ int tr31_init_from_header(
 		header->mode_of_use,
 		header->key_version,
 		header->exportability,
+		header->key_context,
 		NULL,
 		0,
 		&ctx->key
@@ -770,7 +788,7 @@ int tr31_init_from_header(
 		if (flags & TR31_IMPORT_NO_STRICT_VALIDATION) {
 			// when strict validation is disabled, ignore all key attribute errors
 			if (r < TR31_ERROR_UNSUPPORTED_KEY_USAGE ||
-				r > TR31_ERROR_UNSUPPORTED_EXPORTABILITY
+				r > TR31_ERROR_UNSUPPORTED_KEY_CONTEXT
 			) {
 				// return error value as-is
 				return r;
@@ -2022,6 +2040,7 @@ int tr31_import(
 		header->mode_of_use,
 		header->key_version,
 		header->exportability,
+		header->key_context,
 		NULL,
 		0,
 		&ctx->key
@@ -2030,7 +2049,7 @@ int tr31_import(
 		if (flags & TR31_IMPORT_NO_STRICT_VALIDATION) {
 			// when strict validation is disabled, ignore all key attribute errors
 			if (r < TR31_ERROR_UNSUPPORTED_KEY_USAGE ||
-				r > TR31_ERROR_UNSUPPORTED_EXPORTABILITY
+				r > TR31_ERROR_UNSUPPORTED_KEY_CONTEXT
 			) {
 				// return error value as-is
 				return r;
@@ -2339,7 +2358,8 @@ int tr31_export(
 	header->algorithm = ctx->key.algorithm;
 	header->mode_of_use = ctx->key.mode_of_use;
 	header->exportability = ctx->key.exportability;
-	memset(header->reserved, '0', sizeof(header->reserved));
+	header->key_context = ctx->key.key_context;
+	header->reserved = '0';
 
 	// populate key version field
 	r = tr31_key_get_key_version(&ctx->key, header->key_version);
@@ -3687,6 +3707,7 @@ const char* tr31_get_error_string(enum tr31_error_t error)
 		case TR31_ERROR_UNSUPPORTED_MODE_OF_USE: return "Unsupported key mode of use";
 		case TR31_ERROR_INVALID_KEY_VERSION_FIELD: return "Invalid key version field";
 		case TR31_ERROR_UNSUPPORTED_EXPORTABILITY: return "Unsupported key exportability";
+		case TR31_ERROR_UNSUPPORTED_KEY_CONTEXT: return "Unsupported key context";
 		case TR31_ERROR_INVALID_NUMBER_OF_OPTIONAL_BLOCKS_FIELD: return "Invalid number of optional blocks field";
 		case TR31_ERROR_DUPLICATE_OPTIONAL_BLOCK_ID: return "Duplicate optional block identifier";
 		case TR31_ERROR_INVALID_OPTIONAL_BLOCK_LENGTH: return "Invalid optional block length";
@@ -3825,6 +3846,18 @@ const char* tr31_get_key_exportability_string(unsigned int exportability)
 	}
 
 	return "Unknown key exportability value";
+}
+
+const char* tr31_get_key_context_string(unsigned int key_context)
+{
+	// see ANSI X9.143:2021, 6.2, table 1
+	switch (key_context) {
+		case TR31_KEY_CONTEXT_NONE:             return "Determined by wrapping key";
+		case TR31_KEY_CONTEXT_STORAGE:          return "Storage context only";
+		case TR31_KEY_CONTEXT_EXCHANGE:         return "Key exchange context only";
+	}
+
+	return "Unknown key context value";
 }
 
 const char* tr31_get_opt_block_id_ascii(unsigned int opt_block_id, char* ascii, size_t ascii_len)

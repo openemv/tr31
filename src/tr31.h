@@ -115,6 +115,11 @@ enum tr31_key_version_t {
 #define TR31_KEY_EXPORT_NONE            ('N') ///< Exportability N: Not exportable
 #define TR31_KEY_EXPORT_SENSITIVE       ('S') ///< Exportability S: Sensitive; exportable in forms not in accordance with ANSI X9.24; eg ANSI X9.17
 
+// TR-31 key context (see ANSI X9.143:2021, 6.2, table 1)
+#define TR31_KEY_CONTEXT_NONE           ('0') ///< Key context: Determined by wrapping key
+#define TR31_KEY_CONTEXT_STORAGE        ('1') ///< Key context: Storage context only
+#define TR31_KEY_CONTEXT_EXCHANGE       ('2') ///< Key context: Key exchange context only
+
 // TR-31 optional block IDs (see ANSI X9.143:2021, 6.3.6, table 7)
 #define TR31_OPT_BLOCK_AL               (0x414C) ///< Optional Block AL: Asymmetric Key Life (AKL) attribute
 #define TR31_OPT_BLOCK_BI               (0x4249) ///< Optional Block BI: Base Derivation Key Identifier (BDK) for DUKPT (see ANSI X9.24-3:2017, 4.7)
@@ -193,6 +198,7 @@ struct tr31_key_t {
 	char key_version_str[3]; ///< TR-31 key version string. Null terminated. Invalid if unused.
 
 	unsigned int exportability; ///< TR-31 key exportability
+	unsigned int key_context; ///< TR-31 key context
 
 	size_t length; ///< Key data length in bytes
 	void* data; ///< Key data
@@ -287,6 +293,7 @@ enum tr31_error_t {
 	TR31_ERROR_UNSUPPORTED_MODE_OF_USE, ///< Unsupported key mode of use
 	TR31_ERROR_INVALID_KEY_VERSION_FIELD, ///< Invalid key version field
 	TR31_ERROR_UNSUPPORTED_EXPORTABILITY, ///< Unsupported key exportability
+	TR31_ERROR_UNSUPPORTED_KEY_CONTEXT, ///< Unsupported key context
 	TR31_ERROR_INVALID_NUMBER_OF_OPTIONAL_BLOCKS_FIELD, ///< Invalid number of optional blocks field
 	TR31_ERROR_DUPLICATE_OPTIONAL_BLOCK_ID, ///< Duplicate optional block identifier
 	TR31_ERROR_INVALID_OPTIONAL_BLOCK_LENGTH, ///< Invalid optional block length
@@ -318,6 +325,7 @@ const char* tr31_lib_version_string(void);
  * @param mode_of_use TR-31 key mode of use
  * @param key_version TR-31 key version; two bytes (see ANSI X9.143:2021, 6.3.4, table 5)
  * @param exportability TR-31 key exportability
+ * @param key_context TR-31 key context
  * @param data Key data. If NULL, use @ref tr31_key_set_data() to populate key data later.
  * @param length Length of key data in bytes
  * @param key TR-31 key object output
@@ -329,6 +337,7 @@ int tr31_key_init(
 	unsigned int mode_of_use,
 	const char* key_version,
 	unsigned int exportability,
+	unsigned int key_context,
 	const void* data,
 	size_t length,
 	struct tr31_key_t* key
@@ -975,6 +984,13 @@ const char* tr31_get_key_mode_of_use_string(unsigned int mode_of_use);
  * @return Pointer to null-terminated string. Do not free.
  */
 const char* tr31_get_key_exportability_string(unsigned int exportability);
+
+/**
+ * Retrieve string associated with key context value
+ * @param key_context Key context value
+ * @return Pointer to null-terminated string. Do not free.
+ */
+const char* tr31_get_key_context_string(unsigned int key_context);
 
 /**
  * Create ASCII string associated with optional block ID value

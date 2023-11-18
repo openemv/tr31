@@ -59,6 +59,7 @@ int main(void)
 		test_tr31.key.key_version != TR31_KEY_VERSION_IS_UNUSED ||
 		test_tr31.key.key_version_str[0] != 0 ||
 		test_tr31.key.exportability != TR31_KEY_EXPORT_SENSITIVE ||
+		test_tr31.key.key_context != TR31_KEY_CONTEXT_NONE ||
 		test_tr31.opt_blocks_count != 1 ||
 		test_tr31.opt_blocks == NULL ||
 		test_tr31.opt_blocks[0].id != TR31_OPT_BLOCK_KS ||
@@ -107,6 +108,7 @@ int main(void)
 		test_tr31.key.key_version != TR31_KEY_VERSION_IS_UNUSED ||
 		test_tr31.key.key_version_str[0] != 0 ||
 		test_tr31.key.exportability != TR31_KEY_EXPORT_NONE ||
+		test_tr31.key.key_context != TR31_KEY_CONTEXT_NONE ||
 		test_tr31.opt_blocks_count != 0 ||
 		test_tr31.opt_blocks != NULL
 	) {
@@ -131,6 +133,7 @@ int main(void)
 		test_tr31.key.key_version != TR31_KEY_VERSION_IS_UNUSED ||
 		test_tr31.key.key_version_str[0] != 0 ||
 		test_tr31.key.exportability != TR31_KEY_EXPORT_NONE ||
+		test_tr31.key.key_context != TR31_KEY_CONTEXT_NONE ||
 		test_tr31.opt_blocks_count != 0 ||
 		test_tr31.opt_blocks != NULL
 	) {
@@ -155,6 +158,7 @@ int main(void)
 		test_tr31.key.key_version != TR31_KEY_VERSION_IS_UNUSED ||
 		test_tr31.key.key_version_str[0] != 0 ||
 		test_tr31.key.exportability != TR31_KEY_EXPORT_NONE ||
+		test_tr31.key.key_context != TR31_KEY_CONTEXT_NONE ||
 		test_tr31.opt_blocks_count != 3 ||
 		test_tr31.opt_blocks == NULL ||
 		test_tr31.opt_blocks[0].id != TR31_OPT_BLOCK_KS ||
