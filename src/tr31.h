@@ -285,7 +285,7 @@ struct tr31_ctx_t {
 /// TR-31 library errors
 enum tr31_error_t {
 	TR31_ERROR_INVALID_LENGTH = 1, ///< Invalid key block length
-	TR31_ERROR_INVALID_KEY_BLOCK_STRING, ///< Invalid key block string
+	TR31_ERROR_INVALID_CHARACTER, ///< Invalid (non-printable) character
 	TR31_ERROR_UNSUPPORTED_VERSION, ///< Unsupported key block format version
 	TR31_ERROR_INVALID_LENGTH_FIELD, ///< Invalid key block length field
 	TR31_ERROR_UNSUPPORTED_KEY_USAGE, ///< Unsupported key usage

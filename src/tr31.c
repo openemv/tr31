@@ -752,7 +752,7 @@ int tr31_init_from_header(
 	// validate key block header as printable ASCII (format PA)
 	r = tr31_validate_format_pa(key_block_header, key_block_header_len);
 	if (r) {
-		return TR31_ERROR_INVALID_KEY_BLOCK_STRING;
+		return TR31_ERROR_INVALID_CHARACTER;
 	}
 
 	// initialise processing state object
@@ -934,7 +934,7 @@ int tr31_opt_block_add(
 	if (data && length) {
 		r = tr31_validate_format_pa(data, length);
 		if (r) {
-			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+			return TR31_ERROR_INVALID_CHARACTER;
 		}
 	}
 
@@ -1818,7 +1818,7 @@ int tr31_opt_block_add_LB(
 	// see ANSI X9.143:2021, 6.3.6.10, table 18
 	r = tr31_validate_format_pa(label, strlen(label));
 	if (r) {
-		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
+		return TR31_ERROR_INVALID_CHARACTER;
 	}
 
 	return tr31_opt_block_add(ctx, TR31_OPT_BLOCK_LB, label, strlen(label));
@@ -2005,7 +2005,7 @@ int tr31_import(
 	// validate key block as printable ASCII (format PA)
 	r = tr31_validate_format_pa(key_block, key_block_len);
 	if (r) {
-		return TR31_ERROR_INVALID_KEY_BLOCK_STRING;
+		return TR31_ERROR_INVALID_CHARACTER;
 	}
 
 	// initialise processing state object
@@ -2490,6 +2490,13 @@ int tr31_export(
 		ptr += pb_len;
 	}
 
+	// validate key block header as printable ASCII (format PA)
+	// this detects zero'd key attributes or non-printable optional blocks
+	r = tr31_validate_format_pa((char*)header, ptr - (void*)header);
+	if (r) {
+		return TR31_ERROR_INVALID_CHARACTER;
+	}
+
 	// prepare state object for export processing
 	// this function requires:
 	// - state.authenticator_length
@@ -2700,11 +2707,9 @@ static int tr31_opt_block_parse(
 	// if strict validation is disabled, validate the format only as
 	// printable ASCII (format PA)
 	if ((state->flags & TR31_IMPORT_NO_STRICT_VALIDATION) != 0) {
+		// NOTE: tr31_import() and tr31_init_from_header() have already
+		// validated the whole key block as printable ASCII (format PA)
 		opt_ctx->data_length = (*opt_blk_len - opt_blk_hdr_len);
-		r = tr31_validate_format_pa(opt_blk_data, opt_ctx->data_length);
-		if (r) {
-			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
-		}
 		opt_ctx->data = malloc(opt_ctx->data_length);
 		memcpy(opt_ctx->data, opt_blk_data, opt_ctx->data_length);
 		return 0;
@@ -2745,11 +2750,9 @@ static int tr31_opt_block_parse(
 		// optional blocks to be validated as printable ASCII (format PA)
 		case TR31_OPT_BLOCK_LB:
 		case TR31_OPT_BLOCK_PB:
+			// NOTE: tr31_import() and tr31_init_from_header() have already
+			// validated the whole key block as printable ASCII (format PA)
 			opt_ctx->data_length = (*opt_blk_len - opt_blk_hdr_len);
-			r = tr31_validate_format_pa(opt_blk_data, opt_ctx->data_length);
-			if (r) {
-				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
-			}
 			opt_ctx->data = malloc(opt_ctx->data_length);
 			memcpy(opt_ctx->data, opt_blk_data, opt_ctx->data_length);
 			return 0;
@@ -2769,11 +2772,9 @@ static int tr31_opt_block_parse(
 		// all other optional blocks, including proprietary ones, to be
 		// validated as printable ASCII (format PA)
 		default:
+			// NOTE: tr31_import() and tr31_init_from_header() have already
+			// validated the whole key block as printable ASCII (format PA)
 			opt_ctx->data_length = (*opt_blk_len - opt_blk_hdr_len);
-			r = tr31_validate_format_pa(opt_blk_data, opt_ctx->data_length);
-			if (r) {
-				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
-			}
 			opt_ctx->data = malloc(opt_ctx->data_length);
 			memcpy(opt_ctx->data, opt_blk_data, opt_ctx->data_length);
 			return 0;
@@ -3699,7 +3700,7 @@ const char* tr31_get_error_string(enum tr31_error_t error)
 
 	switch (error) {
 		case TR31_ERROR_INVALID_LENGTH: return "Invalid key block length";
-		case TR31_ERROR_INVALID_KEY_BLOCK_STRING: return "Invalid key block string";
+		case TR31_ERROR_INVALID_CHARACTER: return "Invalid character";
 		case TR31_ERROR_UNSUPPORTED_VERSION: return "Unsupported key block format version";
 		case TR31_ERROR_INVALID_LENGTH_FIELD: return "Invalid key block length field";
 		case TR31_ERROR_UNSUPPORTED_KEY_USAGE: return "Unsupported key usage";
