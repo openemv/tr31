@@ -26,6 +26,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if defined(HAVE_ARPA_INET_H)
+#include <arpa/inet.h> // for htons
+#elif defined(HAVE_WINSOCK_H)
+#include <winsock.h>
+#endif
+
 #ifdef TR31_ENABLE_DATETIME_CONVERSION
 #ifdef HAVE_LOCALE_H
 #include <locale.h>
@@ -39,6 +45,7 @@
 #endif // TR31_ENABLE_DATETIME_CONVERSION
 
 // Helper functions
+static int tr31_validate_format_an(const char* buf, size_t buf_len);
 static const char* tr31_opt_block_akl_get_string(const struct tr31_opt_ctx_t* opt_block);
 static const char* tr31_opt_block_BI_get_string(const struct tr31_opt_ctx_t* opt_block);
 static const char* tr31_opt_block_CT_get_string(const struct tr31_opt_ctx_t* opt_block);
@@ -46,6 +53,210 @@ static const char* tr31_opt_block_hmac_get_string(const struct tr31_opt_ctx_t* o
 static const char* tr31_opt_block_kcv_get_string(const struct tr31_opt_ctx_t* opt_block);
 static int tr31_opt_block_iso8601_get_string(const struct tr31_opt_ctx_t* opt_block, char* str, size_t str_len);
 static const char* tr31_opt_block_wrapping_pedigree_get_string(const struct tr31_opt_ctx_t* opt_block);
+
+static int tr31_validate_format_an(const char* buf, size_t buf_len)
+{
+	while (buf_len--) {
+		// Alphanumeric characters are in the ranges 0x30 - 0x39, 0x41 - 0x5A
+		// and 0x61 - 0x7A
+		// See ANSI X9.143:2021, 4
+		if ((*buf < 0x30 || *buf > 0x39) &&
+			(*buf < 0x41 || *buf > 0x5A) &&
+			(*buf < 0x61 || *buf > 0x7A)
+		) {
+			return -1;
+		}
+
+		++buf;
+	}
+
+	return 0;
+}
+
+const char* tr31_get_key_usage_ascii(unsigned int usage, char* ascii, size_t ascii_len)
+{
+	union {
+		uint16_t value;
+		char bytes[2];
+	} usage_ascii;
+
+	usage_ascii.value = htons(usage);
+
+	if (ascii_len < 3) {
+		return NULL;
+	}
+	for (size_t i = 0; i < sizeof(usage_ascii.bytes); ++i) {
+		if (tr31_validate_format_an(usage_ascii.bytes, sizeof(usage_ascii.bytes)) == 0) {
+			ascii[i] = usage_ascii.bytes[i];
+		} else {
+			ascii[i] = '?';
+		}
+	}
+	ascii[2] = 0;
+
+	return ascii;
+}
+
+const char* tr31_get_key_usage_string(unsigned int usage)
+{
+	// See ANSI X9.143:2021, 6.3.1, table 2
+	switch (usage) {
+		case TR31_KEY_USAGE_BDK:                return "Base Derivation Key (BDK)";
+		case TR31_KEY_USAGE_DUKPT_IK:           return "Initial DUKPT Key (IK/IPEK)";
+		case TR31_KEY_USAGE_BKV:                return "Base Key Variant Key";
+		case TR31_KEY_USAGE_KDK:                return "Key Derivation Key";
+		case TR31_KEY_USAGE_CVK:                return "Card Verification Key (CVK)";
+		case TR31_KEY_USAGE_DATA:               return "Symmetric Key for Data Encryption";
+		case TR31_KEY_USAGE_ASYMMETRIC_DATA:    return "Asymmetric Key for Data Encryption";
+		case TR31_KEY_USAGE_DATA_DEC_TABLE:     return "Data Encryption Key for Decimalization Table";
+		case TR31_KEY_USAGE_DATA_SENSITIVE:     return "Data Encryption Key for Sensitive Data";
+		case TR31_KEY_USAGE_EMV_MKAC:           return "EMV/Chip Issuer Master Key: Application Cryptograms (MKAC)";
+		case TR31_KEY_USAGE_EMV_MKSMC:          return "EMV/Chip Issuer Master Key: Secure Messaging for Confidentiality (MKSMC)";
+		case TR31_KEY_USAGE_EMV_MKSMI:          return "EMV/Chip Issuer Master Key: Secure Messaging for Integrity (MKSMI)";
+		case TR31_KEY_USAGE_EMV_MKDAC:          return "EMV/Chip Issuer Master Key: Data Authentication Code (MKDAC)";
+		case TR31_KEY_USAGE_EMV_MKDN:           return "EMV/Chip Issuer Master Key: Dynamic Numbers (MKDN)";
+		case TR31_KEY_USAGE_EMV_CP:             return "EMV/Chip Issuer Master Key: Card Personalization (CP)";
+		case TR31_KEY_USAGE_EMV_OTHER:          return "EMV/Chip Issuer Master Key: Other";
+		case TR31_KEY_USAGE_EMV_AKP_PIN:        return "EMV/Chip Asymmetric Key Pair for PIN Encryption";
+		case TR31_KEY_USAGE_IV:                 return "Initialization Vector (IV)";
+		case TR31_KEY_USAGE_KEK:                return "Key Encryption or Wrapping Key (KEK)";
+		case TR31_KEY_USAGE_TR31_KBPK:          return "TR-31 Key Block Protection Key (KBPK)";
+		case TR31_KEY_USAGE_TR34_APK_KRD:       return "TR-34 Asymmetric Key Pair for Key Receiving Device";
+		case TR31_KEY_USAGE_APK:                return "Asymmetric Key Pair for Key Wrapping or Key Agreement";
+		case TR31_KEY_USAGE_ISO20038_KBPK:      return "ISO 20038 Key Block Protection Key (KBPK)";
+		case TR31_KEY_USAGE_ISO16609_MAC_1:     return "ISO 16609 MAC algorithm 1 (using TDES)";
+		case TR31_KEY_USAGE_ISO9797_1_MAC_1:    return "ISO 9797-1 MAC Algorithm 1 (CBC-MAC)";
+		case TR31_KEY_USAGE_ISO9797_1_MAC_2:    return "ISO 9797-1 MAC Algorithm 2";
+		case TR31_KEY_USAGE_ISO9797_1_MAC_3:    return "ISO 9797-1 MAC Algorithm 3 (Retail MAC)";
+		case TR31_KEY_USAGE_ISO9797_1_MAC_4:    return "ISO 9797-1 MAC Algorithm 4";
+		case TR31_KEY_USAGE_ISO9797_1_MAC_5:    return "ISO 9797-1:1999 MAC Algorithm 5 (legacy)";
+		case TR31_KEY_USAGE_ISO9797_1_CMAC:     return "ISO 9797-1:2011 MAC Algorithm 5 (CMAC)";
+		case TR31_KEY_USAGE_HMAC:               return "HMAC Key";
+		case TR31_KEY_USAGE_ISO9797_1_MAC_6:    return "ISO 9797-1 MAC Algorithm 6";
+		case TR31_KEY_USAGE_PEK:                return "PIN Encryption Key";
+		case TR31_KEY_USAGE_PGK:                return "PIN Generation Key";
+		case TR31_KEY_USAGE_AKP_SIG:            return "Asymmetric Key Pair for Digital Signature";
+		case TR31_KEY_USAGE_AKP_CA:             return "Asymmetric Key Pair for CA use";
+		case TR31_KEY_USAGE_AKP_OTHER:          return "Asymmetric Key Pair for non-X9.24 use";
+		case TR31_KEY_USAGE_PVK:                return "PIN Verification Key (Other)";
+		case TR31_KEY_USAGE_PVK_IBM3624:        return "PIN Verification Key (IBM 3624)";
+		case TR31_KEY_USAGE_PVK_VISA_PVV:       return "PIN Verification Key (VISA PVV)";
+		case TR31_KEY_USAGE_PVK_X9_132_ALG_1:   return "PIN Verification Key (ANSI X9.132 algorithm 1)";
+		case TR31_KEY_USAGE_PVK_X9_132_ALG_2:   return "PIN Verification Key (ANSI X9.132 algorithm 2)";
+		case TR31_KEY_USAGE_PVK_X9_132_ALG_3:   return "PIN Verification Key (ANSI X9.132 algorithm 3)";
+	}
+
+	return "Unknown key usage value";
+}
+
+const char* tr31_get_key_algorithm_string(unsigned int algorithm)
+{
+	// See ANSI X9.143:2021, 6.3.2, table 3
+	switch (algorithm) {
+		case TR31_KEY_ALGORITHM_AES:    return "AES";
+		case TR31_KEY_ALGORITHM_DES:    return "DES";
+		case TR31_KEY_ALGORITHM_EC:     return "Elliptic Curve";
+		case TR31_KEY_ALGORITHM_HMAC:   return "HMAC";
+		case TR31_KEY_ALGORITHM_RSA:    return "RSA";
+		case TR31_KEY_ALGORITHM_DSA:    return "DSA";
+		case TR31_KEY_ALGORITHM_TDES:   return "TDES";
+	}
+
+	return "Unknown key algorithm value";
+}
+
+const char* tr31_get_key_mode_of_use_string(unsigned int mode_of_use)
+{
+	// See ANSI X9.143:2021, 6.3.3, table 4
+	switch (mode_of_use) {
+		case TR31_KEY_MODE_OF_USE_ENC_DEC:      return "Encrypt/Wrap and Decrypt/Unwrap";
+		case TR31_KEY_MODE_OF_USE_MAC:          return "MAC Generate and Verify";
+		case TR31_KEY_MODE_OF_USE_DEC:          return "Decrypt/Unwrap Only";
+		case TR31_KEY_MODE_OF_USE_ENC:          return "Encrypt/Wrap Only";
+		case TR31_KEY_MODE_OF_USE_MAC_GEN:      return "MAC Generate Only";
+		case TR31_KEY_MODE_OF_USE_ANY:          return "No special restrictions";
+		case TR31_KEY_MODE_OF_USE_SIG:          return "Signature Only";
+		case TR31_KEY_MODE_OF_USE_MAC_VERIFY:   return "MAC Verify Only";
+		case TR31_KEY_MODE_OF_USE_DERIVE:       return "Key Derivation";
+		case TR31_KEY_MODE_OF_USE_VARIANT:      return "Create Key Variants";
+	}
+
+	return "Unknown key mode of use value";
+}
+
+const char* tr31_get_key_exportability_string(unsigned int exportability)
+{
+	// See ANSI X9.143:2021, 6.3.5, table 6
+	switch (exportability) {
+		case TR31_KEY_EXPORT_TRUSTED:           return "Exportable in a trusted key block only";
+		case TR31_KEY_EXPORT_NONE:              return "Not exportable";
+		case TR31_KEY_EXPORT_SENSITIVE:         return "Sensitive";
+	}
+
+	return "Unknown key exportability value";
+}
+
+const char* tr31_get_key_context_string(unsigned int key_context)
+{
+	// See ANSI X9.143:2021, 6.2, table 1
+	switch (key_context) {
+		case TR31_KEY_CONTEXT_NONE:             return "Determined by wrapping key";
+		case TR31_KEY_CONTEXT_STORAGE:          return "Storage context only";
+		case TR31_KEY_CONTEXT_EXCHANGE:         return "Key exchange context only";
+	}
+
+	return "Unknown key context value";
+}
+
+const char* tr31_get_opt_block_id_ascii(unsigned int opt_block_id, char* ascii, size_t ascii_len)
+{
+	union {
+		uint16_t value;
+		char bytes[2];
+	} opt_block_id_ascii;
+
+	opt_block_id_ascii.value = htons(opt_block_id);
+
+	if (ascii_len < 3) {
+		return NULL;
+	}
+	for (size_t i = 0; i < sizeof(opt_block_id_ascii.bytes); ++i) {
+		if (tr31_validate_format_an(opt_block_id_ascii.bytes, sizeof(opt_block_id_ascii.bytes)) == 0) {
+			ascii[i] = opt_block_id_ascii.bytes[i];
+		} else {
+			ascii[i] = '?';
+		}
+	}
+	ascii[2] = 0;
+
+	return ascii;
+}
+
+const char* tr31_get_opt_block_id_string(unsigned int opt_block_id)
+{
+	// See ANSI X9.143:2021, 6.3.6, table 7
+	switch (opt_block_id) {
+		case TR31_OPT_BLOCK_AL:         return "Asymmetric Key Life (AKL)";
+		case TR31_OPT_BLOCK_BI:         return "Base Derivation Key (BDK) Identifier";
+		case TR31_OPT_BLOCK_CT:         return "Public Key Certificate";
+		case TR31_OPT_BLOCK_DA:         return "Derivation(s) Allowed for Derivation Keys";
+		case TR31_OPT_BLOCK_FL:         return "Flags";
+		case TR31_OPT_BLOCK_HM:         return "Hash algorithm for HMAC";
+		case TR31_OPT_BLOCK_IK:         return "Initial Key Identifier (IKID)";
+		case TR31_OPT_BLOCK_KC:         return "Key Check Value (KCV) of wrapped key";
+		case TR31_OPT_BLOCK_KP:         return "Key Check Value (KCV) of KBPK";
+		case TR31_OPT_BLOCK_KS:         return "Initial Key Serial Number (KSN)";
+		case TR31_OPT_BLOCK_KV:         return "Key Block Values";
+		case TR31_OPT_BLOCK_LB:         return "Label";
+		case TR31_OPT_BLOCK_PB:         return "Padding Block";
+		case TR31_OPT_BLOCK_PK:         return "Protection Key Check Value (KCV) of export KBPK";
+		case TR31_OPT_BLOCK_TC:         return "Time of Creation";
+		case TR31_OPT_BLOCK_TS:         return "Time Stamp";
+		case TR31_OPT_BLOCK_WP:         return "Wrapping Pedigree";
+	}
+
+	return "Unknown";
+}
 
 int tr31_opt_block_data_get_desc(const struct tr31_opt_ctx_t* opt_block, char* str, size_t str_len)
 {
