@@ -786,16 +786,16 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 	printf("Key block format version: %c\n", tr31_ctx.version);
 	printf("Key block length: %zu bytes\n", tr31_ctx.length);
 	printf("Key usage: [%s] %s\n",
-		tr31_get_key_usage_ascii(tr31_ctx.key.usage, ascii_buf, sizeof(ascii_buf)),
-		tr31_get_key_usage_string(tr31_ctx.key.usage)
+		tr31_key_usage_get_ascii(tr31_ctx.key.usage, ascii_buf, sizeof(ascii_buf)),
+		tr31_key_usage_get_desc(tr31_ctx.key.usage)
 	);
 	printf("Key algorithm: [%c] %s\n",
 		tr31_ctx.key.algorithm,
-		tr31_get_key_algorithm_string(tr31_ctx.key.algorithm)
+		tr31_key_algorithm_get_desc(tr31_ctx.key.algorithm)
 	);
 	printf("Key mode of use: [%c] %s\n",
 		tr31_ctx.key.mode_of_use,
-		tr31_get_key_mode_of_use_string(tr31_ctx.key.mode_of_use)
+		tr31_key_mode_of_use_get_desc(tr31_ctx.key.mode_of_use)
 	);
 	switch (tr31_ctx.key.key_version) {
 		case TR31_KEY_VERSION_IS_UNUSED: printf("Key version: Unused\n"); break;
@@ -804,11 +804,11 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 	}
 	printf("Key exportability: [%c] %s\n",
 		tr31_ctx.key.exportability,
-		tr31_get_key_exportability_string(tr31_ctx.key.exportability)
+		tr31_key_exportability_get_desc(tr31_ctx.key.exportability)
 	);
 	printf("Key context: [%c] %s\n",
 		tr31_ctx.key.key_context,
-		tr31_get_key_context_string(tr31_ctx.key.key_context)
+		tr31_key_context_get_desc(tr31_ctx.key.key_context)
 	);
 
 	// print optional blocks, if available
@@ -820,8 +820,8 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 			char opt_block_data_str[128];
 
 			printf("\t[%s] %s: ",
-				tr31_get_opt_block_id_ascii(tr31_ctx.opt_blocks[i].id, ascii_buf, sizeof(ascii_buf)),
-				tr31_get_opt_block_id_string(tr31_ctx.opt_blocks[i].id)
+				tr31_opt_block_id_get_ascii(tr31_ctx.opt_blocks[i].id, ascii_buf, sizeof(ascii_buf)),
+				tr31_opt_block_id_get_desc(tr31_ctx.opt_blocks[i].id)
 			);
 
 			switch (tr31_ctx.opt_blocks[i].id) {
@@ -876,7 +876,7 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 					for (size_t i = 0; i < da_attr_count; ++i) {
 						printf("%s%s%c%c%c",
 							i == 0 ? "" : ",",
-							tr31_get_key_usage_ascii(da_data->attr[i].key_usage, ascii_buf, sizeof(ascii_buf)),
+							tr31_key_usage_get_ascii(da_data->attr[i].key_usage, ascii_buf, sizeof(ascii_buf)),
 							da_data->attr[i].algorithm,
 							da_data->attr[i].mode_of_use,
 							da_data->attr[i].exportability
@@ -1123,7 +1123,7 @@ static int populate_opt_blocks(const struct tr31_tool_options_t* options, struct
 		if (r) {
 			char ascii_buf[3];
 			fprintf(stderr, "Failed to add optional block %s; error %d: %s\n",
-				tr31_get_opt_block_id_ascii(opt_block->id, ascii_buf, sizeof(ascii_buf)),
+				tr31_opt_block_id_get_ascii(opt_block->id, ascii_buf, sizeof(ascii_buf)),
 				r,
 				tr31_get_error_string(r)
 			);

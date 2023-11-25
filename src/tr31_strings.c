@@ -73,7 +73,7 @@ static int tr31_validate_format_an(const char* buf, size_t buf_len)
 	return 0;
 }
 
-const char* tr31_get_key_usage_ascii(unsigned int usage, char* ascii, size_t ascii_len)
+const char* tr31_key_usage_get_ascii(unsigned int usage, char* ascii, size_t ascii_len)
 {
 	union {
 		uint16_t value;
@@ -97,7 +97,7 @@ const char* tr31_get_key_usage_ascii(unsigned int usage, char* ascii, size_t asc
 	return ascii;
 }
 
-const char* tr31_get_key_usage_string(unsigned int usage)
+const char* tr31_key_usage_get_desc(unsigned int usage)
 {
 	// See ANSI X9.143:2021, 6.3.1, table 2
 	switch (usage) {
@@ -149,7 +149,7 @@ const char* tr31_get_key_usage_string(unsigned int usage)
 	return "Unknown key usage value";
 }
 
-const char* tr31_get_key_algorithm_string(unsigned int algorithm)
+const char* tr31_key_algorithm_get_desc(unsigned int algorithm)
 {
 	// See ANSI X9.143:2021, 6.3.2, table 3
 	switch (algorithm) {
@@ -165,7 +165,7 @@ const char* tr31_get_key_algorithm_string(unsigned int algorithm)
 	return "Unknown key algorithm value";
 }
 
-const char* tr31_get_key_mode_of_use_string(unsigned int mode_of_use)
+const char* tr31_key_mode_of_use_get_desc(unsigned int mode_of_use)
 {
 	// See ANSI X9.143:2021, 6.3.3, table 4
 	switch (mode_of_use) {
@@ -184,7 +184,7 @@ const char* tr31_get_key_mode_of_use_string(unsigned int mode_of_use)
 	return "Unknown key mode of use value";
 }
 
-const char* tr31_get_key_exportability_string(unsigned int exportability)
+const char* tr31_key_exportability_get_desc(unsigned int exportability)
 {
 	// See ANSI X9.143:2021, 6.3.5, table 6
 	switch (exportability) {
@@ -196,7 +196,7 @@ const char* tr31_get_key_exportability_string(unsigned int exportability)
 	return "Unknown key exportability value";
 }
 
-const char* tr31_get_key_context_string(unsigned int key_context)
+const char* tr31_key_context_get_desc(unsigned int key_context)
 {
 	// See ANSI X9.143:2021, 6.2, table 1
 	switch (key_context) {
@@ -208,7 +208,7 @@ const char* tr31_get_key_context_string(unsigned int key_context)
 	return "Unknown key context value";
 }
 
-const char* tr31_get_opt_block_id_ascii(unsigned int opt_block_id, char* ascii, size_t ascii_len)
+const char* tr31_opt_block_id_get_ascii(unsigned int opt_block_id, char* ascii, size_t ascii_len)
 {
 	union {
 		uint16_t value;
@@ -232,7 +232,7 @@ const char* tr31_get_opt_block_id_ascii(unsigned int opt_block_id, char* ascii, 
 	return ascii;
 }
 
-const char* tr31_get_opt_block_id_string(unsigned int opt_block_id)
+const char* tr31_opt_block_id_get_desc(unsigned int opt_block_id)
 {
 	// See ANSI X9.143:2021, 6.3.6, table 7
 	switch (opt_block_id) {

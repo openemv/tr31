@@ -38,47 +38,47 @@ struct tr31_opt_ctx_t;
  * @param ascii_len ASCII output buffer length
  * @return Pointer to output buffer for success. NULL for error.
  */
-const char* tr31_get_key_usage_ascii(unsigned int usage, char* ascii, size_t ascii_len);
+const char* tr31_key_usage_get_ascii(unsigned int usage, char* ascii, size_t ascii_len);
 
 /**
- * Retrieve string associated with key usage value
+ * Retrieve human readable description associated with key usage value
  *
  * @param usage Key usage value
  * @return Pointer to null-terminated string. Do not free.
  */
-const char* tr31_get_key_usage_string(unsigned int usage);
+const char* tr31_key_usage_get_desc(unsigned int usage);
 
 /**
- * Retrieve string associated with key algorithm value
+ * Retrieve human readable description associated with key algorithm value
  *
  * @param algorithm Key algorithm value
  * @return Pointer to null-terminated string. Do not free.
  */
-const char* tr31_get_key_algorithm_string(unsigned int algorithm);
+const char* tr31_key_algorithm_get_desc(unsigned int algorithm);
 
 /**
- * Retrieve string associated with key mode of use value
+ * Retrieve human readable description associated with key mode of use value
  *
  * @param mode_of_use Key mode of use value
  * @return Pointer to null-terminated string. Do not free.
  */
-const char* tr31_get_key_mode_of_use_string(unsigned int mode_of_use);
+const char* tr31_key_mode_of_use_get_desc(unsigned int mode_of_use);
 
 /**
- * Retrieve string associated with key exportability value
+ * Retrieve human readable description associated with key exportability value
  *
  * @param exportability Key exportability value
  * @return Pointer to null-terminated string. Do not free.
  */
-const char* tr31_get_key_exportability_string(unsigned int exportability);
+const char* tr31_key_exportability_get_desc(unsigned int exportability);
 
 /**
- * Retrieve string associated with key context value
+ * Retrieve human readable description associated with key context value
  *
  * @param key_context Key context value
  * @return Pointer to null-terminated string. Do not free.
  */
-const char* tr31_get_key_context_string(unsigned int key_context);
+const char* tr31_key_context_get_desc(unsigned int key_context);
 
 /**
  * Create ASCII string associated with optional block ID value
@@ -88,15 +88,15 @@ const char* tr31_get_key_context_string(unsigned int key_context);
  * @param ascii_len ASCII output buffer length
  * @return Pointer to output buffer for success. NULL for error.
  */
-const char* tr31_get_opt_block_id_ascii(unsigned int opt_block_id, char* ascii, size_t ascii_len);
+const char* tr31_opt_block_id_get_ascii(unsigned int opt_block_id, char* ascii, size_t ascii_len);
 
 /**
- * Retrieve string associated with optional block ID value
+ * Retrieve human readable description associated with optional block ID value
  *
  * @param opt_block_id Optional block ID value
  * @return Pointer to null-terminated string. Do not free.
  */
-const char* tr31_get_opt_block_id_string(unsigned int opt_block_id);
+const char* tr31_opt_block_id_get_desc(unsigned int opt_block_id);
 
 /**
  * Provide human readable description of optional block data, if available. The
