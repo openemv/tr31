@@ -28,6 +28,7 @@
 __BEGIN_DECLS
 
 // Forward declarations
+struct tr31_ctx_t;
 struct tr31_opt_ctx_t;
 
 /**
@@ -49,12 +50,16 @@ const char* tr31_key_usage_get_ascii(unsigned int usage, char* ascii, size_t asc
 const char* tr31_key_usage_get_desc(unsigned int usage);
 
 /**
- * Retrieve human readable description associated with key algorithm value
+ * Retrieve human readable description associated with key algorithm value.
  *
+ * If the TR-31 context object is provided, this function may consider
+ * the optional blocks when determining the description.
+ *
+ * @param ctx TR-31 context object. Optional and may be NULL.
  * @param algorithm Key algorithm value
  * @return Pointer to null-terminated string. Do not free.
  */
-const char* tr31_key_algorithm_get_desc(unsigned int algorithm);
+const char* tr31_key_algorithm_get_desc(const struct tr31_ctx_t* ctx, unsigned int algorithm);
 
 /**
  * Retrieve human readable description associated with key mode of use value

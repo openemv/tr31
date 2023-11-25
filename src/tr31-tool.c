@@ -791,7 +791,7 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 	);
 	printf("Key algorithm: [%c] %s\n",
 		tr31_ctx.key.algorithm,
-		tr31_key_algorithm_get_desc(tr31_ctx.key.algorithm)
+		tr31_key_algorithm_get_desc(&tr31_ctx, tr31_ctx.key.algorithm)
 	);
 	printf("Key mode of use: [%c] %s\n",
 		tr31_ctx.key.mode_of_use,
@@ -1211,7 +1211,7 @@ static int populate_opt_blocks(const struct tr31_tool_options_t* options, struct
 		if (tr31_ctx->key.usage != TR31_KEY_USAGE_HMAC ||
 			tr31_ctx->key.algorithm != TR31_KEY_ALGORITHM_HMAC
 		) {
-			fprintf(stderr, "Export optional block HM is only allowed for HMAC keys (key usage M7, algorithm H)\n");
+			fprintf(stderr, "Export optional block HM is only allowed for ANSI X9.143 HMAC keys (key usage M7, algorithm H)\n");
 			return 1;
 		}
 
@@ -1220,20 +1220,17 @@ static int populate_opt_blocks(const struct tr31_tool_options_t* options, struct
 			fprintf(stderr, "Failed to add optional block HM; error %d: %s\n", r, tr31_get_error_string(r));
 			return 1;
 		}
-	} else if (tr31_ctx->key.usage == TR31_KEY_USAGE_HMAC ||
-		tr31_ctx->key.algorithm == TR31_KEY_ALGORITHM_HMAC
-	) {
-		// look for existing optional block HM because it may have been
-		// provided by --export-header
-		bool opt_block_HM_found = false;
-		for (size_t i = 0; i < tr31_ctx->opt_blocks_count; ++i) {
-			if (tr31_ctx->opt_blocks[i].id == TR31_OPT_BLOCK_HM) {
-				opt_block_HM_found = true;
-				break;
-			}
-		}
-		if (!opt_block_HM_found) {
-			fprintf(stderr, "HMAC keys (key usage M7, algorithm H) must specify the hash algorithm using optional block HM (--export-opt-block-HM)\n");
+	}
+
+	// look for existing optional block HM because it may have been
+	// provided by --export-header
+	if (tr31_opt_block_find(tr31_ctx, TR31_OPT_BLOCK_HM)) {
+		// disallow usage of optional block HM for non-HMAC key usage as well
+		// as for key algorithms I and J (because ISO 20038)
+		if (tr31_ctx->key.usage != TR31_KEY_USAGE_HMAC ||
+			tr31_ctx->key.algorithm != TR31_KEY_ALGORITHM_HMAC
+		) {
+			fprintf(stderr, "Export optional block HM is only allowed for ANSI X9.143 HMAC keys (key usage M7, algorithm H)\n");
 			return 1;
 		}
 	}

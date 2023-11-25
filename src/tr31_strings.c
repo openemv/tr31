@@ -149,17 +149,27 @@ const char* tr31_key_usage_get_desc(unsigned int usage)
 	return "Unknown key usage value";
 }
 
-const char* tr31_key_algorithm_get_desc(unsigned int algorithm)
+const char* tr31_key_algorithm_get_desc(const struct tr31_ctx_t* ctx, unsigned int algorithm)
 {
 	// See ANSI X9.143:2021, 6.3.2, table 3
+	// See ISO 20038:2017, Annex A.2.4, table A.4
 	switch (algorithm) {
-		case TR31_KEY_ALGORITHM_AES:    return "AES";
-		case TR31_KEY_ALGORITHM_DES:    return "DES";
-		case TR31_KEY_ALGORITHM_EC:     return "Elliptic Curve";
-		case TR31_KEY_ALGORITHM_HMAC:   return "HMAC";
-		case TR31_KEY_ALGORITHM_RSA:    return "RSA";
-		case TR31_KEY_ALGORITHM_DSA:    return "DSA";
-		case TR31_KEY_ALGORITHM_TDES:   return "TDES";
+		case TR31_KEY_ALGORITHM_AES:        return "AES";
+		case TR31_KEY_ALGORITHM_DES:        return "DES";
+		case TR31_KEY_ALGORITHM_EC:         return "Elliptic Curve";
+		case TR31_KEY_ALGORITHM_HMAC:
+			if (tr31_opt_block_find((struct tr31_ctx_t*)ctx, TR31_OPT_BLOCK_HM)) {
+				// ANSI X9.143 requires optional block HM for key algorithm HMAC
+				return "HMAC";
+			} else {
+				// ISO 20038 associates the HMAC digest to the key algorithm
+				return "HMAC-SHA-1 (ISO 20038)";
+			}
+		case TR31_KEY_ALGORITHM_HMAC_SHA2:  return "HMAC-SHA-2 (ISO 20038)";
+		case TR31_KEY_ALGORITHM_HMAC_SHA3:  return "HMAC-SHA-3 (ISO 20038)";
+		case TR31_KEY_ALGORITHM_RSA:        return "RSA";
+		case TR31_KEY_ALGORITHM_DSA:        return "DSA";
+		case TR31_KEY_ALGORITHM_TDES:       return "TDES";
 	}
 
 	return "Unknown key algorithm value";

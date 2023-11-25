@@ -82,11 +82,14 @@ enum tr31_version_t {
 #define TR31_KEY_USAGE_PVK_X9_132_ALG_2 (0x5634) ///< Key Usage V4: PIN Verification Key (ANSI X9.132 algorithm 2)
 #define TR31_KEY_USAGE_PVK_X9_132_ALG_3 (0x5635) ///< Key Usage V5: PIN Verification Key (ANSI X9.132 algorithm 3)
 
-// TR-31 algorithm (see ANSI X9.143:2021, 6.3.2, table 3)
+// TR-31 algorithm (see ANSI X9.143:2021, 6.3.2, table 3 and ISO 20038:2017, Annex A.2.4, table A.4)
 #define TR31_KEY_ALGORITHM_AES          ('A') ///< Key Algorithm A: AES
 #define TR31_KEY_ALGORITHM_DES          ('D') ///< Key Algorithm D: DES
 #define TR31_KEY_ALGORITHM_EC           ('E') ///< Key Algorithm E: Elliptic Curve
-#define TR31_KEY_ALGORITHM_HMAC         ('H') ///< Key Algorithm H: HMAC
+#define TR31_KEY_ALGORITHM_HMAC         ('H') ///< Key Algorithm H for ANSI X9.143: HMAC
+#define TR31_KEY_ALGORITHM_HMAC_SHA1    ('H') ///< Key Algorithm H for ISO 20038: HMAC-SHA1
+#define TR31_KEY_ALGORITHM_HMAC_SHA2    ('I') ///< Key Algorithm I for ISO 20038: HMAC-SHA2
+#define TR31_KEY_ALGORITHM_HMAC_SHA3    ('J') ///< Key Algorithm J for ISO 20038: HMAC-SHA3
 #define TR31_KEY_ALGORITHM_RSA          ('R') ///< Key Algorithm R: RSA
 #define TR31_KEY_ALGORITHM_DSA          ('S') ///< Key Algorithm S: DSA
 #define TR31_KEY_ALGORITHM_TDES         ('T') ///< Key Algorithm T: Triple DES
