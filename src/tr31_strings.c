@@ -24,6 +24,7 @@
 #include "tr31_config.h"
 
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 
 #if defined(HAVE_ARPA_INET_H)
@@ -53,6 +54,9 @@ static const char* tr31_opt_block_hmac_get_string(const struct tr31_opt_ctx_t* o
 static const char* tr31_opt_block_kcv_get_string(const struct tr31_opt_ctx_t* opt_block);
 static int tr31_opt_block_iso8601_get_string(const struct tr31_opt_ctx_t* opt_block, char* str, size_t str_len);
 static const char* tr31_opt_block_wrapping_pedigree_get_string(const struct tr31_opt_ctx_t* opt_block);
+static bool tr31_opt_block_is_ibm(const struct tr31_opt_ctx_t* opt_block);
+static bool tr31_opt_block_ibm_found(const struct tr31_ctx_t* ctx);
+static const char* tr31_opt_block_ibm_get_string(const struct tr31_opt_ctx_t* opt_block);
 
 static int tr31_validate_format_an(const char* buf, size_t buf_len)
 {
@@ -97,10 +101,14 @@ const char* tr31_key_usage_get_ascii(unsigned int usage, char* ascii, size_t asc
 	return ascii;
 }
 
-const char* tr31_key_usage_get_desc(unsigned int usage)
+const char* tr31_key_usage_get_desc(const struct tr31_ctx_t* ctx)
 {
+	if (!ctx) {
+		return NULL;
+	}
+
 	// See ANSI X9.143:2021, 6.3.1, table 2
-	switch (usage) {
+	switch (ctx->key.usage) {
 		case TR31_KEY_USAGE_BDK:                return "Base Derivation Key (BDK)";
 		case TR31_KEY_USAGE_DUKPT_IK:           return "Initial DUKPT Key (IK/IPEK)";
 		case TR31_KEY_USAGE_BKV:                return "Base Key Variant Key";
@@ -146,6 +154,13 @@ const char* tr31_key_usage_get_desc(unsigned int usage)
 		case TR31_KEY_USAGE_PVK_X9_132_ALG_3:   return "PIN Verification Key (ANSI X9.132 algorithm 3)";
 	}
 
+	// See https://www.ibm.com/docs/en/zos/3.1.0?topic=ktf-x9143-tr-31-key-block-header-optional-block-data
+	if (ctx->key.usage == TR31_KEY_USAGE_IBM &&
+		tr31_opt_block_ibm_found(ctx)
+	) {
+		return "IBM";
+	}
+
 	return "Unknown key usage value";
 }
 
@@ -175,10 +190,14 @@ const char* tr31_key_algorithm_get_desc(const struct tr31_ctx_t* ctx, unsigned i
 	return "Unknown key algorithm value";
 }
 
-const char* tr31_key_mode_of_use_get_desc(unsigned int mode_of_use)
+const char* tr31_key_mode_of_use_get_desc(const struct tr31_ctx_t* ctx)
 {
+	if (!ctx) {
+		return NULL;
+	}
+
 	// See ANSI X9.143:2021, 6.3.3, table 4
-	switch (mode_of_use) {
+	switch (ctx->key.mode_of_use) {
 		case TR31_KEY_MODE_OF_USE_ENC_DEC:      return "Encrypt/Wrap and Decrypt/Unwrap";
 		case TR31_KEY_MODE_OF_USE_MAC:          return "MAC Generate and Verify";
 		case TR31_KEY_MODE_OF_USE_DEC:          return "Decrypt/Unwrap Only";
@@ -189,6 +208,13 @@ const char* tr31_key_mode_of_use_get_desc(unsigned int mode_of_use)
 		case TR31_KEY_MODE_OF_USE_MAC_VERIFY:   return "MAC Verify Only";
 		case TR31_KEY_MODE_OF_USE_DERIVE:       return "Key Derivation";
 		case TR31_KEY_MODE_OF_USE_VARIANT:      return "Create Key Variants";
+	}
+
+	// See https://www.ibm.com/docs/en/zos/3.1.0?topic=ktf-x9143-tr-31-key-block-header-optional-block-data
+	if (ctx->key.mode_of_use == TR31_KEY_MODE_OF_USE_IBM &&
+		tr31_opt_block_ibm_found(ctx)
+	) {
+		return "IBM";
 	}
 
 	return "Unknown key mode of use value";
@@ -242,10 +268,14 @@ const char* tr31_opt_block_id_get_ascii(unsigned int opt_block_id, char* ascii, 
 	return ascii;
 }
 
-const char* tr31_opt_block_id_get_desc(unsigned int opt_block_id)
+const char* tr31_opt_block_id_get_desc(const struct tr31_opt_ctx_t* opt_block)
 {
+	if (!opt_block) {
+		return NULL;
+	}
+
 	// See ANSI X9.143:2021, 6.3.6, table 7
-	switch (opt_block_id) {
+	switch (opt_block->id) {
 		case TR31_OPT_BLOCK_AL:         return "Asymmetric Key Life (AKL)";
 		case TR31_OPT_BLOCK_BI:         return "Base Derivation Key (BDK) Identifier";
 		case TR31_OPT_BLOCK_CT:         return "Public Key Certificate";
@@ -263,6 +293,12 @@ const char* tr31_opt_block_id_get_desc(unsigned int opt_block_id)
 		case TR31_OPT_BLOCK_TC:         return "Time of Creation";
 		case TR31_OPT_BLOCK_TS:         return "Time Stamp";
 		case TR31_OPT_BLOCK_WP:         return "Wrapping Pedigree";
+		default: {
+			if (tr31_opt_block_is_ibm(opt_block)) {
+				return "IBM";
+			}
+			break;
+		}
 	}
 
 	return "Unknown";
@@ -306,6 +342,10 @@ int tr31_opt_block_data_get_desc(const struct tr31_opt_ctx_t* opt_block, char* s
 
 		case TR31_OPT_BLOCK_WP:
 			simple_str =  tr31_opt_block_wrapping_pedigree_get_string(opt_block);
+			break;
+
+		default:
+			simple_str = tr31_opt_block_ibm_get_string(opt_block);
 			break;
 	}
 
@@ -618,4 +658,64 @@ static const char* tr31_opt_block_wrapping_pedigree_get_string(const struct tr31
 	}
 
 	return "Unknown";
+}
+
+static bool tr31_opt_block_is_ibm(const struct tr31_opt_ctx_t* opt_block)
+{
+	if (opt_block->id != TR31_OPT_BLOCK_10_IBM) {
+		return false;
+	}
+
+	// See https://www.ibm.com/docs/en/zos/3.1.0?topic=ktf-x9143-tr-31-key-block-header-optional-block-data
+	if (opt_block->data_length < strlen(TR31_OPT_BLOCK_10_IBM_MAGIC)) {
+		return false;
+	}
+	if (memcmp(opt_block->data, TR31_OPT_BLOCK_10_IBM_MAGIC, strlen(TR31_OPT_BLOCK_10_IBM_MAGIC)) != 0) {
+		return false;
+	}
+
+	if ((opt_block->data_length == 0x1C - 4 || opt_block->data_length != 0x2C - 4) &&
+		memcmp(opt_block->data + 4, "01", 2) == 0
+	) {
+		// IBM Common Cryptographic Architecture (CCA) Control Vector (CV)
+		return true;
+	}
+
+	if (opt_block->data_length == 0x24 - 4 &&
+		memcmp(opt_block->data + 4, "02", 2) == 0
+	) {
+		// IBM Internal X9-SWKB controls
+		return true;
+	}
+
+	return false;
+}
+
+static bool tr31_opt_block_ibm_found(const struct tr31_ctx_t* ctx)
+{
+	struct tr31_opt_ctx_t* opt_block;
+
+	opt_block = tr31_opt_block_find((struct tr31_ctx_t*)ctx, TR31_OPT_BLOCK_10_IBM);
+	if (!opt_block) {
+		return false;
+	}
+
+	return tr31_opt_block_is_ibm(opt_block);
+}
+
+static const char* tr31_opt_block_ibm_get_string(const struct tr31_opt_ctx_t* opt_block)
+{
+	if (!tr31_opt_block_is_ibm(opt_block)) {
+		return NULL;
+	}
+
+	// See https://www.ibm.com/docs/en/zos/3.1.0?topic=ktf-x9143-tr-31-key-block-header-optional-block-data
+	if (memcmp(opt_block->data + 4, "01", 2) == 0) {
+		return "Common Cryptographic Architecture (CCA) Control Vector (CV)";
+	}
+	if (memcmp(opt_block->data + 4, "02", 2) == 0) {
+		return "Internal X9-SWKB controls";
+	}
+
+	return 0;
 }

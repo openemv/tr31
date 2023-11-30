@@ -42,12 +42,12 @@ struct tr31_opt_ctx_t;
 const char* tr31_key_usage_get_ascii(unsigned int usage, char* ascii, size_t ascii_len);
 
 /**
- * Retrieve human readable description associated with key usage value
+ * Retrieve human readable description associated with key usage
  *
- * @param usage Key usage value
+ * @param ctx TR-31 context object
  * @return Pointer to null-terminated string. Do not free.
  */
-const char* tr31_key_usage_get_desc(unsigned int usage);
+const char* tr31_key_usage_get_desc(const struct tr31_ctx_t* ctx);
 
 /**
  * Retrieve human readable description associated with key algorithm value.
@@ -62,12 +62,12 @@ const char* tr31_key_usage_get_desc(unsigned int usage);
 const char* tr31_key_algorithm_get_desc(const struct tr31_ctx_t* ctx, unsigned int algorithm);
 
 /**
- * Retrieve human readable description associated with key mode of use value
+ * Retrieve human readable description associated with key mode of use
  *
- * @param mode_of_use Key mode of use value
+ * @param ctx TR-31 context object
  * @return Pointer to null-terminated string. Do not free.
  */
-const char* tr31_key_mode_of_use_get_desc(unsigned int mode_of_use);
+const char* tr31_key_mode_of_use_get_desc(const struct tr31_ctx_t* ctx);
 
 /**
  * Retrieve human readable description associated with key exportability value
@@ -96,12 +96,15 @@ const char* tr31_key_context_get_desc(unsigned int key_context);
 const char* tr31_opt_block_id_get_ascii(unsigned int opt_block_id, char* ascii, size_t ascii_len);
 
 /**
- * Retrieve human readable description associated with optional block ID value
+ * Retrieve human readable description associated with optional block ID value.
  *
- * @param opt_block_id Optional block ID value
+ * This function may also consider the optional block length and optional block
+ * data when determining the description of the optional block ID.
+ *
+ * @param opt_block Optional block context object
  * @return Pointer to null-terminated string. Do not free.
  */
-const char* tr31_opt_block_id_get_desc(unsigned int opt_block_id);
+const char* tr31_opt_block_id_get_desc(const struct tr31_opt_ctx_t* opt_block);
 
 /**
  * Provide human readable description of optional block data, if available. The

@@ -787,7 +787,7 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 	printf("Key block length: %zu bytes\n", tr31_ctx.length);
 	printf("Key usage: [%s] %s\n",
 		tr31_key_usage_get_ascii(tr31_ctx.key.usage, ascii_buf, sizeof(ascii_buf)),
-		tr31_key_usage_get_desc(tr31_ctx.key.usage)
+		tr31_key_usage_get_desc(&tr31_ctx)
 	);
 	printf("Key algorithm: [%c] %s\n",
 		tr31_ctx.key.algorithm,
@@ -795,7 +795,7 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 	);
 	printf("Key mode of use: [%c] %s\n",
 		tr31_ctx.key.mode_of_use,
-		tr31_key_mode_of_use_get_desc(tr31_ctx.key.mode_of_use)
+		tr31_key_mode_of_use_get_desc(&tr31_ctx)
 	);
 	switch (tr31_ctx.key.key_version) {
 		case TR31_KEY_VERSION_IS_UNUSED: printf("Key version: Unused\n"); break;
@@ -821,7 +821,7 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 
 			printf("\t[%s] %s: ",
 				tr31_opt_block_id_get_ascii(tr31_ctx.opt_blocks[i].id, ascii_buf, sizeof(ascii_buf)),
-				tr31_opt_block_id_get_desc(tr31_ctx.opt_blocks[i].id)
+				tr31_opt_block_id_get_desc(&tr31_ctx.opt_blocks[i])
 			);
 
 			switch (tr31_ctx.opt_blocks[i].id) {

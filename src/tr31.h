@@ -190,6 +190,14 @@ enum tr31_key_version_t {
 #define TR31_EXPORT_NO_KEY_LENGTH_OBFUSCATION   (0x01) ///< Disable ANSI X9.143 key length obfuscation during key block export
 #define TR31_EXPORT_ZERO_OPT_BLOCK_PB           (0x02) ///< Fill optional block PB using zeros instead of random characters during key block export.
 
+// Key block attributes and optional block format defined by IBM
+#define TR31_KEY_USAGE_IBM                      (0x3130) ///< Key Usage 10: IBM proprietary key usage
+#define TR31_KEY_MODE_OF_USE_IBM                ('1')    ///< Key Mode of Use 1: IBM proprietary mode for keys
+#define TR31_OPT_BLOCK_10_IBM                   (0x3130) ///< Optional Block 10: IBM proprietary optional block
+#define TR31_OPT_BLOCK_10_IBM_MAGIC             "IBMC"   ///< IBM proprietary optional block magic value
+#define TR31_OPT_BLOCK_10_IBM_TLV_CCA_CV        (0x01)   ///< IBM proprietary optional block: Common Cryptographic Architecture (CCA) Control Vector (CV)
+#define TR31_OPT_BLOCK_10_IBM_TLV_X9_SWKB       (0x02)   ///< IBM proprietary optional block: Internal X9-SWKB controls
+
 /// TR-31 key object
 struct tr31_key_t {
 	unsigned int usage; ///< TR-31 key usage

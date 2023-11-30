@@ -869,4 +869,52 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 		PROPERTIES
 			PASS_REGULAR_EXPRESSION ${tr31_tool_test52_regex}
 	)
+
+	# test IBM proprietary key block
+	# NOTE: the input was hand crafted based on https://www.ibm.com/docs/en/zos/3.1.0?topic=ktf-x9143-tr-31-key-block-header-optional-block-data and https://www.ibm.com/docs/en/linux-on-systems?topic=data-tr-31-optional-block
+	add_test(NAME tr31_tool_test53
+		COMMAND tr31-tool --import D014410A100N0200101CIBMC01140123456789ABCDEFPB04000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 --import-no-strict-validation
+	)
+	string(CONCAT tr31_tool_test53_regex
+		"^Key block format version: D[\r\n]"
+		"Key block length: 144 bytes[\r\n]"
+		"Key usage: \\[10\\] IBM[\r\n]"
+		"Key algorithm: \\[A\\] AES[\r\n]"
+		"Key mode of use: \\[1\\] IBM[\r\n]"
+		"Key version: Unused[\r\n]"
+		"Key exportability: \\[N\\] Not exportable[\r\n]"
+		"Key context: \\[0\\] Determined by wrapping key[\r\n]"
+		"Optional blocks \\[2\\]:[\r\n]"
+		"\t\\[10\\] IBM: IBMC01140123456789ABCDEF \\(Common Cryptographic Architecture \\(CCA\\) Control Vector \\(CV\\)\\)[\r\n]"
+		"\t\\[PB\\] Padding Block: \"\"[\r\n]"
+		"Key not decrypted[\r\n]"
+	)
+	set_tests_properties(tr31_tool_test53
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION ${tr31_tool_test53_regex}
+	)
+
+	# test non-IBM proprietary key block
+	# NOTE: the input was hand crafted based on tr31_tool_test53 but excludes "IBMC"
+	add_test(NAME tr31_tool_test54
+		COMMAND tr31-tool --import D014410A100N0200101801140123456789ABCDEFPB08asdf000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 --import-no-strict-validation
+	)
+	string(CONCAT tr31_tool_test54_regex
+		"^Key block format version: D[\r\n]"
+		"Key block length: 144 bytes[\r\n]"
+		"Key usage: \\[10\\] Unknown key usage value[\r\n]"
+		"Key algorithm: \\[A\\] AES[\r\n]"
+		"Key mode of use: \\[1\\] Unknown key mode of use value[\r\n]"
+		"Key version: Unused[\r\n]"
+		"Key exportability: \\[N\\] Not exportable[\r\n]"
+		"Key context: \\[0\\] Determined by wrapping key[\r\n]"
+		"Optional blocks \\[2\\]:[\r\n]"
+		"\t\\[10\\] Unknown: 01140123456789ABCDEF[\r\n]"
+		"\t\\[PB\\] Padding Block: \"asdf\"[\r\n]"
+		"Key not decrypted[\r\n]"
+	)
+	set_tests_properties(tr31_tool_test54
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION ${tr31_tool_test54_regex}
+	)
 endif()
