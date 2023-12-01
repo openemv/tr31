@@ -42,7 +42,10 @@ struct tr31_opt_ctx_t;
 const char* tr31_key_usage_get_ascii(unsigned int usage, char* ascii, size_t ascii_len);
 
 /**
- * Retrieve human readable description associated with key usage
+ * Retrieve human readable description associated with key usage.
+ *
+ * This function may consider the available optional blocks when determining
+ * the description.
  *
  * @param ctx TR-31 context object
  * @return Pointer to null-terminated string. Do not free.
@@ -50,19 +53,21 @@ const char* tr31_key_usage_get_ascii(unsigned int usage, char* ascii, size_t asc
 const char* tr31_key_usage_get_desc(const struct tr31_ctx_t* ctx);
 
 /**
- * Retrieve human readable description associated with key algorithm value.
+ * Retrieve human readable description associated with key algorithm.
  *
- * If the TR-31 context object is provided, this function may consider
- * the optional blocks when determining the description.
+ * This function may consider the available optional blocks when determining
+ * the description.
  *
- * @param ctx TR-31 context object. Optional and may be NULL.
- * @param algorithm Key algorithm value
+ * @param ctx TR-31 context object
  * @return Pointer to null-terminated string. Do not free.
  */
-const char* tr31_key_algorithm_get_desc(const struct tr31_ctx_t* ctx, unsigned int algorithm);
+const char* tr31_key_algorithm_get_desc(const struct tr31_ctx_t* ctx);
 
 /**
- * Retrieve human readable description associated with key mode of use
+ * Retrieve human readable description associated with key mode of use.
+ *
+ * This function may consider the available optional blocks when determining
+ * the description.
  *
  * @param ctx TR-31 context object
  * @return Pointer to null-terminated string. Do not free.
@@ -70,20 +75,26 @@ const char* tr31_key_algorithm_get_desc(const struct tr31_ctx_t* ctx, unsigned i
 const char* tr31_key_mode_of_use_get_desc(const struct tr31_ctx_t* ctx);
 
 /**
- * Retrieve human readable description associated with key exportability value
+ * Retrieve human readable description associated with key exportability.
  *
- * @param exportability Key exportability value
+ * This function may consider the available optional blocks when determining
+ * the description.
+ *
+ * @param ctx TR-31 context object
  * @return Pointer to null-terminated string. Do not free.
  */
-const char* tr31_key_exportability_get_desc(unsigned int exportability);
+const char* tr31_key_exportability_get_desc(const struct tr31_ctx_t* ctx);
 
 /**
- * Retrieve human readable description associated with key context value
+ * Retrieve human readable description associated with key context.
  *
- * @param key_context Key context value
+ * This function may consider the available optional blocks when determining
+ * the description.
+ *
+ * @param ctx TR-31 context object
  * @return Pointer to null-terminated string. Do not free.
  */
-const char* tr31_key_context_get_desc(unsigned int key_context);
+const char* tr31_key_context_get_desc(const struct tr31_ctx_t* ctx);
 
 /**
  * Create ASCII string associated with optional block ID value
@@ -113,7 +124,7 @@ const char* tr31_opt_block_id_get_desc(const struct tr31_opt_ctx_t* opt_block);
  * terminated) if no description is available for the optional block data or if
  * the optional block ID is unknown.
  *
- * @param opt_block Optional block
+ * @param opt_block Optional block context object
  * @param str String buffer output
  * @param str_len Length of string buffer in bytes
  * @return Zero for success. Less than zero for internal error. Greater than zero for parse error. See @ref tr31_error_t

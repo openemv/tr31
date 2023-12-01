@@ -791,7 +791,7 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 	);
 	printf("Key algorithm: [%c] %s\n",
 		tr31_ctx.key.algorithm,
-		tr31_key_algorithm_get_desc(&tr31_ctx, tr31_ctx.key.algorithm)
+		tr31_key_algorithm_get_desc(&tr31_ctx)
 	);
 	printf("Key mode of use: [%c] %s\n",
 		tr31_ctx.key.mode_of_use,
@@ -804,11 +804,11 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 	}
 	printf("Key exportability: [%c] %s\n",
 		tr31_ctx.key.exportability,
-		tr31_key_exportability_get_desc(tr31_ctx.key.exportability)
+		tr31_key_exportability_get_desc(&tr31_ctx)
 	);
 	printf("Key context: [%c] %s\n",
 		tr31_ctx.key.key_context,
-		tr31_key_context_get_desc(tr31_ctx.key.key_context)
+		tr31_key_context_get_desc(&tr31_ctx)
 	);
 
 	// print optional blocks, if available

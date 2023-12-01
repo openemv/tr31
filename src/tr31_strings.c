@@ -164,15 +164,19 @@ const char* tr31_key_usage_get_desc(const struct tr31_ctx_t* ctx)
 	return "Unknown key usage value";
 }
 
-const char* tr31_key_algorithm_get_desc(const struct tr31_ctx_t* ctx, unsigned int algorithm)
+const char* tr31_key_algorithm_get_desc(const struct tr31_ctx_t* ctx)
 {
+	if (!ctx) {
+		return NULL;
+	}
+
 	// See ANSI X9.143:2021, 6.3.2, table 3
 	// See ISO 20038:2017, Annex A.2.4, table A.4
-	switch (algorithm) {
+	switch (ctx->key.algorithm) {
 		case TR31_KEY_ALGORITHM_AES:        return "AES";
 		case TR31_KEY_ALGORITHM_DES:        return "DES";
 		case TR31_KEY_ALGORITHM_EC:         return "Elliptic Curve";
-		case TR31_KEY_ALGORITHM_HMAC:
+		case TR31_KEY_ALGORITHM_HMAC: {
 			if (tr31_opt_block_find((struct tr31_ctx_t*)ctx, TR31_OPT_BLOCK_HM)) {
 				// ANSI X9.143 requires optional block HM for key algorithm HMAC
 				return "HMAC";
@@ -180,6 +184,7 @@ const char* tr31_key_algorithm_get_desc(const struct tr31_ctx_t* ctx, unsigned i
 				// ISO 20038 associates the HMAC digest to the key algorithm
 				return "HMAC-SHA-1 (ISO 20038)";
 			}
+		}
 		case TR31_KEY_ALGORITHM_HMAC_SHA2:  return "HMAC-SHA-2 (ISO 20038)";
 		case TR31_KEY_ALGORITHM_HMAC_SHA3:  return "HMAC-SHA-3 (ISO 20038)";
 		case TR31_KEY_ALGORITHM_RSA:        return "RSA";
@@ -220,10 +225,14 @@ const char* tr31_key_mode_of_use_get_desc(const struct tr31_ctx_t* ctx)
 	return "Unknown key mode of use value";
 }
 
-const char* tr31_key_exportability_get_desc(unsigned int exportability)
+const char* tr31_key_exportability_get_desc(const struct tr31_ctx_t* ctx)
 {
+	if (!ctx) {
+		return NULL;
+	}
+
 	// See ANSI X9.143:2021, 6.3.5, table 6
-	switch (exportability) {
+	switch (ctx->key.exportability) {
 		case TR31_KEY_EXPORT_TRUSTED:           return "Exportable in a trusted key block only";
 		case TR31_KEY_EXPORT_NONE:              return "Not exportable";
 		case TR31_KEY_EXPORT_SENSITIVE:         return "Sensitive";
@@ -232,10 +241,14 @@ const char* tr31_key_exportability_get_desc(unsigned int exportability)
 	return "Unknown key exportability value";
 }
 
-const char* tr31_key_context_get_desc(unsigned int key_context)
+const char* tr31_key_context_get_desc(const struct tr31_ctx_t* ctx)
 {
+	if (!ctx) {
+		return NULL;
+	}
+
 	// See ANSI X9.143:2021, 6.2, table 1
-	switch (key_context) {
+	switch (ctx->key.key_context) {
 		case TR31_KEY_CONTEXT_NONE:             return "Determined by wrapping key";
 		case TR31_KEY_CONTEXT_STORAGE:          return "Storage context only";
 		case TR31_KEY_CONTEXT_EXCHANGE:         return "Key exchange context only";
@@ -623,7 +636,6 @@ static int tr31_opt_block_iso8601_get_string(const struct tr31_opt_ctx_t* opt_bl
 
 static const char* tr31_opt_block_wrapping_pedigree_get_string(const struct tr31_opt_ctx_t* opt_block)
 {
-
 	int r;
 	struct tr31_opt_blk_wp_data_t wp_data;
 
