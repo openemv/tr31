@@ -176,6 +176,7 @@ if(Doxygen_FOUND)
 	if(BUILD_DOCS)
 		doxygen_add_docs(docs
 			tr31.h
+			tr31_strings.h
 			ALL # build by default
 			WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src"
 		)
@@ -189,6 +190,7 @@ if(Doxygen_FOUND)
 	else()
 		doxygen_add_docs(docs
 			tr31.h
+			tr31_strings.h
 			WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src"
 		)
 	endif()
