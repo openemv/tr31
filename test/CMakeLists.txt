@@ -1,5 +1,5 @@
 ##############################################################################
-# Copyright (c) 2020, 2021, 2022 Leon Lynch
+# Copyright 2020-2022 Leon Lynch
 #
 # This file is licensed under the terms of the LGPL v2.1 license.
 # See LICENSE file.

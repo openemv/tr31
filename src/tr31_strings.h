@@ -2,7 +2,7 @@
  * @file tr31_strings.h
  * @brief TR-31 string helper functions
  *
- * Copyright (c) 2023 Leon Lynch
+ * Copyright 2023 Leon Lynch
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
