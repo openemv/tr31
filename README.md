@@ -10,10 +10,11 @@ Key block library and tools for ANSI X9.143, ASC X9 TR-31 and ISO 20038
 This project began as an implementation of the ASC X9 TR-31 standard and has
 since grown to include the ANSI X9.143 standard which supersedes it, and the
 ISO 20038 standard which extends it. However, this project continues to refer
-to TR-31 key blocks (instead of secure key blocks) due to the popularity of
-that particular naming. Given that most uses of these standards involve
-dedicated security hardware, this implementation is mostly for validation and
-debugging purposes.
+to the library as TR-31 and prefixes the API, data types and command line tool
+with `tr31`, while mostly avoiding that naming when refering to key blocks and
+data associated with key blocks. Given that most uses of these standards
+involve dedicated security hardware, this implementation is mostly for
+validation and debugging purposes.
 
 If you wish to use this library for a project that is not compatible with the
 terms of the LGPL v2.1 license, please contact the author for alternative
@@ -53,13 +54,15 @@ Dependencies
 * [CMake](https://cmake.org/)
 * TR-31 library requires [MbedTLS](https://github.com/Mbed-TLS/mbedtls)
   (preferred), or [OpenSSL](https://www.openssl.org/)
-* TR-31 tool will be built by default and requires `argp` (either via Glibc, a
+* `tr31-tool` will be built by default and requires `argp` (either via Glibc, a
   system-provided standalone or a downloaded implementation; see
   [MacOS / Windows](#macos--windows)). Use the `BUILD_TR31_TOOL` option to
   prevent TR-31 tool from being built and avoid the dependency on `argp`.
 * [Doxygen](https://github.com/doxygen/doxygen) can _optionally_ be used to
   generate API documentation if it is available; see
   [Documentation](#documentation)
+* [bash-completion](https://github.com/scop/bash-completion) can _optionally_
+  be used to generate bash completion for `tr31-tool`
 
 This project also makes use of sub-projects that can either be provided as
 git submodules using `git clone --recurse-submodules`, or provided as CMake
@@ -167,31 +170,37 @@ displayed using:
 tr31-tool --help
 ```
 
-To decode a TR-31 key block, use the `--import` option. For example:
+To decode a key block, use the `--import` option. For example:
 ```
 tr31-tool --import B0128B1TX00N0300KS18FFFF00A0200001E00000KC0C000169E3KP0C00ECAD626F9F1A826814AA066D86C8C18BD0E14033E1EBEC75BEDF586E6E325F3AA8C0E5
 ```
 
-To decrypt a TR-31 key block, add the `--kbpk` option to specify the key block
+To decrypt a key block, add the `--kbpk` option to specify the key block
 protection key to be used for decryption. For example:
 ```
 tr31-tool --import B0128B1TX00N0300KS18FFFF00A0200001E00000KC0C000169E3KP0C00ECAD626F9F1A826814AA066D86C8C18BD0E14033E1EBEC75BEDF586E6E325F3AA8C0E5 --kbpk AB2E09DB3EF0BA71E0CE6CD755C23A3B
 ```
 
-To encode/encrypt a TR-31 key block, use the `--export` option to specify the
-key to be wrapped/encrypted. The key block attributes can be specified using
-either a combination of the `--export-format-version B`,
-`--export-key-algorithm` and `--export-template` options, or using the
-`--export-header` option. For example:
+To encode/encrypt a key block, use the `--export` option to specify the key to
+be wrapped/encrypted. The key block attributes can be specified using either a
+combination of the `--export-format-version B`, `--export-key-algorithm` and
+`--export-template` options, or using the `--export-header` option. For
+example:
 ```
 tr31-tool --kbpk AB2E09DB3EF0BA71E0CE6CD755C23A3B --export BF82DAC6A33DF92CE66E15B70E5DCEB6 --export-header B0000B1TX00N0200KS18FFFF00A0200001E00000KC0C000169E3
 ```
 
-Individual optional blocks can also be added when exporting a TR-31 key block
-by using the various `--export-opt-block-XX` functions, where `XX` is the
-optional block identifier. For example:
+Individual optional blocks can also be added when exporting a key block by
+using the various `--export-opt-block-XX` functions, where `XX` is the optional
+block identifier. For example:
 ```
 tr31-tool --kbpk AB2E09DB3EF0BA71E0CE6CD755C23A3B --export BF82DAC6A33DF92CE66E15B70E5DCEB6 --export-header B0000B1TX00N0000 --export-opt-block-KS FFFF00A0200001E00000 --export-opt-block-KC
+```
+
+To decode non-standard key blocks, use the `--import-no-strict-validation`
+option to disable strict validation during key block import. For example:
+```
+tr31-tool --import D014410A100N0200101CIBMC01140123456789ABCDEFPB04012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345 --import-no-strict-validation
 ```
 
 Roadmap
@@ -199,7 +208,7 @@ Roadmap
 
 * Implement key block translation
 * Implement key block component combination
-* Add CPack packaging for Windows and MacOS
+* Add support for vcpkg
 * Test on various ARM architectures
 
 License
