@@ -41,7 +41,7 @@
 
 #define sizeof_field(TYPE, FIELD) sizeof(((TYPE*)0)->FIELD)
 
-// TR-31 header
+// key block header
 // see ANSI X9.143:2021, 6.2, table 1
 struct tr31_header_t {
 	uint8_t version_id;
@@ -56,14 +56,14 @@ struct tr31_header_t {
 	char reserved;
 } __attribute__((packed));
 
-// TR-31 optional block header with short length
+// optional block header with short length
 // see ANSI X9.143:2021, 6.2, table 1
 struct tr31_opt_blk_hdr_t {
 	uint16_t id;
 	char length[2] NONSTRING;
 } __attribute__((packed));
 
-// TR-31 optional block header with extended length
+// optional block header with extended length
 // see ANSI X9.143:2021, 6.2, table 1
 struct tr31_opt_blk_hdr_ext_t {
 	uint16_t id;
@@ -72,7 +72,7 @@ struct tr31_opt_blk_hdr_ext_t {
 	char ext_length[] NONSTRING;
 } __attribute__((packed));
 
-// TR-31 optional block with short length
+// optional block with short length
 // see ANSI X9.143:2021, 6.2, table 1
 struct tr31_opt_blk_t {
 	uint16_t id;
@@ -80,7 +80,7 @@ struct tr31_opt_blk_t {
 	char data[];
 } __attribute__((packed));
 
-// TR-31 payload
+// key block payload
 // see ANSI X9.143:2021, 6.1, figure 2
 // see ANSI X9.143:2021, 7.3.1, figure 11 and table 26
 struct tr31_payload_t {
@@ -89,7 +89,7 @@ struct tr31_payload_t {
 } __attribute__((packed));
 
 #define TR31_MIN_PAYLOAD_LENGTH (DES_BLOCK_SIZE)
-#define TR31_MIN_KEY_BLOCK_LENGTH (sizeof(struct tr31_header_t) + TR31_MIN_PAYLOAD_LENGTH + 8) // Minimum TR-31 key block length: header + minimum payload + authenticator
+#define TR31_MIN_KEY_BLOCK_LENGTH (sizeof(struct tr31_header_t) + TR31_MIN_PAYLOAD_LENGTH + 8) // Minimum key block length: header + minimum payload + authenticator
 
 // Internal processing state
 struct tr31_state_t {
@@ -768,7 +768,7 @@ int tr31_init_from_header(
 		return r;
 	}
 
-	// initialise TR-31 context object
+	// initialise key block context object
 	r = tr31_init(header->version_id, NULL, ctx);
 	if (r) {
 		// return error value as-is
@@ -2023,7 +2023,7 @@ int tr31_import(
 		return r;
 	}
 
-	// initialise TR-31 context object
+	// initialise key block context object
 	r = tr31_init(header->version_id, NULL, ctx);
 	if (r) {
 		// return error value as-is
@@ -2461,8 +2461,8 @@ int tr31_export(
 	// ISO 20038:2017, A.2.1 (page 10) indicates that the total length of all
 	// optional blocks must be a multiple of the encryption block size and
 	// does not make an exception for format version E.
-	// So we'll use the encryption block size which is determined by the TR-31
-	// format version.
+	// So we'll use the encryption block size which is determined by the key
+	// block format version.
 	if (opt_blk_len_total & (state.enc_block_size-1)) {
 		unsigned int pb_len = 4; // Minimum length of optional block PB
 
@@ -3175,7 +3175,7 @@ static int tr31_tdes_decrypt_verify_variant_binding(const struct tr31_state_t* s
 		goto error;
 	}
 
-	// decrypt key payload; note that the TR-31 header is used as the IV
+	// decrypt key payload; note that the key block header is used as the IV
 	decrypted_payload = malloc(state->payload_length);
 	r = crypto_tdes_decrypt(
 		kbek,
@@ -3243,7 +3243,7 @@ static int tr31_tdes_encrypt_sign_variant_binding(struct tr31_state_t* state, co
 		goto error;
 	}
 
-	// encrypt key payload; note that the TR-31 header is used as the IV
+	// encrypt key payload; note that the key block header is used as the IV
 	encrypted_payload = malloc(state->payload_length);
 	r = crypto_tdes_encrypt(
 		kbek,
