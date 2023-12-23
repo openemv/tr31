@@ -128,8 +128,8 @@ const char* tr31_key_usage_get_desc(const struct tr31_ctx_t* ctx)
 		case TR31_KEY_USAGE_EMV_AKP_PIN:        return "EMV/Chip Asymmetric Key Pair for PIN Encryption";
 		case TR31_KEY_USAGE_IV:                 return "Initialization Vector (IV)";
 		case TR31_KEY_USAGE_KEK:                return "Key Encryption or Wrapping Key (KEK)";
-		case TR31_KEY_USAGE_TR31_KBPK:          return "TR-31 Key Block Protection Key (KBPK)";
-		case TR31_KEY_USAGE_TR34_APK_KRD:       return "TR-34 Asymmetric Key Pair for Key Receiving Device";
+		case TR31_KEY_USAGE_TR31_KBPK:          return "ANSI X9.143 / TR-31 Key Block Protection Key (KBPK)";
+		case TR31_KEY_USAGE_TR34_APK_KRD:       return "ANSI X9.139 / TR-34 Asymmetric Key Pair for Key Receiving Device";
 		case TR31_KEY_USAGE_APK:                return "Asymmetric Key Pair for Key Wrapping or Key Agreement";
 		case TR31_KEY_USAGE_ISO20038_KBPK:      return "ISO 20038 Key Block Protection Key (KBPK)";
 		case TR31_KEY_USAGE_ISO16609_MAC_1:     return "ISO 16609 MAC algorithm 1 (using TDES)";

@@ -132,37 +132,37 @@ enum tr31_tool_option_keys_t {
 
 // argp option structure
 static struct argp_option argp_options[] = {
-	{ NULL, 0, NULL, 0, "Options for decoding/decrypting TR-31 key blocks:", 1 },
-	{ "import", TR31_TOOL_OPTION_IMPORT, "KEYBLOCK", 0, "Import TR-31 key block to decode/decrypt. Use - to read raw bytes from stdin. Optionally specify KBPK (--kbpk) to decrypt." },
+	{ NULL, 0, NULL, 0, "Options for decoding/decrypting key blocks:", 1 },
+	{ "import", TR31_TOOL_OPTION_IMPORT, "KEYBLOCK", 0, "Import key block to decode/decrypt. Use - to read raw bytes from stdin. Optionally specify KBPK (--kbpk) to decrypt." },
 	{ "import-no-strict-validation", TR31_TOOL_OPTION_IMPORT_NO_STRICT_VALIDATION, NULL, 0, "Disable strict validation during key block import" },
 
-	{ NULL, 0, NULL, 0, "Options for encoding/encrypting TR-31 key blocks:", 2 },
-	{ "export", TR31_TOOL_OPTION_EXPORT, "KEY", 0, "Export TR-31 key block containing KEY. Use - to read raw bytes from stdin. Requires KBPK (--kbpk). Requires either --export-key-algorithm, --export-format-version and --export-template, or only --export-header" },
+	{ NULL, 0, NULL, 0, "Options for encoding/encrypting key blocks:", 2 },
+	{ "export", TR31_TOOL_OPTION_EXPORT, "KEY", 0, "Export key block containing KEY. Use - to read raw bytes from stdin. Requires KBPK (--kbpk). Requires either --export-key-algorithm, --export-format-version and --export-template, or only --export-header" },
 	{ "export-key-algorithm", TR31_TOOL_OPTION_EXPORT_KEY_ALGORITHM, "TDES|AES", 0, "Algorithm of key to be exported." },
-	{ "export-format-version", TR31_TOOL_OPTION_EXPORT_FORMAT_VERSION, "A|B|C|D|E", 0, "TR-31 format version to use for export." },
-	{ "export-template", TR31_TOOL_OPTION_EXPORT_TEMPLATE, "KEK|BDK|IK", 0, "TR-31 key block template to use for export." },
-	{ "export-header", TR31_TOOL_OPTION_EXPORT_HEADER, "KEYBLOCK-HEADER", 0, "TR-31 key block header to use for export. Key block length field in the header will be ignored." },
-	{ "export-opt-block", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_VERBATIM, "ASCII", 0, "Add verbatim optional block, including ID and length (for example \"KS10DE#GBIC#OPT1\") during TR-31 export. May be used with either --export-template or --export-header." },
-	{ "export-opt-block-AL", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_AL, "Ephemeral|Static", 0, "Add optional block AL (Asymmetric Key Life) during TR-31 export. May be used with either --export-template or --export-header." },
-	{ "export-opt-block-BI", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_BI, "BDK-ID", 0, "Add optional block BI (Base Derivation Key Identifier) during TR-31 export. May be used with either --export-template or --export-header." },
-	{ "export-opt-block-CT-X509", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_CT_X509, "base64", 0, "Add optional block CT (X.509 Public Key Certificate) during TR-31 export. May be used with either --export-template or --export-header." },
-	{ "export-opt-block-CT-EMV", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_CT_EMV, "base64", 0, "Add optional block CT (EMV Public Key Certificate) during TR-31 export. May be used with either --export-template or --export-header." },
-	{ "export-opt-block-DA", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_DA, "DA-sets", 0, "Add optional block DA (Derivations Allowed) during TR-31 export. May be used with either --export-template or --export-header." },
-	{ "export-opt-block-HM", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_HM, "Hash-ID", 0, "Add optional block HM (HMAC algorithm) during TR-31 export. May be used with either --export-template or --export-header." },
-	{ "export-opt-block-IK", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_IK, "IKID", 0, "Add optional block IK (Initial Key Identifier) during TR-31 export. May be used with either --export-template or --export-header." },
-	{ "export-opt-block-KC", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KC, NULL, 0, "Add optional block KC (KCV of wrapped key) during TR-31 export. May be used with either --export-template or --export-header." },
-	{ "export-opt-block-KP", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KP, NULL, 0, "Add optional block KP (KCV of KBPK) during TR-31 export. May be used with either --export-template or --export-header." },
-	{ "export-opt-block-KS", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KS, "IKSN", 0, "Add optional block KS (Initial Key Serial Number) during TR-31 export. May be used with either --export-template or --export-header." },
-	{ "export-opt-block-LB", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_LB, "ASCII", 0, "Add optinal block LB (Label) during TR-31 export. May be used with either --export-template or --export-header." },
-	{ "export-opt-block-PK", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_PK, "KCV", 0, "Add optional block PK (Protection Key Check Value). May be used with either --export-template or --export-header." },
-	{ "export-opt-block-TC", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TC, "ISO8601", 0, "Add optional block TC (Time of Creation in ISO 8601 UTC format) during TR-31 export. May be used with either --export-template or --export-header. Specify \"now\" for current date/time." },
-	{ "export-opt-block-TS", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TS, "ISO8601", 0, "Add optional block TS (Time Stamp in ISO 8601 UTC format) during TR-31 export. May be used with either --export-template or --export-header. Specify \"now\" for current date/time." },
-	{ "export-opt-block-WP", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_WP, "0-3", 0, "Add optional block WP (Wrapping Pedigree) during TR-31 export. May be used with either --export-template or --export-header." },
-	{ "export-no-key-length-obfuscation", TR31_TOOL_OPTION_EXPORT_NO_KEY_LENGTH_OBFUSCATION, NULL, 0, "Disable ANSI X9.143 key length obfuscation during TR-31 export." },
-	{ "export-zero-opt-block-PB", TR31_TOOL_OPTION_EXPORT_ZERO_OPT_BLOCK_PB, NULL, 0, "Fill optional block PB (Padding Block) using zeros instead of random characters during TR-31 export." },
+	{ "export-format-version", TR31_TOOL_OPTION_EXPORT_FORMAT_VERSION, "A|B|C|D|E", 0, "Key block format version to use for export." },
+	{ "export-template", TR31_TOOL_OPTION_EXPORT_TEMPLATE, "KEK|BDK|IK", 0, "Key block template to use for export." },
+	{ "export-header", TR31_TOOL_OPTION_EXPORT_HEADER, "KEYBLOCK-HEADER", 0, "Key block header to use for export. Key block length field in the header will be ignored." },
+	{ "export-opt-block", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_VERBATIM, "ASCII", 0, "Add verbatim optional block, including ID and length (for example \"KS10DE#GBIC#OPT1\") during key block export. May be used with either --export-template or --export-header." },
+	{ "export-opt-block-AL", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_AL, "Ephemeral|Static", 0, "Add optional block AL (Asymmetric Key Life) during key block export. May be used with either --export-template or --export-header." },
+	{ "export-opt-block-BI", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_BI, "BDK-ID", 0, "Add optional block BI (Base Derivation Key Identifier) during key block export. May be used with either --export-template or --export-header." },
+	{ "export-opt-block-CT-X509", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_CT_X509, "base64", 0, "Add optional block CT (X.509 Public Key Certificate) during key block export. May be used with either --export-template or --export-header." },
+	{ "export-opt-block-CT-EMV", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_CT_EMV, "base64", 0, "Add optional block CT (EMV Public Key Certificate) during key block export. May be used with either --export-template or --export-header." },
+	{ "export-opt-block-DA", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_DA, "DA-sets", 0, "Add optional block DA (Derivations Allowed) during key block export. May be used with either --export-template or --export-header." },
+	{ "export-opt-block-HM", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_HM, "Hash-ID", 0, "Add optional block HM (HMAC algorithm) during key block export. May be used with either --export-template or --export-header." },
+	{ "export-opt-block-IK", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_IK, "IKID", 0, "Add optional block IK (Initial Key Identifier) during key block export. May be used with either --export-template or --export-header." },
+	{ "export-opt-block-KC", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KC, NULL, 0, "Add optional block KC (KCV of wrapped key) during key block export. May be used with either --export-template or --export-header." },
+	{ "export-opt-block-KP", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KP, NULL, 0, "Add optional block KP (KCV of KBPK) during key block export. May be used with either --export-template or --export-header." },
+	{ "export-opt-block-KS", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KS, "IKSN", 0, "Add optional block KS (Initial Key Serial Number) during key block export. May be used with either --export-template or --export-header." },
+	{ "export-opt-block-LB", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_LB, "ASCII", 0, "Add optinal block LB (Label) during key block export. May be used with either --export-template or --export-header." },
+	{ "export-opt-block-PK", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_PK, "KCV", 0, "Add optional block PK (Protection Key Check Value) during key block export. May be used with either --export-template or --export-header." },
+	{ "export-opt-block-TC", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TC, "ISO8601", 0, "Add optional block TC (Time of Creation in ISO 8601 UTC format) during key block export. May be used with either --export-template or --export-header. Specify \"now\" for current date/time." },
+	{ "export-opt-block-TS", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TS, "ISO8601", 0, "Add optional block TS (Time Stamp in ISO 8601 UTC format) during key block export. May be used with either --export-template or --export-header. Specify \"now\" for current date/time." },
+	{ "export-opt-block-WP", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_WP, "0-3", 0, "Add optional block WP (Wrapping Pedigree) during key block export. May be used with either --export-template or --export-header." },
+	{ "export-no-key-length-obfuscation", TR31_TOOL_OPTION_EXPORT_NO_KEY_LENGTH_OBFUSCATION, NULL, 0, "Disable ANSI X9.143 key length obfuscation during key block export." },
+	{ "export-zero-opt-block-PB", TR31_TOOL_OPTION_EXPORT_ZERO_OPT_BLOCK_PB, NULL, 0, "Fill optional block PB (Padding Block) using zeros instead of random characters during key block export." },
 
-	{ NULL, 0, NULL, 0, "Options for decrypting/encrypting TR-31 key blocks:", 3 },
-	{ "kbpk", TR31_TOOL_OPTION_KBPK, "KEY", 0, "TR-31 key block protection key. Use - to read raw bytes from stdin." },
+	{ NULL, 0, NULL, 0, "Options for decrypting/encrypting key blocks:", 3 },
+	{ "kbpk", TR31_TOOL_OPTION_KBPK, "KEY", 0, "Key block protection key. Use - to read raw bytes from stdin." },
 	{ "version", TR31_TOOL_OPTION_VERSION, NULL, 0, "Display TR-31 library version" },
 
 	{ 0 },
@@ -313,7 +313,7 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			struct tr31_ctx_t tmp_tr31;
 
 			// instead of re-implementing optional block parsing, misuse the
-			// existing TR-31 parsing using a fake header
+			// existing key block parsing using a fake header
 			fake_header_len = 16 + arg_len;
 			fake_header = malloc(fake_header_len);
 			memcpy(fake_header, "D0000D0TB00N0100", 16);
@@ -329,7 +329,7 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 				argp_error(state, "Error while parsing verbatim optional block (%s): %s", arg, tr31_get_error_string(r));
 			}
 
-			// add verbatim optional block to list and cleanup temporary tr31
+			// add verbatim optional block to list and cleanup temporary key block context object
 			r = tr31_opt_block_add(
 				&options->export_opt_block_list,
 				tmp_tr31.opt_blocks[0].id,
@@ -709,7 +709,7 @@ static void print_str_with_quotes(const void* buf, size_t length)
 	printf("\"");
 }
 
-// TR-31 KBPK populating helper function
+// KBPK populating helper function
 static int populate_kbpk(const struct tr31_tool_options_t* options, unsigned int format_version, struct tr31_key_t* kbpk)
 {
 	int r;
@@ -753,7 +753,7 @@ static int populate_kbpk(const struct tr31_tool_options_t* options, unsigned int
 	return 0;
 }
 
-// TR-31 import helper function
+// key block import helper function
 static int do_tr31_import(const struct tr31_tool_options_t* options)
 {
 	int ret = 0;
@@ -768,10 +768,10 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 	}
 
 	if (options->kbpk) { // if key block protection key was provided
-		// parse and decrypt TR-31 key block
+		// parse and decrypt key block
 		r = tr31_import(options->key_block, options->key_block_len, &kbpk, options->import_flags, &tr31_ctx);
 	} else { // else if no key block protection key was provided
-		// parse TR-31 key block
+		// parse key block without decryption
 		r = tr31_import(options->key_block, options->key_block_len, NULL, options->import_flags, &tr31_ctx);
 	}
 	// check for errors
@@ -1005,14 +1005,14 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 	// cleanup
 	tr31_key_release(&kbpk);
 	if (!ret) {
-		// only cleanup TR-31 context object if tr31_import() was successful
+		// only cleanup key block context object if tr31_import() was successful
 		tr31_release(&tr31_ctx);
 	}
 
 	return ret;
 }
 
-// TR-31 export template helper function
+// key block export template helper function
 static int populate_tr31_from_template(const struct tr31_tool_options_t* options, struct tr31_ctx_t* tr31_ctx)
 {
 	int r;
@@ -1063,7 +1063,7 @@ static int populate_tr31_from_template(const struct tr31_tool_options_t* options
 	key.length = options->export_key_buf_len;
 	key.data = (void*)options->export_key_buf;
 
-	// populate TR-31 context object
+	// populate key block context object
 	r = tr31_init(options->export_format_version, &key, tr31_ctx);
 	if (r) {
 		fprintf(stderr, "tr31_init() error %d: %s\n", r, tr31_get_error_string(r));
@@ -1073,7 +1073,7 @@ static int populate_tr31_from_template(const struct tr31_tool_options_t* options
 	return 0;
 }
 
-// TR-31 export header helper function
+// export header helper function
 static int populate_tr31_from_header(const struct tr31_tool_options_t* options, struct tr31_ctx_t* tr31_ctx)
 {
 	int r;
@@ -1100,7 +1100,7 @@ static int populate_tr31_from_header(const struct tr31_tool_options_t* options, 
 	return 0;
 }
 
-// TR-31 export optional block helper function
+// export optional block helper function
 static int populate_opt_blocks(const struct tr31_tool_options_t* options, struct tr31_ctx_t* tr31_ctx)
 {
 	int r;
@@ -1409,7 +1409,7 @@ static int populate_opt_blocks(const struct tr31_tool_options_t* options, struct
 	return 0;
 }
 
-// TR-31 export helper function
+// key block export helper function
 static int do_tr31_export(const struct tr31_tool_options_t* options)
 {
 	int r;
@@ -1419,19 +1419,19 @@ static int do_tr31_export(const struct tr31_tool_options_t* options)
 	size_t key_block_len;
 	char* key_block;
 
-	// populate TR-31 context object
+	// populate key block context object
 	if (options->export_template) {
-		// options determine the TR-31 format version to use
+		// options determine the key block format version to use
 		export_format_version = options->export_format_version;
 
 		// populate key from template
 		r = populate_tr31_from_template(options, &tr31_ctx);
 
 	} else if (options->export_header) {
-		// header determines the TR-31 format version to use
+		// header determines the key block format version to use
 		export_format_version = options->export_header[0];
 
-		// populate key from TR-31 header
+		// populate key from export header
 		r = populate_tr31_from_header(options, &tr31_ctx);
 
 	} else {
@@ -1455,7 +1455,7 @@ static int do_tr31_export(const struct tr31_tool_options_t* options)
 		return r;
 	}
 
-	// export TR-31 key block
+	// export key block
 	key_block_len = 16384;
 	key_block = malloc(key_block_len);
 	r = tr31_export(&tr31_ctx, &kbpk, options->export_flags, key_block, key_block_len);
