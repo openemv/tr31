@@ -1,3 +1,6 @@
+* Sun Dec 24 2023 Leon Lynch <lynch.leon@gmail.com> - 0.5.2-1
+- Update to tr31-0.5.2
+
 * Sun Aug 06 2023 Leon Lynch <lynch.leon@gmail.com> - 0.5.1-1
 - Update to tr31-0.5.1
 

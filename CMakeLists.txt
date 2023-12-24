@@ -8,7 +8,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 project(tr31
-	VERSION 0.5.1
+	VERSION 0.5.2
 	DESCRIPTION "Key block library and tools for ANSI X9.143, ASC X9 TR-31 and ISO 20038"
 	HOMEPAGE_URL "https://github.com/openemv/tr31"
 	LANGUAGES C
@@ -115,7 +115,7 @@ configure_package_config_file(cmake/tr31Config.cmake.in
 )
 write_basic_package_version_file(
 	"${CMAKE_CURRENT_BINARY_DIR}/cmake/tr31ConfigVersion.cmake"
-	COMPATIBILITY AnyNewerVersion
+	COMPATIBILITY SameMinorVersion
 )
 install(FILES
 	"${CMAKE_CURRENT_BINARY_DIR}/cmake/tr31Config.cmake"
