@@ -115,7 +115,7 @@ configure_package_config_file(cmake/tr31Config.cmake.in
 )
 write_basic_package_version_file(
 	"${CMAKE_CURRENT_BINARY_DIR}/cmake/tr31ConfigVersion.cmake"
-	COMPATIBILITY AnyNewerVersion
+	COMPATIBILITY SameMinorVersion
 )
 install(FILES
 	"${CMAKE_CURRENT_BINARY_DIR}/cmake/tr31Config.cmake"
