@@ -28,7 +28,7 @@ jobs:
         sudo apt-get install -y libmbedtls-dev
 
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: recursive
     - run: git describe --always --dirty
@@ -60,7 +60,7 @@ jobs:
         sudo apt-get install -y libmbedtls-dev doxygen
 
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
         submodules: recursive
@@ -85,7 +85,7 @@ jobs:
       run: cmake --build build --target package
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: tr31-${{ env.GIT_DESCRIBE }}-${{ matrix.os }}
         path: build/tr31_*.deb
