@@ -174,6 +174,10 @@ find_package(Doxygen) # optional for generating doxygen files
 if(Doxygen_FOUND)
 	# use doxygen to generate HTML
 	set(DOXYGEN_GENERATE_HTML YES)
+	# ignore occurances of GCC __attribute__
+	set(DOXYGEN_MACRO_EXPANSION YES)
+	set(DOXYGEN_EXPAND_ONLY_PREDEF YES)
+	set(DOXYGEN_PREDEFINED "__attribute__(x)=")
 
 	# generate docs for public header
 	if(BUILD_DOCS)
