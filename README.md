@@ -75,12 +75,12 @@ Build
 This project uses CMake and can be built using the usual CMake steps.
 
 To generate the build system in the `build` directory, use:
-```
+```shell
 cmake -B build
 ```
 
 To build the project, use:
-```
+```shell
 cmake --build build
 ```
 
@@ -93,14 +93,14 @@ Testing
 The tests can be run using the `test` target of the generated build system.
 
 To run the tests using CMake, do:
-```
+```shell
 cmake --build build --target test
 ```
 
 Alternatively, [ctest](https://cmake.org/cmake/help/latest/manual/ctest.1.html)
 can be used directly which also allows actions such as `MemCheck` to be
 performed or the number of jobs to be set, for example:
-```
+```shell
 ctest --test-dir build -T MemCheck -j 10
 ```
 
@@ -111,7 +111,7 @@ If Doxygen was found by CMake, then HTML documentation can be generated using
 the `docs` target of the generated build system.
 
 To generate the documentation using CMake, do:
-```
+```shell
 cmake --build build --target docs
 ```
 
@@ -126,7 +126,7 @@ by CMake, packages can be created using the `package` target of the generated
 build system.
 
 To generate the packages using CMake, do:
-```
+```shell
 cmake --build build --target package
 ```
 
@@ -136,7 +136,7 @@ can be used directly from within the build directory (`build` in the above
 
 This is an example of how monolithic release packages can be built from
 scratch on Ubuntu or Fedora:
-```
+```shell
 rm -Rf build &&
 cmake -B build -DCMAKE_BUILD_TYPE="RelWithDebInfo" -DCMAKE_INSTALL_PREFIX=/usr -DBUILD_SHARED_LIBS=YES -DBUILD_DOCS=YES -DCPACK_COMPONENTS_GROUPING=ALL_COMPONENTS_IN_ONE &&
 cmake --build build &&
@@ -155,7 +155,7 @@ architectures using the `CMAKE_OSX_ARCHITECTURES` option.
 
 This is an example of how a self-contained, static, universal binary can be
 built from scratch for MacOS:
-```
+```shell
 rm -Rf build &&
 cmake -B build -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" -DCMAKE_BUILD_TYPE="RelWithDebInfo" -DFETCH_MBEDTLS=YES -DFETCH_ARGP=YES &&
 cmake --build build
@@ -166,18 +166,18 @@ Usage
 
 The available command line options of the `tr31-tool` application can be
 displayed using:
-```
+```shell
 tr31-tool --help
 ```
 
 To decode a key block, use the `--import` option. For example:
-```
+```shell
 tr31-tool --import B0128B1TX00N0300KS18FFFF00A0200001E00000KC0C000169E3KP0C00ECAD626F9F1A826814AA066D86C8C18BD0E14033E1EBEC75BEDF586E6E325F3AA8C0E5
 ```
 
 To decrypt a key block, add the `--kbpk` option to specify the key block
 protection key to be used for decryption. For example:
-```
+```shell
 tr31-tool --import B0128B1TX00N0300KS18FFFF00A0200001E00000KC0C000169E3KP0C00ECAD626F9F1A826814AA066D86C8C18BD0E14033E1EBEC75BEDF586E6E325F3AA8C0E5 --kbpk AB2E09DB3EF0BA71E0CE6CD755C23A3B
 ```
 
@@ -186,20 +186,20 @@ be wrapped/encrypted. The key block attributes can be specified using either a
 combination of the `--export-format-version B`, `--export-key-algorithm` and
 `--export-template` options, or using the `--export-header` option. For
 example:
-```
+```shell
 tr31-tool --kbpk AB2E09DB3EF0BA71E0CE6CD755C23A3B --export BF82DAC6A33DF92CE66E15B70E5DCEB6 --export-header B0000B1TX00N0200KS18FFFF00A0200001E00000KC0C000169E3
 ```
 
 Individual optional blocks can also be added when exporting a key block by
 using the various `--export-opt-block-XX` functions, where `XX` is the optional
 block identifier. For example:
-```
+```shell
 tr31-tool --kbpk AB2E09DB3EF0BA71E0CE6CD755C23A3B --export BF82DAC6A33DF92CE66E15B70E5DCEB6 --export-header B0000B1TX00N0000 --export-opt-block-KS FFFF00A0200001E00000 --export-opt-block-KC
 ```
 
 To decode non-standard key blocks, use the `--import-no-strict-validation`
 option to disable strict validation during key block import. For example:
-```
+```shell
 tr31-tool --import D014410A100N0200101CIBMC01140123456789ABCDEFPB04012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345 --import-no-strict-validation
 ```
 
@@ -214,6 +214,6 @@ Roadmap
 License
 -------
 
-Copyright 2020-2023 [Leon Lynch](https://github.com/leonlynch).
+Copyright 2020-2024 [Leon Lynch](https://github.com/leonlynch).
 
 This project is licensed under the terms of the LGPL v2.1 license. See LICENSE file.
