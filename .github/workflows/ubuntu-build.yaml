@@ -17,6 +17,7 @@ jobs:
         include:
           - { name: "Ubuntu 20.04", os: ubuntu-20.04 }
           - { name: "Ubuntu 22.04", os: ubuntu-22.04 }
+          - { name: "Ubuntu 24.04", os: ubuntu-24.04 }
 
     name: ${{ matrix.name }} build (static/debug)
     runs-on: ${{ matrix.os }}
@@ -49,6 +50,7 @@ jobs:
         include:
           - { name: "Ubuntu 20.04", os: ubuntu-20.04, ubuntu_release_name: "focal" }
           - { name: "Ubuntu 22.04", os: ubuntu-22.04, ubuntu_release_name: "jammy" }
+          - { name: "Ubuntu 24.04", os: ubuntu-24.04, ubuntu_release_name: "noble" }
 
     name: ${{ matrix.name }} build (release)
     runs-on: ${{ matrix.os }}
