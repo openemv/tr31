@@ -35,7 +35,7 @@ Installation
   the appropriate [release package](https://github.com/openemv/tr31/releases)
 * For Fedora 39 or Fedora 40, install the appropriate
   [release package](https://github.com/openemv/tr31/releases)
-* For Gentoo, use  the
+* For Gentoo, use the
   [OpenEMV overlay](https://github.com/openemv/openemv-overlay), set the
   keywords and useflags as needed, and install using
   `emerge --verbose --ask tr31`
@@ -216,4 +216,5 @@ License
 
 Copyright 2020-2024 [Leon Lynch](https://github.com/leonlynch).
 
-This project is licensed under the terms of the LGPL v2.1 license. See LICENSE file.
+This project is licensed under the terms of the LGPL v2.1 license. See
+[LICENSE](https://github.com/openemv/tr31/blob/master/LICENSE) file.
