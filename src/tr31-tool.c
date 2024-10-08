@@ -101,7 +101,7 @@ static void print_str_with_quotes(const void* buf, size_t length);
 
 // argp option keys
 enum tr31_tool_option_keys_t {
-	TR31_TOOL_OPTION_IMPORT = 1,
+	TR31_TOOL_OPTION_IMPORT = -255, // negative value to avoid short options
 	TR31_TOOL_OPTION_IMPORT_NO_STRICT_VALIDATION,
 	TR31_TOOL_OPTION_EXPORT,
 	TR31_TOOL_OPTION_EXPORT_KEY_ALGORITHM,
@@ -163,6 +163,7 @@ static struct argp_option argp_options[] = {
 
 	{ NULL, 0, NULL, 0, "Options for decrypting/encrypting key blocks:", 3 },
 	{ "kbpk", TR31_TOOL_OPTION_KBPK, "KEY", 0, "Key block protection key. Use - to read raw bytes from stdin." },
+
 	{ "version", TR31_TOOL_OPTION_VERSION, NULL, 0, "Display TR-31 library version" },
 
 	{ 0 },
