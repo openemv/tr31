@@ -1,7 +1,7 @@
 /**
  * @file tr31_export_test.c
  *
- * Copyright 2021-2023 Leon Lynch
+ * Copyright 2021-2024 Leon Lynch
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -811,6 +811,90 @@ int main(void)
 	int r;
 	struct tr31_ctx_t test_tr31;
 	char key_block[4096];
+
+	// Test error for missing key or KBPK data
+	{
+		struct tr31_key_t kbpk;
+		struct tr31_key_t key;
+
+		// Prepare KBPK object
+		r = tr31_key_init(
+			TR31_KEY_USAGE_TR31_KBPK,
+			TR31_KEY_ALGORITHM_TDES,
+			TR31_KEY_MODE_OF_USE_ENC_DEC,
+			"00",
+			TR31_KEY_EXPORT_NONE,
+			TR31_KEY_CONTEXT_STORAGE,
+			NULL,
+			0,
+			&kbpk
+		);
+		if (r) {
+			fprintf(stderr, "tr31_key_init() error %d: %s\n", r, tr31_get_error_string(r));
+			return 1;
+		}
+
+		// Prepare key object
+		r = tr31_key_init(
+			TR31_KEY_USAGE_PEK,
+			TR31_KEY_ALGORITHM_TDES,
+			TR31_KEY_MODE_OF_USE_ENC_DEC,
+			"00",
+			TR31_KEY_EXPORT_NONE,
+			TR31_KEY_CONTEXT_STORAGE,
+			NULL,
+			0,
+			&key
+		);
+		if (r) {
+			fprintf(stderr, "tr31_key_init() error %d: %s\n", r, tr31_get_error_string(r));
+			return 1;
+		}
+
+		// Prepare TR-31 context
+		r = tr31_init(TR31_VERSION_B, &key, &test_tr31);
+		if (r) {
+			fprintf(stderr, "tr31_init() error %d: %s\n", r, tr31_get_error_string(r));
+			goto exit;
+		}
+
+		// Attempt key block export with invalid key
+		r = tr31_export(&test_tr31, &kbpk, 0, key_block, sizeof(key_block));
+		if (!r) {
+			fprintf(stderr, "Unexpected tr31_export() success when KBPK is invalid\n");
+			goto exit;
+		}
+		if (r != TR31_ERROR_INVALID_KEY_LENGTH) {
+			fprintf(stderr, "tr31_export() error %d: %s\n", r, tr31_get_error_string(r));
+			goto exit;
+		}
+
+		// Populate key data
+		r = tr31_key_set_data(
+			&test_tr31.key,
+			test[0].key_data,
+			test[0].key_len
+		);
+		if (r) {
+			fprintf(stderr, "tr31_key_set_data() error %d: %s\n", r, tr31_get_error_string(r));
+			return 1;
+		}
+
+		// Attempt key block export with invalid KBPK
+		r = tr31_export(&test_tr31, &kbpk, 0, key_block, sizeof(key_block));
+		if (!r) {
+			fprintf(stderr, "Unexpected tr31_export() success when KBPK is invalid\n");
+			goto exit;
+		}
+		if (r != TR31_ERROR_UNSUPPORTED_KBPK_LENGTH) {
+			fprintf(stderr, "tr31_export() error %d: %s\n", r, tr31_get_error_string(r));
+			goto exit;
+		}
+
+		tr31_release(&test_tr31);
+		tr31_key_release(&key);
+		tr31_key_release(&kbpk);
+	}
 
 	for (size_t i = 0; i < sizeof(test) / sizeof(test[0]); ++i) {
 		printf("Test %zu (%s)...\n", i + 1, test[i].name);

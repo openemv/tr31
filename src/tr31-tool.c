@@ -1,7 +1,7 @@
 /**
  * @file tr31-tool.c
  *
- * Copyright 2020-2023 Leon Lynch
+ * Copyright 2020-2024 Leon Lynch
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -593,6 +593,9 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			}
 
 			// check for required --export options
+			if (options->export && !options->kbpk) {
+				argp_error(state, "The --export option requires --kbpk");
+			}
 			if (options->export &&
 				(!options->export_key_algorithm || !options->export_format_version || !options->export_template) &&
 				!options->export_header

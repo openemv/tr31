@@ -2,7 +2,7 @@
  * @file tr31.c
  * @brief High level TR-31 library interface
  *
- * Copyright 2020-2023 Leon Lynch
+ * Copyright 2020-2024 Leon Lynch
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -390,14 +390,19 @@ int tr31_key_init(
 		// validate key length by algorithm
 		switch (algorithm) {
 			case TR31_KEY_ALGORITHM_TDES:
-				if (length > 24) {
+				if (length != TDES2_KEY_SIZE &&
+					length != TDES3_KEY_SIZE
+				) {
 					// invalid TDES key length
 					return TR31_ERROR_INVALID_KEY_LENGTH;
 				}
 				break;
 
 			case TR31_KEY_ALGORITHM_AES:
-				if (length > 32) {
+				if (length != AES128_KEY_SIZE &&
+					length != AES192_KEY_SIZE &&
+					length != AES256_KEY_SIZE
+				) {
 					// invalid AES key length
 					return TR31_ERROR_INVALID_KEY_LENGTH;
 				}
@@ -2330,7 +2335,10 @@ int tr31_export(
 		return -1;
 	}
 	if (!ctx->key.data || !ctx->key.length) {
-		return -2;
+		return TR31_ERROR_INVALID_KEY_LENGTH;
+	}
+	if (!kbpk->data || !kbpk->length) {
+		return TR31_ERROR_UNSUPPORTED_KBPK_LENGTH;
 	}
 
 	// validate minimum length (+1 for null-termination)
