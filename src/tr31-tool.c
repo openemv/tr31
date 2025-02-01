@@ -1,7 +1,7 @@
 /**
  * @file tr31-tool.c
  *
- * Copyright 2020-2024 Leon Lynch
+ * Copyright 2020-2025 Leon Lynch
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -32,6 +32,12 @@
 
 #include <ctype.h> // for isalnum and friends
 #include <time.h> // for time, gmtime and strftime
+
+#ifdef _WIN32
+// for _setmode
+#include <fcntl.h>
+#include <io.h>
+#endif
 
 // optional block CT parameters
 struct tr31_opt_block_CT {
@@ -636,6 +642,10 @@ static void* read_file(FILE* file, size_t* len)
 		*len = 0;
 		return NULL;
 	}
+
+#ifdef _WIN32
+	_setmode(_fileno(file), _O_BINARY);
+#endif
 
 	do {
 		// Grow buffer
