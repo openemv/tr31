@@ -1,5 +1,5 @@
 ##############################################################################
-# Copyright 2022-2024 Leon Lynch
+# Copyright 2022-2025 Leon Lynch
 #
 # This file is licensed under the terms of the LGPL v2.1 license.
 # See LICENSE file.
@@ -15,8 +15,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { name: "Fedora 40", fedora_version: 40 }
           - { name: "Fedora 41", fedora_version: 41 }
+          - { name: "Fedora 42", fedora_version: 42 }
 
     name: ${{ matrix.name }} build (static/debug)
     runs-on: ubuntu-latest
@@ -54,8 +54,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { name: "Fedora 40", fedora_version: 40 }
           - { name: "Fedora 41", fedora_version: 41 }
+          - { name: "Fedora 42", fedora_version: 42 }
 
     name: ${{ matrix.name }} release
     runs-on: ubuntu-latest
@@ -64,7 +64,7 @@ jobs:
     steps:
     - name: Install dependencies
       run: |
-        sudo dnf -y install git cmake gcc mbedtls-devel bash-completion doxygen rpm-build
+        sudo dnf -y install git cmake gcc mbedtls-devel bash-completion-devel doxygen rpm-build
 
     - name: Checkout
       uses: actions/checkout@v4
