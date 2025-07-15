@@ -81,6 +81,7 @@ endif()
 
 # Allow parent scope to provide crypto targets when not building shared libs
 if(TR31_IS_TOP_LEVEL OR BUILD_SHARED_LIBS)
+	list(APPEND CRYPTO_TESTS crypto_tdes crypto_aes)
 	add_subdirectory(crypto)
 	add_subdirectory(crypto/test)
 elseif (NOT TARGET crypto_tdes OR
