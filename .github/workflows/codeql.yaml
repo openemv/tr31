@@ -1,0 +1,51 @@
+##############################################################################
+# Copyright 2025 Leon Lynch
+#
+# This file is licensed under the terms of the LGPL v2.1 license.
+# See LICENSE file.
+##############################################################################
+
+name: CodeQL
+
+on:
+  push:
+  pull_request:
+    branches: [ "master" ]
+  schedule:
+    - cron: '15 4 20 * *'
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libmbedtls-dev
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: c-cpp
+        build-mode: manual
+
+    - name: Build
+      run: |
+        cmake -B build -DCMAKE_BUILD_TYPE="Debug"
+        cmake --build build
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
