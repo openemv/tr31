@@ -77,6 +77,35 @@ jobs:
     - name: Test with sanitizers
       run: ctest --test-dir build --output-on-failure
 
+  build-ubuntu-hardening:
+    name: Ubuntu (hardening)
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libmbedtls-dev
+
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    - run: git describe --always --dirty
+
+    - name: Configure CMake with hardening
+      run: |
+        cmake -B build \
+          -DCMAKE_BUILD_TYPE="RelWithDebInfo" \
+          -DBUILD_SHARED_LIBS=YES \
+          -DTR31_ENABLE_HARDENING=ON
+
+    - name: Build
+      run: cmake --build build
+
+    - name: Test
+      run: ctest --test-dir build --output-on-failure
+
   build-ubuntu-legacy-release:
     strategy:
       fail-fast: false
