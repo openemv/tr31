@@ -42,6 +42,41 @@ jobs:
     - name: Test
       run: ctest --test-dir build --output-on-failure
 
+  build-ubuntu-sanitizers:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: "Ubuntu (debug/sanitizers)", build_type: "Debug" }
+          - { name: "Ubuntu (release/sanitizers)", build_type: "RelWithDebInfo" }
+
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libmbedtls-dev
+
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    - run: git describe --always --dirty
+
+    - name: Configure CMake with sanitizers
+      run: |
+        cmake -B build \
+          -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" \
+          -DTR31_ENABLE_SANITIZERS=ON
+
+    - name: Build
+      run: cmake --build build
+
+    - name: Test with sanitizers
+      run: ctest --test-dir build --output-on-failure
+
   build-ubuntu-legacy-release:
     strategy:
       fail-fast: false
