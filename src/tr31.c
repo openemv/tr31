@@ -631,6 +631,9 @@ int tr31_key_set_data(struct tr31_key_t* key, const void* data, size_t length)
 	// copy key data
 	key->length = length;
 	key->data = malloc(key->length);
+	if (!key->data) {
+		return -1;
+	}
 	memcpy(key->data, data, key->length);
 
 	return 0;
@@ -917,6 +920,9 @@ static struct tr31_opt_ctx_t* tr31_opt_block_alloc(
 	opt_ctx->data_length = length;
 	if (length) {
 		opt_ctx->data = malloc(opt_ctx->data_length);
+		if (!opt_ctx->data) {
+			return NULL;
+		}
 	} else {
 		opt_ctx->data = NULL;
 	}
@@ -1367,6 +1373,9 @@ int tr31_opt_block_add_CT(
 
 			// convert to cert chain
 			opt_block_ct->data = malloc(opt_block_ct->data_length);
+			if (!opt_block_ct->data) {
+				return -1;
+			}
 			data = opt_block_ct->data;
 			int_to_hex(TR31_OPT_BLOCK_CT_CERT_CHAIN, data, 2);
 			memcpy(data + 2, old.data, 2); // copy first certificate format
@@ -2726,6 +2735,9 @@ static int tr31_opt_block_parse(
 		// validated the whole key block as printable ASCII (format PA)
 		opt_ctx->data_length = (*opt_blk_len - opt_blk_hdr_len);
 		opt_ctx->data = malloc(opt_ctx->data_length);
+		if (!opt_ctx->data) {
+			return -1;
+		}
 		memcpy(opt_ctx->data, opt_blk_data, opt_ctx->data_length);
 		return 0;
 	}
@@ -2748,6 +2760,9 @@ static int tr31_opt_block_parse(
 				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 			}
 			opt_ctx->data = malloc(opt_ctx->data_length);
+			if (!opt_ctx->data) {
+				return -1;
+			}
 			memcpy(opt_ctx->data, opt_blk_data, opt_ctx->data_length);
 			return 0;
 
@@ -2759,6 +2774,9 @@ static int tr31_opt_block_parse(
 				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 			}
 			opt_ctx->data = malloc(opt_ctx->data_length);
+			if (!opt_ctx->data) {
+				return -1;
+			}
 			memcpy(opt_ctx->data, opt_blk_data, opt_ctx->data_length);
 			return 0;
 
@@ -2769,6 +2787,9 @@ static int tr31_opt_block_parse(
 			// validated the whole key block as printable ASCII (format PA)
 			opt_ctx->data_length = (*opt_blk_len - opt_blk_hdr_len);
 			opt_ctx->data = malloc(opt_ctx->data_length);
+			if (!opt_ctx->data) {
+				return -1;
+			}
 			memcpy(opt_ctx->data, opt_blk_data, opt_ctx->data_length);
 			return 0;
 
@@ -2781,6 +2802,9 @@ static int tr31_opt_block_parse(
 				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 			}
 			opt_ctx->data = malloc(opt_ctx->data_length);
+			if (!opt_ctx->data) {
+				return -1;
+			}
 			memcpy(opt_ctx->data, opt_blk_data, opt_ctx->data_length);
 			return 0;
 
@@ -2791,6 +2815,9 @@ static int tr31_opt_block_parse(
 			// validated the whole key block as printable ASCII (format PA)
 			opt_ctx->data_length = (*opt_blk_len - opt_blk_hdr_len);
 			opt_ctx->data = malloc(opt_ctx->data_length);
+			if (!opt_ctx->data) {
+				return -1;
+			}
 			memcpy(opt_ctx->data, opt_blk_data, opt_ctx->data_length);
 			return 0;
 	}
@@ -3024,6 +3051,9 @@ static int tr31_state_prepare_import(
 	// prepare decoded key block buffer
 	state->decoded_key_block_length = state->header_length + state->payload_length + state->authenticator_length;
 	state->decoded_key_block = malloc(state->decoded_key_block_length);
+	if (!state->decoded_key_block) {
+		return -1;
+	}
 	memcpy(state->decoded_key_block, key_block, state->header_length);
 
 	// decode payload
@@ -3131,6 +3161,9 @@ static int tr31_state_prepare_export(
 	// prepare decoded key block buffer
 	state->decoded_key_block_length = state->header_length + state->payload_length + state->authenticator_length;
 	state->decoded_key_block = malloc(state->decoded_key_block_length);
+	if (!state->decoded_key_block) {
+		return -1;
+	}
 	memcpy(state->decoded_key_block, header, state->header_length);
 	state->payload = state->decoded_key_block + state->header_length;
 	state->authenticator = state->payload + state->payload_length;
@@ -3189,6 +3222,10 @@ static int tr31_tdes_decrypt_verify_variant_binding(const struct tr31_state_t* s
 
 	// decrypt key payload; note that the key block header is used as the IV
 	decrypted_payload = malloc(state->payload_length);
+	if (!decrypted_payload) {
+		r = -1;
+		goto error;
+	}
 	r = crypto_tdes_decrypt(
 		kbek,
 		kbpk->length,
@@ -3257,6 +3294,10 @@ static int tr31_tdes_encrypt_sign_variant_binding(struct tr31_state_t* state, co
 
 	// encrypt key payload; note that the key block header is used as the IV
 	encrypted_payload = malloc(state->payload_length);
+	if (!encrypted_payload) {
+		r = -1;
+		goto error;
+	}
 	r = crypto_tdes_encrypt(
 		kbek,
 		kbpk->length,
@@ -3325,6 +3366,10 @@ static int tr31_tdes_decrypt_verify_derivation_binding(struct tr31_state_t* stat
 
 	// decrypt key payload; note that the authenticator is used as the IV
 	decrypted_payload = malloc(state->payload_length);
+	if (!decrypted_payload) {
+		r = -1;
+		goto error;
+	}
 	r = crypto_tdes_decrypt(
 		kbek,
 		kbpk->length,
@@ -3427,6 +3472,10 @@ static int tr31_tdes_encrypt_sign_derivation_binding(struct tr31_state_t* state,
 
 	// encrypt key payload; note that the authenticator is used as the IV
 	encrypted_payload = malloc(state->payload_length);
+	if (!encrypted_payload) {
+		r = -1;
+		goto error;
+	}
 	r = crypto_tdes_encrypt(
 		kbek,
 		kbpk->length,
@@ -3480,6 +3529,10 @@ static int tr31_aes_decrypt_verify_derivation_binding(struct tr31_state_t* state
 
 		// decrypt key payload; note that the authenticator is used as the IV
 		decrypted_payload = malloc(state->payload_length);
+		if (!decrypted_payload) {
+			r = -1;
+			goto error;
+		}
 		r = crypto_aes_decrypt(
 			kbek,
 			kbpk->length,
@@ -3504,6 +3557,10 @@ static int tr31_aes_decrypt_verify_derivation_binding(struct tr31_state_t* state
 
 		// decrypt key payload; note that the authenticator is used as the IV/nonce
 		decrypted_payload = malloc(state->payload_length);
+		if (!decrypted_payload) {
+			r = -1;
+			goto error;
+		}
 		r = crypto_aes_decrypt_ctr(
 			kbek,
 			kbpk->length,
@@ -3610,6 +3667,10 @@ static int tr31_aes_encrypt_sign_derivation_binding(struct tr31_state_t* state, 
 
 		// encrypt key payload; note that the authenticator is used as the IV
 		encrypted_payload = malloc(state->payload_length);
+		if (!encrypted_payload) {
+			r = -1;
+			goto error;
+		}
 		r = crypto_aes_encrypt(
 			kbek,
 			kbpk->length,
@@ -3649,6 +3710,10 @@ static int tr31_aes_encrypt_sign_derivation_binding(struct tr31_state_t* state, 
 
 		// encrypt key payload; note that the authenticator is used as the IV/nonce
 		encrypted_payload = malloc(state->payload_length);
+		if (!encrypted_payload) {
+			r = -1;
+			goto error;
+		}
 		r = crypto_aes_encrypt_ctr(
 			kbek,
 			kbpk->length,
