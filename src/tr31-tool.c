@@ -21,6 +21,8 @@
 #include "tr31.h"
 #include "tr31_strings.h"
 
+#include "crypto_mem.h"
+
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -1540,6 +1542,9 @@ exit:
 		free(options.export_opt_block_CT);
 		options.export_opt_block_CT = NULL;
 		options.export_opt_block_CT_count = 0;
+	}
+	if (options.kbpk) {
+		crypto_cleanse(options.kbpk_buf, sizeof(options.kbpk_buf));
 	}
 
 	return r;

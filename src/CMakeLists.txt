@@ -1,5 +1,5 @@
 ##############################################################################
-# Copyright 2020-2023 Leon Lynch
+# Copyright 2020-2023, 2025 Leon Lynch
 #
 # This file is licensed under the terms of the LGPL v2.1 license.
 # See LICENSE file.
@@ -154,7 +154,7 @@ install(
 # TR-31 command line tool
 if(BUILD_TR31_TOOL)
 	add_executable(tr31-tool tr31-tool.c)
-	target_link_libraries(tr31-tool PRIVATE tr31)
+	target_link_libraries(tr31-tool PRIVATE crypto_mem tr31)
 	if(TARGET libargp::argp)
 		target_link_libraries(tr31-tool PRIVATE libargp::argp)
 	endif()
