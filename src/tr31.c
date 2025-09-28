@@ -126,7 +126,9 @@ static int bin_to_hex(const void* bin, size_t bin_len, char* str, size_t str_len
 static int tr31_validate_format_an(const char* buf, size_t buf_len);
 static int tr31_validate_format_h(const char* buf, size_t buf_len);
 static int tr31_validate_format_pa(const char* buf, size_t buf_len);
-static struct tr31_opt_ctx_t* tr31_opt_block_alloc(struct tr31_ctx_t* ctx, unsigned int id, size_t length);
+static inline int tr31_opt_block_init(struct tr31_opt_ctx_t* opt_ctx, unsigned int id, size_t length, const void* data);
+static inline void tr31_opt_blk_release(struct tr31_opt_ctx_t* opt_ctx);
+static int tr31_opt_block_add_to_ctx(struct tr31_ctx_t* ctx, unsigned int id, size_t length, struct tr31_opt_ctx_t** opt_ctx);
 static inline size_t tr31_opt_block_kcv_data_length(size_t kcv_len);
 static int tr31_opt_block_encode_kcv(uint8_t kcv_algorithm, const void* kcv, size_t kcv_len, char* encoded_data, size_t encoded_data_len);
 static int tr31_opt_block_validate_hash_algorithm(uint8_t hash_algorithm);
@@ -631,6 +633,9 @@ int tr31_key_set_data(struct tr31_key_t* key, const void* data, size_t length)
 	// copy key data
 	key->length = length;
 	key->data = malloc(key->length);
+	if (!key->data) {
+		return -2;
+	}
 	memcpy(key->data, data, key->length);
 
 	return 0;
@@ -821,6 +826,9 @@ int tr31_init_from_header(
 	ptr = header + 1; // optional blocks, if any, are after the header
 	if (ctx->opt_blocks_count) {
 		ctx->opt_blocks = calloc(ctx->opt_blocks_count, sizeof(ctx->opt_blocks[0]));
+		if (!ctx->opt_blocks) {
+			return -10;
+		}
 	}
 	for (int i = 0; i < opt_blocks_count; ++i) {
 		// ensure that current pointer is valid for minimal optional block
@@ -860,18 +868,62 @@ exit:
 	return r;
 }
 
-static struct tr31_opt_ctx_t* tr31_opt_block_alloc(
-	struct tr31_ctx_t* ctx,
-	unsigned int id,
-	size_t length
+static inline int tr31_opt_block_init(
+	struct tr31_opt_ctx_t* opt_ctx,
+	unsigned int id, size_t length,
+	const void* data
 )
 {
-	struct tr31_opt_ctx_t* opt_ctx;
-	bool opt_blk_pb_found = false;
-
-	if (!ctx) {
-		return NULL;
+	if (!opt_ctx) {
+		return -1;
 	}
+
+	opt_ctx->id = id;
+	opt_ctx->data_length = length;
+	if (opt_ctx->data_length) {
+		opt_ctx->data = malloc(opt_ctx->data_length);
+		if (!opt_ctx->data) {
+			return -2;
+		}
+		// NOTE: this function allows the optional block data to be allocated
+		// but not populated such that the caller can populated it instead
+		if (data) {
+			memcpy(opt_ctx->data, data, opt_ctx->data_length);
+		}
+	} else {
+		opt_ctx->data = NULL;
+	}
+
+	return 0;
+}
+
+static inline void tr31_opt_blk_release(struct tr31_opt_ctx_t* opt_ctx)
+{
+	if (!opt_ctx) {
+		return;
+	}
+
+	if (opt_ctx->data) {
+		free(opt_ctx->data);
+	}
+	memset(opt_ctx, 0, sizeof(*opt_ctx));
+}
+
+static int tr31_opt_block_add_to_ctx(
+	struct tr31_ctx_t* ctx,
+	unsigned int id,
+	size_t length,
+	struct tr31_opt_ctx_t** opt_ctx
+)
+{
+	int r;
+	bool opt_blk_pb_found = false;
+	void* opt_blocks_realloc;
+
+	if (!ctx || !opt_ctx) {
+		return -1;
+	}
+	*opt_ctx = NULL;
 
 	// repeated optional block IDs are not allowed
 	// and optional block PB must always be last
@@ -879,7 +931,7 @@ static struct tr31_opt_ctx_t* tr31_opt_block_alloc(
 	for (size_t i = 0; i < ctx->opt_blocks_count; ++i) {
 		if (ctx->opt_blocks[i].id == id) {
 			// existing optional block found
-			return NULL;
+			return TR31_ERROR_DUPLICATE_OPTIONAL_BLOCK_ID;
 		}
 
 		if (ctx->opt_blocks[i].id == TR31_OPT_BLOCK_PB) {
@@ -894,8 +946,7 @@ static struct tr31_opt_ctx_t* tr31_opt_block_alloc(
 	if (opt_blk_pb_found) {
 		for (size_t i = 0; i < ctx->opt_blocks_count; ++i) {
 			if (ctx->opt_blocks[i].id == TR31_OPT_BLOCK_PB) {
-				free(ctx->opt_blocks[i].data);
-				ctx->opt_blocks[i].data = NULL;
+				tr31_opt_blk_release(&ctx->opt_blocks[i]);
 
 				ctx->opt_blocks_count -= 1;
 				if (i < ctx->opt_blocks_count) {
@@ -909,19 +960,28 @@ static struct tr31_opt_ctx_t* tr31_opt_block_alloc(
 
 	// grow optional block array
 	ctx->opt_blocks_count++;
-	ctx->opt_blocks = realloc(ctx->opt_blocks, ctx->opt_blocks_count * sizeof(struct tr31_opt_ctx_t));
+	opt_blocks_realloc = realloc(ctx->opt_blocks, ctx->opt_blocks_count * sizeof(struct tr31_opt_ctx_t));
+	if (!opt_blocks_realloc) {
+		r = -2;
+		goto error;
+	}
+	ctx->opt_blocks = opt_blocks_realloc;
 
 	// copy optional block fields and allocate optional block data
-	opt_ctx = &ctx->opt_blocks[ctx->opt_blocks_count - 1];
-	opt_ctx->id = id;
-	opt_ctx->data_length = length;
-	if (length) {
-		opt_ctx->data = malloc(opt_ctx->data_length);
-	} else {
-		opt_ctx->data = NULL;
+	*opt_ctx = &ctx->opt_blocks[ctx->opt_blocks_count - 1];
+	r = tr31_opt_block_init(*opt_ctx, id, length, NULL);
+	if (r) {
+		r = -3;
+		goto error;
 	}
 
-	return opt_ctx;
+	return 0;
+
+error:
+	// restore previous state
+	ctx->opt_blocks_count--;
+	*opt_ctx = NULL;
+	return r;
 }
 
 int tr31_opt_block_add(
@@ -948,9 +1008,9 @@ int tr31_opt_block_add(
 		}
 	}
 
-	opt_ctx = tr31_opt_block_alloc(ctx, id, length);
-	if (!opt_ctx) {
-		return TR31_ERROR_DUPLICATE_OPTIONAL_BLOCK_ID;
+	r = tr31_opt_block_add_to_ctx(ctx, id, length, &opt_ctx);
+	if (r) {
+		return r;
 	}
 
 	if (data && length) {
@@ -1353,6 +1413,8 @@ int tr31_opt_block_add_CT(
 		if ((old_data[0] == '0' && old_data[1] == '0') ||
 			(old_data[0] == '0' && old_data[1] == '1')
 		) {
+			int r;
+			size_t opt_blk_data_len;
 			char* data;
 
 			// compute cert chain length
@@ -1363,10 +1425,14 @@ int tr31_opt_block_add_CT(
 			// - 2 bytes for second certificate format (not included in second certificate data length)
 			// - 4 bytes for second certificate length
 			// - second certificate data
-			opt_block_ct->data_length = 2 + 4 + old.data_length + 2 + 4 + cert_base64_len;
+			opt_blk_data_len = 2 + 4 + old.data_length + 2 + 4 + cert_base64_len;
 
 			// convert to cert chain
-			opt_block_ct->data = malloc(opt_block_ct->data_length);
+
+			r = tr31_opt_block_init(opt_block_ct, old.id, opt_blk_data_len, NULL);
+			if (r) {
+				return -2;
+			}
 			data = opt_block_ct->data;
 			int_to_hex(TR31_OPT_BLOCK_CT_CERT_CHAIN, data, 2);
 			memcpy(data + 2, old.data, 2); // copy first certificate format
@@ -1379,14 +1445,13 @@ int tr31_opt_block_add_CT(
 			int_to_hex(cert_base64_len, data + 2, 4); // copy second certificate length
 			memcpy(data + 6, cert_base64, cert_base64_len);
 
-			// cleanup optional block CT data
-			free(old.data);
-			old.data = NULL;
-			old.data_length = 0;
+			// cleanup old optional block CT data
+			tr31_opt_blk_release(&old);
 
 			return 0;
 
 		} else if (old_data[0] == '0' && old_data[1] == '2') {
+			void* data_realloc;
 			char* data;
 
 			// extend existing certificate chain
@@ -1394,7 +1459,11 @@ int tr31_opt_block_add_CT(
 			// - 4 bytes for next certificate length
 			// - next certificate data
 			opt_block_ct->data_length += 2 + 4 + cert_base64_len;
-			opt_block_ct->data = realloc(opt_block_ct->data, opt_block_ct->data_length);
+			data_realloc = realloc(opt_block_ct->data, opt_block_ct->data_length);
+			if (!data_realloc) {
+				return -3;
+			}
+			opt_block_ct->data = data_realloc;
 			data = opt_block_ct->data + opt_block_ct->data_length - 2 - 4 - cert_base64_len;
 
 			// add new cert to chain
@@ -1409,11 +1478,13 @@ int tr31_opt_block_add_CT(
 		}
 
 	} else {
+		int r;
 		struct tr31_opt_ctx_t* opt_ctx;
 
 		// add new optional block CT
-		opt_ctx = tr31_opt_block_alloc(ctx, TR31_OPT_BLOCK_CT, cert_base64_len + 2);
-		if (!opt_ctx) {
+		r = tr31_opt_block_add_to_ctx(ctx, TR31_OPT_BLOCK_CT, cert_base64_len + 2, &opt_ctx);
+		if (r) {
+			// internal error
 			return -2;
 		}
 		int_to_hex(cert_format, opt_ctx->data, 2);
@@ -1447,14 +1518,14 @@ int tr31_opt_block_add_DA(
 		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 	}
 
-	opt_ctx = tr31_opt_block_alloc(ctx, TR31_OPT_BLOCK_DA, da_len + 2);
-	if (!opt_ctx) {
-		return -2;
+	r = tr31_opt_block_add_to_ctx(ctx, TR31_OPT_BLOCK_DA, da_len + 2, &opt_ctx);
+	if (r) {
+		return r;
 	}
 	int_to_hex(TR31_OPT_BLOCK_DA_VERSION_1, opt_ctx->data, 2);
 	memcpy(opt_ctx->data + 2, da, da_len);
 
-	return r;
+	return 0;
 }
 
 int tr31_opt_block_decode_DA(
@@ -2084,6 +2155,9 @@ int tr31_import(
 	ptr = header + 1; // optional blocks, if any, are after the header
 	if (ctx->opt_blocks_count) {
 		ctx->opt_blocks = calloc(ctx->opt_blocks_count, sizeof(ctx->opt_blocks[0]));
+		if (!ctx->opt_blocks) {
+			return -10;
+		}
 	}
 	for (int i = 0; i < opt_blocks_count; ++i) {
 		// ensure that current pointer is valid for minimal optional block
@@ -2404,8 +2478,16 @@ int tr31_export(
 
 			// build optional block KC (KCV of wrapped key)
 			// see ANSI X9.143:2021, 6.3.6.7
-			ctx->opt_blocks[i].data_length = tr31_opt_block_kcv_data_length(ctx->key.kcv_len);
-			ctx->opt_blocks[i].data = calloc(1, ctx->opt_blocks[i].data_length);
+			r = tr31_opt_block_init(
+				&ctx->opt_blocks[i],
+				TR31_OPT_BLOCK_KC,
+				tr31_opt_block_kcv_data_length(ctx->key.kcv_len),
+				NULL
+			);
+			if (r) {
+				// internal error
+				return -3;
+			}
 			r = tr31_opt_block_encode_kcv(
 				ctx->key.kcv_algorithm,
 				ctx->key.kcv,
@@ -2415,7 +2497,7 @@ int tr31_export(
 			);
 			if (r) {
 				// internal error
-				return -3;
+				return -4;
 			}
 		}
 
@@ -2430,8 +2512,16 @@ int tr31_export(
 
 			// build optional block KP (KCV of KBPK)
 			// see ANSI X9.143:2021, 6.3.6.7
-			ctx->opt_blocks[i].data_length = tr31_opt_block_kcv_data_length(kbpk->kcv_len);
-			ctx->opt_blocks[i].data = calloc(1, ctx->opt_blocks[i].data_length);
+			r = tr31_opt_block_init(
+				&ctx->opt_blocks[i],
+				TR31_OPT_BLOCK_KP,
+				tr31_opt_block_kcv_data_length(kbpk->kcv_len),
+				NULL
+			);
+			if (r) {
+				// internal error
+				return -5;
+			}
 			r = tr31_opt_block_encode_kcv(
 				kbpk->kcv_algorithm,
 				kbpk->kcv,
@@ -2441,7 +2531,7 @@ int tr31_export(
 			);
 			if (r) {
 				// internal error
-				return -4;
+				return -6;
 			}
 		}
 	}
@@ -2608,7 +2698,7 @@ int tr31_export(
 
 		default:
 			// invalid format version
-			r = -5;
+			r = -7;
 			goto error;
 	}
 
@@ -2621,7 +2711,7 @@ int tr31_export(
 	);
 	if (r) {
 		// internal error
-		r = -6;
+		r = -8;
 		goto error;
 	}
 
@@ -2645,8 +2735,10 @@ static int tr31_opt_block_parse(
 {
 	int r;
 	const struct tr31_opt_blk_hdr_t* opt_blk_hdr;
+	unsigned int id;
 	size_t opt_blk_hdr_len;
 	const void* opt_blk_data;
+	size_t opt_blk_data_len;
 
 	if (!ptr || !opt_blk_len || !opt_ctx) {
 		return -1;
@@ -2660,7 +2752,7 @@ static int tr31_opt_block_parse(
 	}
 
 	// parse optional block id
-	opt_ctx->id = ntohs(opt_blk_hdr->id);
+	id = ntohs(opt_blk_hdr->id);
 
 	// parse optional block length
 	r = hex_to_int(opt_blk_hdr->length, sizeof(opt_blk_hdr->length));
@@ -2718,15 +2810,17 @@ static int tr31_opt_block_parse(
 		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_LENGTH;
 	}
 	opt_blk_data = ptr + opt_blk_hdr_len;
+	opt_blk_data_len = *opt_blk_len - opt_blk_hdr_len;
 
 	// if strict validation is disabled, validate the format only as
 	// printable ASCII (format PA)
 	if ((state->flags & TR31_IMPORT_NO_STRICT_VALIDATION) != 0) {
 		// NOTE: tr31_import() and tr31_init_from_header() have already
 		// validated the whole key block as printable ASCII (format PA)
-		opt_ctx->data_length = (*opt_blk_len - opt_blk_hdr_len);
-		opt_ctx->data = malloc(opt_ctx->data_length);
-		memcpy(opt_ctx->data, opt_blk_data, opt_ctx->data_length);
+		r = tr31_opt_block_init(opt_ctx, id, opt_blk_data_len, opt_blk_data);
+		if (r) {
+			return -2;
+		}
 		return 0;
 	}
 
@@ -2742,24 +2836,26 @@ static int tr31_opt_block_parse(
 		case TR31_OPT_BLOCK_KP:
 		case TR31_OPT_BLOCK_KS:
 		case TR31_OPT_BLOCK_PK:
-			opt_ctx->data_length = (*opt_blk_len - opt_blk_hdr_len);
-			r = tr31_validate_format_h(opt_blk_data, opt_ctx->data_length);
+			r = tr31_validate_format_h(opt_blk_data, opt_blk_data_len);
 			if (r) {
 				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 			}
-			opt_ctx->data = malloc(opt_ctx->data_length);
-			memcpy(opt_ctx->data, opt_blk_data, opt_ctx->data_length);
+			r = tr31_opt_block_init(opt_ctx, id, opt_blk_data_len, opt_blk_data);
+			if (r) {
+				return -3;
+			}
 			return 0;
 
 		// optional blocks to be validated as alphanumeric (format AN)
 		case TR31_OPT_BLOCK_DA:
-			opt_ctx->data_length = (*opt_blk_len - opt_blk_hdr_len);
 			r = tr31_validate_format_an(opt_blk_data, opt_ctx->data_length);
 			if (r) {
 				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 			}
-			opt_ctx->data = malloc(opt_ctx->data_length);
-			memcpy(opt_ctx->data, opt_blk_data, opt_ctx->data_length);
+			r = tr31_opt_block_init(opt_ctx, id, opt_blk_data_len, opt_blk_data);
+			if (r) {
+				return -4;
+			}
 			return 0;
 
 		// optional blocks to be validated as printable ASCII (format PA)
@@ -2767,21 +2863,23 @@ static int tr31_opt_block_parse(
 		case TR31_OPT_BLOCK_PB:
 			// NOTE: tr31_import() and tr31_init_from_header() have already
 			// validated the whole key block as printable ASCII (format PA)
-			opt_ctx->data_length = (*opt_blk_len - opt_blk_hdr_len);
-			opt_ctx->data = malloc(opt_ctx->data_length);
-			memcpy(opt_ctx->data, opt_blk_data, opt_ctx->data_length);
+			r = tr31_opt_block_init(opt_ctx, id, opt_blk_data_len, opt_blk_data);
+			if (r) {
+				return -5;
+			}
 			return 0;
 
 		// optional blocks to be validated as ISO 8601
 		case TR31_OPT_BLOCK_TC:
 		case TR31_OPT_BLOCK_TS:
-			opt_ctx->data_length = (*opt_blk_len - opt_blk_hdr_len);
-			r = tr31_opt_block_validate_iso8601(opt_blk_data, opt_ctx->data_length);
+			r = tr31_opt_block_validate_iso8601(opt_blk_data, opt_blk_data_len);
 			if (r) {
 				return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 			}
-			opt_ctx->data = malloc(opt_ctx->data_length);
-			memcpy(opt_ctx->data, opt_blk_data, opt_ctx->data_length);
+			r = tr31_opt_block_init(opt_ctx, id, opt_blk_data_len, opt_blk_data);
+			if (r) {
+				return -6;
+			}
 			return 0;
 
 		// all other optional blocks, including proprietary ones, to be
@@ -2789,9 +2887,10 @@ static int tr31_opt_block_parse(
 		default:
 			// NOTE: tr31_import() and tr31_init_from_header() have already
 			// validated the whole key block as printable ASCII (format PA)
-			opt_ctx->data_length = (*opt_blk_len - opt_blk_hdr_len);
-			opt_ctx->data = malloc(opt_ctx->data_length);
-			memcpy(opt_ctx->data, opt_blk_data, opt_ctx->data_length);
+			r = tr31_opt_block_init(opt_ctx, id, opt_blk_data_len, opt_blk_data);
+			if (r) {
+				return -7;
+			}
 			return 0;
 	}
 }
@@ -3024,6 +3123,9 @@ static int tr31_state_prepare_import(
 	// prepare decoded key block buffer
 	state->decoded_key_block_length = state->header_length + state->payload_length + state->authenticator_length;
 	state->decoded_key_block = malloc(state->decoded_key_block_length);
+	if (!state->decoded_key_block) {
+		return -1;
+	}
 	memcpy(state->decoded_key_block, key_block, state->header_length);
 
 	// decode payload
@@ -3131,6 +3233,9 @@ static int tr31_state_prepare_export(
 	// prepare decoded key block buffer
 	state->decoded_key_block_length = state->header_length + state->payload_length + state->authenticator_length;
 	state->decoded_key_block = malloc(state->decoded_key_block_length);
+	if (!state->decoded_key_block) {
+		return -1;
+	}
 	memcpy(state->decoded_key_block, header, state->header_length);
 	state->payload = state->decoded_key_block + state->header_length;
 	state->authenticator = state->payload + state->payload_length;
@@ -3189,6 +3294,10 @@ static int tr31_tdes_decrypt_verify_variant_binding(const struct tr31_state_t* s
 
 	// decrypt key payload; note that the key block header is used as the IV
 	decrypted_payload = malloc(state->payload_length);
+	if (!decrypted_payload) {
+		r = -1;
+		goto error;
+	}
 	r = crypto_tdes_decrypt(
 		kbek,
 		kbpk->length,
@@ -3257,6 +3366,10 @@ static int tr31_tdes_encrypt_sign_variant_binding(struct tr31_state_t* state, co
 
 	// encrypt key payload; note that the key block header is used as the IV
 	encrypted_payload = malloc(state->payload_length);
+	if (!encrypted_payload) {
+		r = -1;
+		goto error;
+	}
 	r = crypto_tdes_encrypt(
 		kbek,
 		kbpk->length,
@@ -3325,6 +3438,10 @@ static int tr31_tdes_decrypt_verify_derivation_binding(struct tr31_state_t* stat
 
 	// decrypt key payload; note that the authenticator is used as the IV
 	decrypted_payload = malloc(state->payload_length);
+	if (!decrypted_payload) {
+		r = -1;
+		goto error;
+	}
 	r = crypto_tdes_decrypt(
 		kbek,
 		kbpk->length,
@@ -3427,6 +3544,10 @@ static int tr31_tdes_encrypt_sign_derivation_binding(struct tr31_state_t* state,
 
 	// encrypt key payload; note that the authenticator is used as the IV
 	encrypted_payload = malloc(state->payload_length);
+	if (!encrypted_payload) {
+		r = -1;
+		goto error;
+	}
 	r = crypto_tdes_encrypt(
 		kbek,
 		kbpk->length,
@@ -3480,6 +3601,10 @@ static int tr31_aes_decrypt_verify_derivation_binding(struct tr31_state_t* state
 
 		// decrypt key payload; note that the authenticator is used as the IV
 		decrypted_payload = malloc(state->payload_length);
+		if (!decrypted_payload) {
+			r = -1;
+			goto error;
+		}
 		r = crypto_aes_decrypt(
 			kbek,
 			kbpk->length,
@@ -3504,6 +3629,10 @@ static int tr31_aes_decrypt_verify_derivation_binding(struct tr31_state_t* state
 
 		// decrypt key payload; note that the authenticator is used as the IV/nonce
 		decrypted_payload = malloc(state->payload_length);
+		if (!decrypted_payload) {
+			r = -1;
+			goto error;
+		}
 		r = crypto_aes_decrypt_ctr(
 			kbek,
 			kbpk->length,
@@ -3610,6 +3739,10 @@ static int tr31_aes_encrypt_sign_derivation_binding(struct tr31_state_t* state, 
 
 		// encrypt key payload; note that the authenticator is used as the IV
 		encrypted_payload = malloc(state->payload_length);
+		if (!encrypted_payload) {
+			r = -1;
+			goto error;
+		}
 		r = crypto_aes_encrypt(
 			kbek,
 			kbpk->length,
@@ -3649,6 +3782,10 @@ static int tr31_aes_encrypt_sign_derivation_binding(struct tr31_state_t* state, 
 
 		// encrypt key payload; note that the authenticator is used as the IV/nonce
 		encrypted_payload = malloc(state->payload_length);
+		if (!encrypted_payload) {
+			r = -1;
+			goto error;
+		}
 		r = crypto_aes_encrypt_ctr(
 			kbek,
 			kbpk->length,
@@ -3696,10 +3833,7 @@ void tr31_release(struct tr31_ctx_t* ctx)
 
 	if (ctx->opt_blocks) {
 		for (size_t i = 0; i < ctx->opt_blocks_count; ++i) {
-			if (ctx->opt_blocks[i].data) {
-				free(ctx->opt_blocks[i].data);
-			}
-			ctx->opt_blocks[i].data = NULL;
+			tr31_opt_blk_release(&ctx->opt_blocks[i]);
 		}
 
 		free(ctx->opt_blocks);

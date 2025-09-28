@@ -2,7 +2,7 @@
  * @file tr31_strings.c
  * @brief TR-31 string helper functions
  *
- * Copyright 2023 Leon Lynch
+ * Copyright 2023, 2025 Leon Lynch
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -528,6 +528,9 @@ static int tr31_opt_block_iso8601_get_string(const struct tr31_opt_ctx_t* opt_bl
 
 	// Copy optional block data to NULL-terminated string
 	iso8601_str = malloc(opt_block->data_length + 1);
+	if (!iso8601_str) {
+		return -1;
+	}
 	memcpy(iso8601_str, opt_block->data, opt_block->data_length);
 	iso8601_str[opt_block->data_length] = 0;
 
@@ -624,7 +627,7 @@ static int tr31_opt_block_iso8601_get_string(const struct tr31_opt_ctx_t* opt_bl
 	ret = strftime(str, str_len, "%c", &ztm);
 	if (!ret) {
 		// Unexpected failure
-		return -1;
+		return -2;
 	}
 
 	return 0;
