@@ -2,7 +2,7 @@
  * @file tr31.c
  * @brief High level TR-31 library interface
  *
- * Copyright 2020-2024 Leon Lynch
+ * Copyright 2020-2025 Leon Lynch
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -88,8 +88,10 @@ struct tr31_payload_t {
 	uint8_t data[];
 } __attribute__((packed));
 
-#define TR31_MIN_PAYLOAD_LENGTH (DES_BLOCK_SIZE)
-#define TR31_MIN_KEY_BLOCK_LENGTH (sizeof(struct tr31_header_t) + TR31_MIN_PAYLOAD_LENGTH + 8) // Minimum key block length: header + minimum payload + authenticator
+#define TR31_PAYLOAD_MIN_LENGTH (DES_BLOCK_SIZE)
+#define TR31_KEY_BLOCK_MIN_LENGTH (sizeof(struct tr31_header_t) + TR31_PAYLOAD_MIN_LENGTH + 8) // Minimum key block length: header + minimum payload + authenticator
+#define TR31_KEY_BLOCK_MAX_LENGTH (9999) // Maximum key block length: 4 decimal digits in header field
+#define TR31_OPT_BLOCKS_MAX_COUNT (99) // Maximum number of optional blocks: 2 decimal digits in header field
 
 // Internal processing state
 struct tr31_state_t {
@@ -809,7 +811,7 @@ int tr31_init_from_header(
 
 	// decode number of optional blocks field
 	int opt_blocks_count = dec_to_int(header->opt_blocks_count, sizeof(header->opt_blocks_count));
-	if (opt_blocks_count < 0) {
+	if (opt_blocks_count < 0 || opt_blocks_count > TR31_OPT_BLOCKS_MAX_COUNT) {
 		return TR31_ERROR_INVALID_NUMBER_OF_OPTIONAL_BLOCKS_FIELD;
 	}
 	ctx->opt_blocks_count = opt_blocks_count;
@@ -2006,7 +2008,9 @@ int tr31_import(
 	}
 
 	// validate minimum length
-	if (key_block_len < TR31_MIN_KEY_BLOCK_LENGTH) {
+	if (key_block_len < TR31_KEY_BLOCK_MIN_LENGTH ||
+		key_block_len > TR31_KEY_BLOCK_MAX_LENGTH
+	) {
 		return TR31_ERROR_INVALID_LENGTH;
 	}
 
@@ -2070,7 +2074,7 @@ int tr31_import(
 
 	// decode number of optional blocks field
 	int opt_blocks_count = dec_to_int(header->opt_blocks_count, sizeof(header->opt_blocks_count));
-	if (opt_blocks_count < 0) {
+	if (opt_blocks_count < 0 || opt_blocks_count > TR31_OPT_BLOCKS_MAX_COUNT) {
 		return TR31_ERROR_INVALID_NUMBER_OF_OPTIONAL_BLOCKS_FIELD;
 	}
 	ctx->opt_blocks_count = opt_blocks_count;
@@ -2342,7 +2346,7 @@ int tr31_export(
 	}
 
 	// validate minimum length (+1 for null-termination)
-	if (key_block_buf_len < TR31_MIN_KEY_BLOCK_LENGTH + 1) {
+	if (key_block_buf_len < TR31_KEY_BLOCK_MIN_LENGTH + 1) {
 		return TR31_ERROR_INVALID_LENGTH;
 	}
 
@@ -3008,7 +3012,7 @@ static int tr31_state_prepare_import(
 
 	// ensure that key block length is valid for minimal payload and authenticator
 	authenticator_hex_length = state->authenticator_length * 2;
-	if (header_len + TR31_MIN_PAYLOAD_LENGTH + authenticator_hex_length > key_block_len) {
+	if (header_len + TR31_PAYLOAD_MIN_LENGTH + authenticator_hex_length > key_block_len) {
 		return TR31_ERROR_INVALID_LENGTH;
 	}
 
