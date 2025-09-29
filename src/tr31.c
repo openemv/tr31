@@ -2794,6 +2794,9 @@ static int tr31_opt_block_parse(
 
 static int tr31_opt_block_validate_iso8601(const char* str, size_t str_len)
 {
+	// length of optional block header used for ISO 8601 values
+	const unsigned int opt_blk_hdr_len = sizeof(struct tr31_opt_blk_hdr_t);
+
 	if (!str) {
 		return -1;
 	}
@@ -2805,10 +2808,10 @@ static int tr31_opt_block_validate_iso8601(const char* str, size_t str_len)
 	// validate ISO 8601 string length
 	// see ANSI X9.143:2021, 6.3.6.13, table 21
 	// see ANSI X9.143:2021, 6.3.6.14, table 22
-	if (str_len != 0x13 - 4 && // no delimiters, ss precision
-		str_len != 0x15 - 4 && // no delimiters, ssss precision
-		str_len != 0x18 - 4 && // delimiters, ss precision
-		str_len != 0x1B - 4 // delimiters, ss.ss precision
+	if (str_len != 0x13 - opt_blk_hdr_len && // no delimiters, ss precision
+		str_len != 0x15 - opt_blk_hdr_len && // no delimiters, ssss precision
+		str_len != 0x18 - opt_blk_hdr_len && // delimiters, ss precision
+		str_len != 0x1B - opt_blk_hdr_len // delimiters, ss.ss precision
 	) {
 		return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 	}
@@ -2821,7 +2824,8 @@ static int tr31_opt_block_validate_iso8601(const char* str, size_t str_len)
 	}
 
 	// validate ISO 8601 delimiters (YYYY-MM-DDThh:mm:ss[.ss])
-	if (str_len == 0x18 || str_len == 0x1B) {
+	if (str_len == 0x18 - opt_blk_hdr_len ||
+		str_len == 0x1B - opt_blk_hdr_len) {
 		if (str[4] != '-' ||
 			str[7] != '-' ||
 			str[10] != 'T' ||
@@ -2831,7 +2835,7 @@ static int tr31_opt_block_validate_iso8601(const char* str, size_t str_len)
 			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 		}
 	}
-	if (str_len == 0x1B) {
+	if (str_len == 0x1B - opt_blk_hdr_len) {
 		if (str[19] != '.') {
 			return TR31_ERROR_INVALID_OPTIONAL_BLOCK_DATA;
 		}
