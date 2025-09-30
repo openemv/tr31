@@ -321,7 +321,6 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			return 0;
 
 		case TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_VERBATIM: {
-			int r;
 			size_t arg_len = strlen(arg);
 			size_t fake_header_len;
 			char* fake_header;
