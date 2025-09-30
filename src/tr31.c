@@ -2472,11 +2472,13 @@ int tr31_export(
 	// So we'll use the encryption block size which is determined by the key
 	// block format version.
 	if (opt_blk_len_total & (state.enc_block_size-1)) {
-		unsigned int pb_len = 4; // Minimum length of optional block PB
+		// minimum length of optional block PB
+		const unsigned int pb_min_len = sizeof(struct tr31_opt_blk_hdr_t);
+		unsigned int pb_len = pb_min_len;
 
 		// compute required padding length
-		if ((opt_blk_len_total + pb_len) & (state.enc_block_size-1)) { // if further padding is required
-			pb_len = ((opt_blk_len_total + 4 + state.enc_block_size) & ~(state.enc_block_size-1)) - opt_blk_len_total;
+		if ((opt_blk_len_total + pb_min_len) & (state.enc_block_size-1)) { // if further padding is required
+			pb_len = ((opt_blk_len_total + pb_min_len + state.enc_block_size) & ~(state.enc_block_size-1)) - opt_blk_len_total;
 		}
 
 		if (ptr + pb_len - (void*)header > key_block_buf_len) {
@@ -2923,18 +2925,24 @@ static int tr31_opt_block_export_PB(
 	struct tr31_opt_blk_t* opt_blk
 )
 {
+	if (pb_len < sizeof(*opt_blk)) {
+		// this should never happen
+		return -1;
+	}
+	const size_t pb_data_len = pb_len - sizeof(*opt_blk);
+
 	opt_blk->id = htons(TR31_OPT_BLOCK_PB);
 	int_to_hex(pb_len, opt_blk->length, sizeof(opt_blk->length));
 
 	if ((state->flags & TR31_EXPORT_ZERO_OPT_BLOCK_PB) == 0) {
 		// populate with random data and then transpose to the required range
-		crypto_rand(opt_blk->data, pb_len - 4);
+		crypto_rand(opt_blk->data, pb_data_len);
 	} else {
 		// populate with zeros instead of random data
-		memset(opt_blk->data, 0, pb_len - 4);
+		memset(opt_blk->data, 0, pb_data_len);
 	}
 
-	for (size_t i = 0; i < pb_len - 4; ++i) {
+	for (size_t i = 0; i < pb_data_len; ++i) {
 		// although optional block PB may contain printable ASCII characters in
 		// the range 0x20 to 0x7E, characters outside the ranges of '0'-'9',
 		// 'A'-'Z' and 'a'-'z' are problematic when using HSM protocols that
@@ -2955,8 +2963,8 @@ static int tr31_opt_block_export_PB(
 		} else if (tmp < 62) {
 			opt_blk->data[i] = tmp - 36 + 'a'; // 'a'-'z'
 		} else {
-			// This should never happen
-			return -1;
+			// this should never happen
+			return -2;
 		}
 	}
 
