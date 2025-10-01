@@ -1,7 +1,7 @@
 /**
  * @file tr31_config.h
  *
- * Copyright 2021-2023 Leon Lynch
+ * Copyright 2021-2023, 2025 Leon Lynch
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -32,6 +32,7 @@
 #cmakedefine HAVE_STRPTIME
 #cmakedefine HAVE_TIMEGM
 #cmakedefine HAVE_MKGMTIME
+#cmakedefine HAVE_LOCALTIME_R
 #cmakedefine TR31_ENABLE_DATETIME_CONVERSION
 
 #endif

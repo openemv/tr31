@@ -50,7 +50,8 @@ if(NOT argp_FOUND)
 endif()
 
 # check for features required for date/time conversion:
-# locale.h, time.h, setlocale(), strptime(), timegm(), _mkgmtime()
+# locale.h, time.h, setlocale(), strptime(), timegm(), _mkgmtime(), and
+# localtime_r()
 include(CheckIncludeFile)
 include(CheckSymbolExists)
 CHECK_INCLUDE_FILE(locale.h HAVE_LOCALE_H)
@@ -82,8 +83,19 @@ endif()
 if(WIN32)
 	check_symbol_exists(_mkgmtime time.h HAVE_MKGMTIME)
 endif()
-# Only setlocale() and either timegm() or _mkgmtime are required for date/time
-# conversion. If strptime() is absent, sscanf() will be used instead.
+check_symbol_exists(localtime_r time.h HAVE_LOCALTIME_R)
+if(NOT HAVE_LOCALTIME_R)
+	unset(HAVE_LOCALTIME_R CACHE)
+	list(APPEND CMAKE_REQUIRED_DEFINITIONS -D${TIME_H_DEFINITIONS_TRY})
+	check_symbol_exists(localtime_r time.h HAVE_LOCALTIME_R)
+	list(REMOVE_ITEM CMAKE_REQUIRED_DEFINITIONS -D${TIME_H_DEFINITIONS_TRY})
+	if(HAVE_LOCALTIME_R)
+		# set as cache entry to persist across multiple builds
+		set(TIME_H_DEFINITIONS ${TIME_H_DEFINITIONS_TRY} CACHE INTERNAL "Definitions required for time.h")
+	endif()
+endif()
+# Only setlocale() and either timegm() or _mkgmtime() are required for
+# date/time conversion. If strptime() is absent, sscanf() will be used instead.
 if(HAVE_SETLOCALE AND (HAVE_TIMEGM OR HAVE_MKGMTIME))
 	message(STATUS "Enabling date/time conversion")
 	# set as cache entry to persist across multiple builds
