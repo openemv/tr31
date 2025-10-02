@@ -19,6 +19,7 @@
  */
 
 #include "tr31.h"
+#include "tr31_config.h"
 #include "tr31_strings.h"
 
 #include "crypto_mem.h"
@@ -1361,7 +1362,8 @@ static int populate_opt_blocks(const struct tr31_tool_options_t* options, struct
 
 		if (strcmp(options->export_opt_block_TC_str, "now") == 0) {
 			time_t lt; // Calendar/Unix/POSIX time in local time
-			struct tm* ztm; // Time structure in UTC
+			struct tm ztm; // Time structure in UTC
+			struct tm* tm_ptr; // Result of gmtime functions
 			size_t ret;
 
 			lt = time(NULL);
@@ -1369,12 +1371,21 @@ static int populate_opt_blocks(const struct tr31_tool_options_t* options, struct
 				fprintf(stderr, "Failed to obtain current date/time: %s\n", strerror(errno));
 				return 1;
 			}
-			ztm = gmtime(&lt);
-			if (ztm == NULL) {
+#ifdef HAVE_GMTIME_R
+			tm_ptr = gmtime_r(&lt, &ztm);
+			if (!tm_ptr) {
 				fprintf(stderr, "Failed to convert current date/time to UTC\n");
 				return 1;
 			}
-			ret = strftime(iso8601_now, sizeof(iso8601_now), "%Y%m%d%H%M%SZ", ztm);
+#else
+			tm_ptr = gmtime(&lt);
+			if (!tm_ptr) {
+				fprintf(stderr, "Failed to convert current date/time to UTC\n");
+				return 1;
+			}
+			ztm = *tm_ptr;
+#endif
+			ret = strftime(iso8601_now, sizeof(iso8601_now), "%Y%m%d%H%M%SZ", &ztm);
 			if (!ret) {
 				fprintf(stderr, "Failed to convert current date/time to ISO 8601\n");
 				return 1;
@@ -1396,7 +1407,8 @@ static int populate_opt_blocks(const struct tr31_tool_options_t* options, struct
 
 		if (strcmp(options->export_opt_block_TS_str, "now") == 0) {
 			time_t lt; // Calendar/Unix/POSIX time in local time
-			struct tm* ztm; // Time structure in UTC
+			struct tm ztm; // Time structure in UTC
+			struct tm* tm_ptr; // Result of gmtime functions
 			size_t ret;
 
 			lt = time(NULL);
@@ -1404,12 +1416,21 @@ static int populate_opt_blocks(const struct tr31_tool_options_t* options, struct
 				fprintf(stderr, "Failed to obtain current date/time: %s\n", strerror(errno));
 				return 1;
 			}
-			ztm = gmtime(&lt);
-			if (ztm == NULL) {
+#ifdef HAVE_GMTIME_R
+			tm_ptr = gmtime_r(&lt, &ztm);
+			if (!tm_ptr) {
 				fprintf(stderr, "Failed to convert current date/time to UTC\n");
 				return 1;
 			}
-			ret = strftime(iso8601_now, sizeof(iso8601_now), "%Y%m%d%H%M%SZ", ztm);
+#else
+			tm_ptr = gmtime(&lt);
+			if (!tm_ptr) {
+				fprintf(stderr, "Failed to convert current date/time to UTC\n");
+				return 1;
+			}
+			ztm = *tm_ptr;
+#endif
+			ret = strftime(iso8601_now, sizeof(iso8601_now), "%Y%m%d%H%M%SZ", &ztm);
 			if (!ret) {
 				fprintf(stderr, "Failed to convert current date/time to ISO 8601\n");
 				return 1;
