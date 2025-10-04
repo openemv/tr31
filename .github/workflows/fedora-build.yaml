@@ -44,10 +44,10 @@ jobs:
       run: cmake -B build -DCMAKE_BUILD_TYPE="Debug"
 
     - name: Build
-      run: cmake --build build
+      run: cmake --build build -j 4
 
     - name: Test
-      run: ctest --test-dir build --output-on-failure
+      run: ctest --test-dir build --output-on-failure -j 4
 
   build-fedora-release:
     strategy:
@@ -87,10 +87,10 @@ jobs:
       run: cmake -B build -DCMAKE_BUILD_TYPE="RelWithDebInfo" -DCMAKE_INSTALL_PREFIX=/usr -DBUILD_SHARED_LIBS=YES -DBUILD_DOCS=YES -DCPACK_COMPONENTS_GROUPING=ALL_COMPONENTS_IN_ONE
 
     - name: Build
-      run: cmake --build build
+      run: cmake --build build -j 4
 
     - name: Test
-      run: ctest --test-dir build --output-on-failure
+      run: ctest --test-dir build --output-on-failure -j 4
 
     - name: Package
       run: cmake --build build --target package
