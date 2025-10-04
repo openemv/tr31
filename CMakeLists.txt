@@ -28,35 +28,32 @@ endif()
 # Configure compiler
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_EXTENSIONS OFF)
-option(TR31_ENABLE_SANITIZERS "Enable debugging sanitizers" OFF)
-option(TR31_ENABLE_HARDENING "Enable runtime security hardening" OFF)
 if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
 	add_compile_options(-Wall)
 	add_compile_options($<$<CONFIG:Debug>:-ggdb3>)
 	add_compile_options($<$<CONFIG:Debug>:-fno-omit-frame-pointer>)
 	add_compile_options($<$<CONFIG:RelWithDebInfo>:-ggdb3>)
-
-	if(TR31_ENABLE_SANITIZERS)
-		add_compile_options(-fsanitize=address)
-		add_compile_options(-fsanitize=undefined)
-		add_compile_options(-fsanitize=leak)
-		add_link_options(-fsanitize=address)
-		add_link_options(-fsanitize=undefined)
-		add_link_options(-fsanitize=leak)
-	endif()
-
-	if(TR31_ENABLE_HARDENING)
-		add_compile_options(-fstack-protector-strong)
-		add_compile_definitions(_FORTIFY_SOURCE=2)
-	endif()
 endif()
 if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
 	add_compile_options(-Wall)
 	add_compile_options($<$<CONFIG:Debug>:-g3>)
 	add_compile_options($<$<CONFIG:Debug>:-fno-omit-frame-pointer>)
 	add_compile_options($<$<CONFIG:RelWithDebInfo>:-g3>)
+endif()
+if(CMAKE_C_COMPILER_ID STREQUAL "AppleClang")
+	add_compile_options(-Wall)
+	add_compile_options($<$<CONFIG:Debug>:-g3>)
+	add_compile_options($<$<CONFIG:Debug>:-fno-omit-frame-pointer>)
+	add_compile_options($<$<CONFIG:RelWithDebInfo>:-g3>)
+endif()
 
-	if(TR31_ENABLE_SANITIZERS)
+# Configure debugging sanitizers
+option(TR31_ENABLE_SANITIZERS "Enable debugging sanitizers" OFF)
+if(TR31_ENABLE_SANITIZERS)
+	if(CMAKE_C_COMPILER_ID STREQUAL "GNU" OR
+		CMAKE_C_COMPILER_ID STREQUAL "Clang" OR
+		CMAKE_C_COMPILER_ID STREQUAL "AppleClang"
+	)
 		add_compile_options(-fsanitize=address)
 		add_compile_options(-fsanitize=undefined)
 		add_link_options(-fsanitize=address)
@@ -67,29 +64,21 @@ if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
 			add_link_options(-fsanitize=leak)
 		endif()
 	endif()
-
-	if(TR31_ENABLE_HARDENING)
-		add_compile_options(-fstack-protector-strong)
-		# FORTIFY_SOURCE less reliable using Clang
-	endif()
 endif()
-if(CMAKE_C_COMPILER_ID STREQUAL "AppleClang")
-	add_compile_options(-Wall)
-	add_compile_options($<$<CONFIG:Debug>:-g3>)
-	add_compile_options($<$<CONFIG:Debug>:-fno-omit-frame-pointer>)
-	add_compile_options($<$<CONFIG:RelWithDebInfo>:-g3>)
 
-	if(TR31_ENABLE_SANITIZERS)
-		add_compile_options(-fsanitize=address)
-		add_compile_options(-fsanitize=undefined)
-		add_link_options(-fsanitize=address)
-		add_link_options(-fsanitize=undefined)
-		# LeakSanitizer not available on MacOS
-	endif()
-
-	if(TR31_ENABLE_HARDENING)
+# Configure runtime security hardening
+option(TR31_ENABLE_HARDENING "Enable runtime security hardening" OFF)
+if(TR31_ENABLE_HARDENING)
+	if(CMAKE_C_COMPILER_ID STREQUAL "GNU" OR
+		CMAKE_C_COMPILER_ID STREQUAL "Clang" OR
+		CMAKE_C_COMPILER_ID STREQUAL "AppleClang"
+	)
 		add_compile_options(-fstack-protector-strong)
-		# FORTIFY_SOURCE not recommended on MacOS
+		if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+			# FORTIFY_SOURCE less reliable using Clang
+			# FORTIFY_SOURCE not recommended on MacOS
+			add_compile_definitions(_FORTIFY_SOURCE=2)
+		endif()
 	endif()
 endif()
 
