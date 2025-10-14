@@ -55,9 +55,10 @@ Dependencies
 * TR-31 library requires [MbedTLS](https://github.com/Mbed-TLS/mbedtls)
   (preferred), or [OpenSSL](https://www.openssl.org/)
 * `tr31-tool` will be built by default and requires `argp` (either via Glibc, a
-  system-provided standalone or a downloaded implementation; see
+  system-provided standalone, or downloaded during the build from
+  [libargp](https://github.com/leonlynch/libargp); see
   [MacOS / Windows](#macos--windows)). Use the `BUILD_TR31_TOOL` option to
-  prevent TR-31 tool from being built and avoid the dependency on `argp`.
+  prevent `tr31-tool` from being built and avoid the dependency on `argp`.
 * [Doxygen](https://github.com/doxygen/doxygen) can _optionally_ be used to
   generate API documentation if it is available; see
   [Documentation](#documentation)
@@ -218,3 +219,7 @@ Copyright 2020-2025 [Leon Lynch](https://github.com/leonlynch).
 
 This project is licensed under the terms of the LGPL v2.1 license. See
 [LICENSE](https://github.com/openemv/tr31/blob/master/LICENSE) file.
+
+This project may download [libargp](https://github.com/leonlynch/libargp)
+during the build and it is licensed under the terms of the LGPL v3 license. See
+[LICENSE](https://github.com/leonlynch/libargp/blob/master/LICENSE) file.
