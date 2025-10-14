@@ -217,8 +217,14 @@ License
 
 Copyright 2020-2025 [Leon Lynch](https://github.com/leonlynch).
 
-This project is licensed under the terms of the LGPL v2.1 license. See
-[LICENSE](https://github.com/openemv/tr31/blob/master/LICENSE) file.
+This project is licensed under the terms of the LGPL v2.1 license with the
+exception of `tr31-tool` which is licensed under the terms of the GPL v3
+license.
+See [LICENSE](https://github.com/openemv/tr31/blob/master/LICENSE) file.
+
+This project includes [crypto](https://github.com/openemv/crypto) as a git
+submodule and it is licensed under the terms of the MIT license. See
+[LICENSE](https://github.com/openemv/crypto/blob/master/LICENSE) file.
 
 This project may download [libargp](https://github.com/leonlynch/libargp)
 during the build and it is licensed under the terms of the LGPL v3 license. See
