@@ -154,7 +154,7 @@ const char* tr31_key_usage_get_desc(const struct tr31_ctx_t* ctx)
 		case TR31_KEY_USAGE_PVK_X9_132_ALG_3:   return "PIN Verification Key (ANSI X9.132 algorithm 3)";
 	}
 
-	// See https://www.ibm.com/docs/en/zos/3.1.0?topic=ktf-x9143-tr-31-key-block-header-optional-block-data
+	// See https://www.ibm.com/docs/en/zos/3.2.0?topic=ktf-x9143-tr-31-key-block-header-optional-block-data
 	if (ctx->key.usage == TR31_KEY_USAGE_IBM &&
 		tr31_opt_block_ibm_found(ctx)
 	) {
@@ -215,7 +215,7 @@ const char* tr31_key_mode_of_use_get_desc(const struct tr31_ctx_t* ctx)
 		case TR31_KEY_MODE_OF_USE_VARIANT:      return "Create Key Variants";
 	}
 
-	// See https://www.ibm.com/docs/en/zos/3.1.0?topic=ktf-x9143-tr-31-key-block-header-optional-block-data
+	// See https://www.ibm.com/docs/en/zos/3.2.0?topic=ktf-x9143-tr-31-key-block-header-optional-block-data
 	if (ctx->key.mode_of_use == TR31_KEY_MODE_OF_USE_IBM &&
 		tr31_opt_block_ibm_found(ctx)
 	) {
@@ -674,27 +674,29 @@ static const char* tr31_opt_block_wrapping_pedigree_get_string(const struct tr31
 
 static bool tr31_opt_block_is_ibm(const struct tr31_opt_ctx_t* opt_block)
 {
+	const size_t magic_len = strlen(TR31_OPT_BLOCK_10_IBM_MAGIC);
+
 	if (opt_block->id != TR31_OPT_BLOCK_10_IBM) {
 		return false;
 	}
 
-	// See https://www.ibm.com/docs/en/zos/3.1.0?topic=ktf-x9143-tr-31-key-block-header-optional-block-data
-	if (opt_block->data_length < strlen(TR31_OPT_BLOCK_10_IBM_MAGIC)) {
+	// See https://www.ibm.com/docs/en/zos/3.2.0?topic=ktf-x9143-tr-31-key-block-header-optional-block-data
+	if (opt_block->data_length < magic_len) {
 		return false;
 	}
-	if (memcmp(opt_block->data, TR31_OPT_BLOCK_10_IBM_MAGIC, strlen(TR31_OPT_BLOCK_10_IBM_MAGIC)) != 0) {
+	if (memcmp(opt_block->data, TR31_OPT_BLOCK_10_IBM_MAGIC, magic_len) != 0) {
 		return false;
 	}
 
-	if ((opt_block->data_length == 0x1C - 4 || opt_block->data_length != 0x2C - 4) &&
-		memcmp(opt_block->data + 4, "01", 2) == 0
+	if ((opt_block->data_length == 0x1C - 4 || opt_block->data_length == 0x2C - 4) &&
+		memcmp(opt_block->data + magic_len, "01", 2) == 0
 	) {
 		// IBM Common Cryptographic Architecture (CCA) Control Vector (CV)
 		return true;
 	}
 
 	if (opt_block->data_length == 0x24 - 4 &&
-		memcmp(opt_block->data + 4, "02", 2) == 0
+		memcmp(opt_block->data + magic_len, "02", 2) == 0
 	) {
 		// IBM Internal X9-SWKB controls
 		return true;
@@ -717,17 +719,19 @@ static bool tr31_opt_block_ibm_found(const struct tr31_ctx_t* ctx)
 
 static const char* tr31_opt_block_ibm_get_string(const struct tr31_opt_ctx_t* opt_block)
 {
+	const size_t magic_len = strlen(TR31_OPT_BLOCK_10_IBM_MAGIC);
+
 	if (!tr31_opt_block_is_ibm(opt_block)) {
 		return NULL;
 	}
 
-	// See https://www.ibm.com/docs/en/zos/3.1.0?topic=ktf-x9143-tr-31-key-block-header-optional-block-data
-	if (memcmp(opt_block->data + 4, "01", 2) == 0) {
+	// See https://www.ibm.com/docs/en/zos/3.2.0?topic=ktf-x9143-tr-31-key-block-header-optional-block-data
+	if (memcmp(opt_block->data + magic_len, "01", 2) == 0) {
 		return "Common Cryptographic Architecture (CCA) Control Vector (CV)";
 	}
-	if (memcmp(opt_block->data + 4, "02", 2) == 0) {
+	if (memcmp(opt_block->data + magic_len, "02", 2) == 0) {
 		return "Internal X9-SWKB controls";
 	}
 
-	return 0;
+	return NULL;
 }

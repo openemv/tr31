@@ -875,7 +875,7 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 	)
 
 	# test IBM proprietary key block
-	# NOTE: the input was hand crafted based on https://www.ibm.com/docs/en/zos/3.1.0?topic=ktf-x9143-tr-31-key-block-header-optional-block-data and https://www.ibm.com/docs/en/linux-on-systems?topic=data-tr-31-optional-block
+	# NOTE: the input was hand crafted based on https://www.ibm.com/docs/en/zos/3.2.0?topic=ktf-x9143-tr-31-key-block-header-optional-block-data and https://www.ibm.com/docs/en/linux-on-systems?topic=data-tr-31-optional-block
 	add_test(NAME tr31_tool_test53
 		COMMAND tr31-tool --import D014410A100N0200101CIBMC01140123456789ABCDEFPB04000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 --import-no-strict-validation
 	)
