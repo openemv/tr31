@@ -149,7 +149,7 @@ static int dec_to_int(const char* str, size_t str_len)
 
 	value = 0;
 	for (size_t i = 0; i < str_len; ++i) {
-		if (str[i] < '0' && str[i] > '9') {
+		if (str[i] < '0' || str[i] > '9') {
 			return -1;
 		}
 
