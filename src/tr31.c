@@ -1391,14 +1391,7 @@ int tr31_opt_block_add_CT(
 	}
 
 	// find existing optional block CT
-	opt_block_ct = NULL;
-	for (size_t i = 0; i < ctx->opt_blocks_count; ++i) {
-		if (ctx->opt_blocks[i].id == TR31_OPT_BLOCK_CT) {
-			opt_block_ct = &ctx->opt_blocks[i];
-			break;
-		}
-	}
-
+	opt_block_ct = tr31_opt_block_find(ctx, TR31_OPT_BLOCK_CT);
 	if (opt_block_ct) {
 		struct tr31_opt_ctx_t old = *opt_block_ct;
 		const char* old_data = old.data;
