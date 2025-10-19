@@ -154,7 +154,7 @@ const char* tr31_key_usage_get_desc(const struct tr31_ctx_t* ctx)
 		case TR31_KEY_USAGE_PVK_X9_132_ALG_3:   return "PIN Verification Key (ANSI X9.132 algorithm 3)";
 	}
 
-	// See https://www.ibm.com/docs/en/zos/3.1.0?topic=ktf-x9143-tr-31-key-block-header-optional-block-data
+	// See https://www.ibm.com/docs/en/zos/3.2.0?topic=ktf-x9143-tr-31-key-block-header-optional-block-data
 	if (ctx->key.usage == TR31_KEY_USAGE_IBM &&
 		tr31_opt_block_ibm_found(ctx)
 	) {
@@ -215,7 +215,7 @@ const char* tr31_key_mode_of_use_get_desc(const struct tr31_ctx_t* ctx)
 		case TR31_KEY_MODE_OF_USE_VARIANT:      return "Create Key Variants";
 	}
 
-	// See https://www.ibm.com/docs/en/zos/3.1.0?topic=ktf-x9143-tr-31-key-block-header-optional-block-data
+	// See https://www.ibm.com/docs/en/zos/3.2.0?topic=ktf-x9143-tr-31-key-block-header-optional-block-data
 	if (ctx->key.mode_of_use == TR31_KEY_MODE_OF_USE_IBM &&
 		tr31_opt_block_ibm_found(ctx)
 	) {
@@ -747,5 +747,5 @@ static const char* tr31_opt_block_ibm_get_string(const struct tr31_opt_ctx_t* op
 		return "Internal X9-SWKB controls";
 	}
 
-	return 0;
+	return NULL;
 }
