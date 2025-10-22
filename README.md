@@ -11,7 +11,7 @@ This project began as an implementation of the ASC X9 TR-31 standard and has
 since grown to include the ANSI X9.143 standard which supersedes it, and the
 ISO 20038 standard which extends it. However, this project continues to refer
 to the library as TR-31 and prefixes the API, data types and command line tool
-with `tr31`, while mostly avoiding that naming when refering to key blocks and
+with `tr31`, while mostly avoiding that naming when referring to key blocks and
 data associated with key blocks. Given that most uses of these standards
 involve dedicated security hardware, this implementation is mostly for
 validation and debugging purposes.
