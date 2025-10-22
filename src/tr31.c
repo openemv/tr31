@@ -845,7 +845,7 @@ int tr31_init_from_header(
 		ptr += opt_blk_len;
 	}
 
-	// NOTE: the total optional block length is intentially ignored and not
+	// NOTE: the total optional block length is intentionally ignored and not
 	// validated against the encryption block length
 
 	// success

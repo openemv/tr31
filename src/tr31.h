@@ -2,7 +2,7 @@
  * @file tr31.h
  * @brief High level TR-31 library interface
  *
- * Copyright 2020-2023 Leon Lynch
+ * Copyright 2020-2023, 2025 Leon Lynch
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -378,7 +378,7 @@ struct tr31_opt_blk_kcv_data_t {
  * @see @ref optional-block-wp-values "Wrapping Pedigree (WP) optional block values"
  */
 struct tr31_opt_blk_wp_data_t {
-	uint8_t version; ///<Wrapping Pedigree (WP) format version
+	uint8_t version; ///< Wrapping Pedigree (WP) format version
 	/// Wrapping Pedigree (WP) version 0
 	struct v0_t {
 		uint8_t wrapping_pedigree; ///< Wrapping Pedigree value
@@ -778,7 +778,7 @@ int tr31_opt_block_decode_HM(
  *
  * @param ctx Key block context object
  * @param ikid Initial Key Identifier (IKID) for Initial AES DUKPT Key
- * @param ikid_len of @p ikid in bytes. Must be 8 bytes.
+ * @param ikid_len Length of @p ikid in bytes. Must be 8 bytes.
  * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
  */
 int tr31_opt_block_add_IK(
@@ -796,7 +796,7 @@ int tr31_opt_block_add_IK(
  *
  * @param opt_ctx Optional block context object
  * @param ikid Initial Key Identifier (IKID) output
- * @param ikid_len of @p ikid in bytes. Must be 8 bytes.
+ * @param ikid_len Length of @p ikid in bytes. Must be 8 bytes.
  * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
  */
 int tr31_opt_block_decode_IK(
@@ -935,7 +935,7 @@ int tr31_opt_block_add_LB(
  *
  * @param ctx Key block context object
  * @param kcv_algorithm KCV algorithm. Either @ref TR31_OPT_BLOCK_KCV_LEGACY or @ref TR31_OPT_BLOCK_KCV_CMAC.
- * @param kcv Key Check Value (KCV) according to algoritm specified by @p kcv_algorithm
+ * @param kcv Key Check Value (KCV) according to algorithm specified by @p kcv_algorithm
  * @param kcv_len Length of @p kcv in bytes. Must comply with ANSI X9.24-1 Annex A.
  * @return Zero for success. Less than zero for internal error. Greater than zero for data error. See @ref tr31_error_t
  */
