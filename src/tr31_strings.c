@@ -591,7 +591,7 @@ static int tr31_opt_block_iso8601_get_string(const struct tr31_opt_ctx_t* opt_bl
 			break;
 
 		case 0x1B - 4: // YYYY-MM-DDThh:mm:ss.ssZ
-			r = sscanf(iso8601_str, "%4d-%2d-%2dT%2d:%2d:%2d%*c%*cZ", &ztm.tm_year, &ztm.tm_mon, &ztm.tm_mday, &ztm.tm_hour, &ztm.tm_min, &ztm.tm_sec);
+			r = sscanf(iso8601_str, "%4d-%2d-%2dT%2d:%2d:%2d.%*c%*cZ", &ztm.tm_year, &ztm.tm_mon, &ztm.tm_mday, &ztm.tm_hour, &ztm.tm_min, &ztm.tm_sec);
 			break;
 
 		default:
