@@ -33,5 +33,6 @@
 #cmakedefine HAVE_TIMEGM
 #cmakedefine HAVE_MKGMTIME
 #cmakedefine TR31_ENABLE_DATETIME_CONVERSION
+#cmakedefine TR31_USE_SSCANF_DATETIME
 
 #endif

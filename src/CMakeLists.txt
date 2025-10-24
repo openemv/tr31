@@ -93,6 +93,14 @@ else()
 	# set as cache entry to persist across multiple builds
 	set(TR31_ENABLE_DATETIME_CONVERSION OFF CACHE INTERNAL "Date/time conversion availability")
 endif()
+# option to use sscanf() for date/time parsing even when strptime() is
+# available
+option(TR31_USE_SSCANF_DATETIME "Use sscanf() for date/time parsing")
+if(HAVE_STRPTIME AND NOT TR31_USE_SSCANF_DATETIME)
+	message(STATUS "Using strptime() for date/time parsing")
+else()
+	message(STATUS "Using sscanf() for date/time parsing")
+endif()
 
 include(GNUInstallDirs) # provides CMAKE_INSTALL_* variables and good defaults for install()
 

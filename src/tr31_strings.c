@@ -40,7 +40,7 @@
 #ifdef HAVE_TIME_H
 #include <time.h>
 #endif
-#ifndef HAVE_STRPTIME
+#if !defined(HAVE_STRPTIME) || defined(TR31_USE_SSCANF_DATETIME)
 #include <stdio.h> // For sscanf()
 #endif
 #endif // TR31_ENABLE_DATETIME_CONVERSION
@@ -512,7 +512,7 @@ static int tr31_opt_block_iso8601_get_string(const struct tr31_opt_ctx_t* opt_bl
 {
 #ifdef TR31_ENABLE_DATETIME_CONVERSION
 	char* iso8601_str;
-#ifdef HAVE_STRPTIME
+#if defined(HAVE_STRPTIME) && !defined(TR31_USE_SSCANF_DATETIME)
 	char* ptr;
 #else
 	int r;
@@ -537,7 +537,7 @@ static int tr31_opt_block_iso8601_get_string(const struct tr31_opt_ctx_t* opt_bl
 	// See ANSI X9.143:2021, 6.3.6.13, table 21
 	// See ANSI X9.143:2021, 6.3.6.14, table 22
 	memset(&ztm, 0, sizeof(ztm));
-#ifdef HAVE_STRPTIME
+#if defined(HAVE_STRPTIME) && !defined(TR31_USE_SSCANF_DATETIME)
 	switch (opt_block->data_length) {
 		case 0x13 - 4: // YYYYMMDDhhmmssZ
 			ptr = strptime(iso8601_str, "%Y%m%d%H%M%SZ", &ztm);
