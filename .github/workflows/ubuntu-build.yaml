@@ -42,6 +42,34 @@ jobs:
     - name: Test
       run: ctest --test-dir build --output-on-failure -j 4
 
+  build-ubuntu-sscanf:
+    name: Ubuntu (sscanf)
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libmbedtls-dev
+
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    - run: git describe --always --dirty
+
+    - name: Configure CMake with sscanf() for date/time
+      run: |
+        cmake -B build \
+          -DCMAKE_BUILD_TYPE="Debug" \
+          -DTR31_USE_SSCANF_DATETIME=ON
+
+    - name: Build
+      run: cmake --build build -j 4
+
+    - name: Test
+      run: ctest --test-dir build --output-on-failure -j 4
+
   build-ubuntu-sanitizers:
     strategy:
       fail-fast: false

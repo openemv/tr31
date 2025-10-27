@@ -116,6 +116,14 @@ else()
 	# set as cache entry to persist across multiple builds
 	set(TR31_ENABLE_DATETIME_CONVERSION OFF CACHE INTERNAL "Date/time conversion availability")
 endif()
+# option to use sscanf() for date/time parsing even when strptime() is
+# available
+option(TR31_USE_SSCANF_DATETIME "Use sscanf() for date/time parsing")
+if(HAVE_STRPTIME AND NOT TR31_USE_SSCANF_DATETIME)
+	message(STATUS "Using strptime() for date/time parsing")
+else()
+	message(STATUS "Using sscanf() for date/time parsing")
+endif()
 
 include(GNUInstallDirs) # provides CMAKE_INSTALL_* variables and good defaults for install()
 
@@ -905,7 +913,7 @@ if(TARGET tr31-tool AND BUILD_TESTING)
 	)
 
 	# test IBM proprietary key block
-	# NOTE: the input was hand crafted based on https://www.ibm.com/docs/en/zos/3.1.0?topic=ktf-x9143-tr-31-key-block-header-optional-block-data and https://www.ibm.com/docs/en/linux-on-systems?topic=data-tr-31-optional-block
+	# NOTE: the input was hand crafted based on https://www.ibm.com/docs/en/zos/3.2.0?topic=ktf-x9143-tr-31-key-block-header-optional-block-data and https://www.ibm.com/docs/en/linux-on-systems?topic=data-tr-31-optional-block
 	add_test(NAME tr31_tool_test53
 		COMMAND tr31-tool --import D014410A100N0200101CIBMC01140123456789ABCDEFPB04000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 --import-no-strict-validation
 	)

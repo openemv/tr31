@@ -35,5 +35,6 @@
 #cmakedefine HAVE_LOCALTIME_R
 #cmakedefine HAVE_GMTIME_R
 #cmakedefine TR31_ENABLE_DATETIME_CONVERSION
+#cmakedefine TR31_USE_SSCANF_DATETIME
 
 #endif

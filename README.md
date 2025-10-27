@@ -11,7 +11,7 @@ This project began as an implementation of the ASC X9 TR-31 standard and has
 since grown to include the ANSI X9.143 standard which supersedes it, and the
 ISO 20038 standard which extends it. However, this project continues to refer
 to the library as TR-31 and prefixes the API, data types and command line tool
-with `tr31`, while mostly avoiding that naming when refering to key blocks and
+with `tr31`, while mostly avoiding that naming when referring to key blocks and
 data associated with key blocks. Given that most uses of these standards
 involve dedicated security hardware, this implementation is mostly for
 validation and debugging purposes.
@@ -55,9 +55,10 @@ Dependencies
 * TR-31 library requires [MbedTLS](https://github.com/Mbed-TLS/mbedtls)
   (preferred), or [OpenSSL](https://www.openssl.org/)
 * `tr31-tool` will be built by default and requires `argp` (either via Glibc, a
-  system-provided standalone or a downloaded implementation; see
+  system-provided standalone, or downloaded during the build from
+  [libargp](https://github.com/leonlynch/libargp); see
   [MacOS / Windows](#macos--windows)). Use the `BUILD_TR31_TOOL` option to
-  prevent TR-31 tool from being built and avoid the dependency on `argp`.
+  prevent `tr31-tool` from being built and avoid the dependency on `argp`.
 * [Doxygen](https://github.com/doxygen/doxygen) can _optionally_ be used to
   generate API documentation if it is available; see
   [Documentation](#documentation)
@@ -216,5 +217,15 @@ License
 
 Copyright 2020-2025 [Leon Lynch](https://github.com/leonlynch).
 
-This project is licensed under the terms of the LGPL v2.1 license. See
-[LICENSE](https://github.com/openemv/tr31/blob/master/LICENSE) file.
+This project is licensed under the terms of the LGPL v2.1 license with the
+exception of `tr31-tool` which is licensed under the terms of the GPL v3
+license.
+See [LICENSE](https://github.com/openemv/tr31/blob/master/LICENSE) file.
+
+This project includes [crypto](https://github.com/openemv/crypto) as a git
+submodule and it is licensed under the terms of the MIT license. See
+[LICENSE](https://github.com/openemv/crypto/blob/master/LICENSE) file.
+
+This project may download [libargp](https://github.com/leonlynch/libargp)
+during the build and it is licensed under the terms of the LGPL v3 license. See
+[LICENSE](https://github.com/leonlynch/libargp/blob/master/LICENSE) file.

@@ -12,5 +12,6 @@
 	<use>
 		<flag name="mbedtls">Use MbedTLS as the crypto library</flag>
 		<flag name="openssl">Use OpenSSL as the crypto library</flag>
+		<flag name="tools">Build command-line tool (tr31-tool)</flag>
 	</use>
 </pkgmetadata>

@@ -3,19 +3,18 @@
  *
  * Copyright 2020-2025 Leon Lynch
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this program. If not, see
- * <https://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include "tr31.h"
@@ -162,7 +161,7 @@ static struct argp_option argp_options[] = {
 	{ "export-opt-block-KC", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KC, NULL, 0, "Add optional block KC (KCV of wrapped key) during key block export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-KP", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KP, NULL, 0, "Add optional block KP (KCV of KBPK) during key block export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-KS", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_KS, "IKSN", 0, "Add optional block KS (Initial Key Serial Number) during key block export. May be used with either --export-template or --export-header." },
-	{ "export-opt-block-LB", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_LB, "ASCII", 0, "Add optinal block LB (Label) during key block export. May be used with either --export-template or --export-header." },
+	{ "export-opt-block-LB", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_LB, "ASCII", 0, "Add optional block LB (Label) during key block export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-PK", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_PK, "KCV", 0, "Add optional block PK (Protection Key Check Value) during key block export. May be used with either --export-template or --export-header." },
 	{ "export-opt-block-TC", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TC, "ISO8601", 0, "Add optional block TC (Time of Creation in ISO 8601 UTC format) during key block export. May be used with either --export-template or --export-header. Specify \"now\" for current date/time." },
 	{ "export-opt-block-TS", TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_TS, "ISO8601", 0, "Add optional block TS (Time Stamp in ISO 8601 UTC format) during key block export. May be used with either --export-template or --export-header. Specify \"now\" for current date/time." },
@@ -454,7 +453,7 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			}
 			for (size_t i = 0; i < strlen(arg); ++i) {
 				if (!isalnum(arg[i])) {
-					argp_error(state, "Export optional block DA consist of alphanumeric characters (invalid character '%c' is not allowed)", arg[i]);
+					argp_error(state, "Export optional block DA must consist of alphanumeric characters (invalid character '%c' is not allowed)", arg[i]);
 				}
 			}
 			options->export_opt_block_DA = arg;
