@@ -2,7 +2,7 @@
  * @file tr31_strings.c
  * @brief TR-31 string helper functions
  *
- * Copyright 2023 Leon Lynch
+ * Copyright 2023, 2025 Leon Lynch
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -519,7 +519,8 @@ static int tr31_opt_block_iso8601_get_string(const struct tr31_opt_ctx_t* opt_bl
 #endif
 	struct tm ztm; // Time structure in UTC
 	time_t lt; // Calendar/Unix/POSIX time in local time
-	struct tm* ltm; // Time structure in local time
+	struct tm ltm; // Time structure in local time
+	struct tm* tm_ptr; // Result of localtime functions
 	size_t ret;
 
 	if (!opt_block->data_length) {
@@ -528,6 +529,9 @@ static int tr31_opt_block_iso8601_get_string(const struct tr31_opt_ctx_t* opt_bl
 
 	// Copy optional block data to NULL-terminated string
 	iso8601_str = malloc(opt_block->data_length + 1);
+	if (!iso8601_str) {
+		return -1;
+	}
 	memcpy(iso8601_str, opt_block->data, opt_block->data_length);
 	iso8601_str[opt_block->data_length] = 0;
 
@@ -614,17 +618,27 @@ static int tr31_opt_block_iso8601_get_string(const struct tr31_opt_ctx_t* opt_bl
 #else
 #error "No platform function to convert UTC time to local time"
 #endif
-	ltm = localtime(&lt);
-	ztm = *ltm;
+#ifdef HAVE_LOCALTIME_R
+	tm_ptr = localtime_r(&lt, &ltm);
+	if (!tm_ptr) {
+		return -1;
+	}
+#else
+	tm_ptr = localtime(&lt);
+	if (!tm_ptr) {
+		return -1;
+	}
+	ltm = *tm_ptr;
+#endif
 
 	// Set time locale according to environment variable
 	setlocale(LC_TIME, "");
 
 	// Provide time according to locale
-	ret = strftime(str, str_len, "%c", &ztm);
+	ret = strftime(str, str_len, "%c", &ltm);
 	if (!ret) {
 		// Unexpected failure
-		return -1;
+		return -2;
 	}
 
 	return 0;

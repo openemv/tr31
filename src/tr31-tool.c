@@ -18,7 +18,10 @@
  */
 
 #include "tr31.h"
+#include "tr31_config.h"
 #include "tr31_strings.h"
+
+#include "crypto_mem.h"
 
 #include <stddef.h>
 #include <stdbool.h>
@@ -218,6 +221,9 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 					// Copy argument
 					buf_len = strlen(arg);
 					buf = malloc(buf_len);
+					if (!buf) {
+						argp_error(state, "Memory allocation failed");
+					}
 					memcpy(buf, arg, buf_len);
 				}
 
@@ -255,6 +261,9 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 					}
 					buf_len = arg_len / 2;
 					buf = malloc(buf_len);
+					if (!buf) {
+						argp_error(state, "Memory allocation failed");
+					}
 
 					r = parse_hex(arg, buf, buf_len);
 					if (r) {
@@ -312,7 +321,6 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			return 0;
 
 		case TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_VERBATIM: {
-			int r;
 			size_t arg_len = strlen(arg);
 			size_t fake_header_len;
 			char* fake_header;
@@ -322,6 +330,9 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			// existing key block parsing using a fake header
 			fake_header_len = 16 + arg_len;
 			fake_header = malloc(fake_header_len);
+			if (!fake_header) {
+				argp_error(state, "Memory allocation failed");
+			}
 			memcpy(fake_header, "D0000D0TB00N0100", 16);
 			memcpy(fake_header + 16, arg, arg_len);
 			r = tr31_init_from_header(
@@ -709,6 +720,9 @@ static void print_str(const void* buf, size_t length)
 	}
 
 	str = malloc(length + 1);
+	if (!str) {
+		return;
+	}
 	memcpy(str, buf, length);
 	str[length] = 0;
 	printf("%s", str);
@@ -879,6 +893,11 @@ static int do_tr31_import(const struct tr31_tool_options_t* options)
 						* da_attr_count
 						+ sizeof(struct tr31_opt_blk_da_data_t);
 					da_data = malloc(da_data_len);
+					if (!da_data) {
+						// fallback; print as string
+						print_str(tr31_ctx.opt_blocks[i].data, tr31_ctx.opt_blocks[i].data_length);
+						break;
+					}
 					r = tr31_opt_block_decode_DA(&tr31_ctx.opt_blocks[i], da_data, da_data_len);
 					if (r) {
 						// invalid; print as string
@@ -1342,7 +1361,8 @@ static int populate_opt_blocks(const struct tr31_tool_options_t* options, struct
 
 		if (strcmp(options->export_opt_block_TC_str, "now") == 0) {
 			time_t lt; // Calendar/Unix/POSIX time in local time
-			struct tm* ztm; // Time structure in UTC
+			struct tm ztm; // Time structure in UTC
+			struct tm* tm_ptr; // Result of gmtime functions
 			size_t ret;
 
 			lt = time(NULL);
@@ -1350,12 +1370,21 @@ static int populate_opt_blocks(const struct tr31_tool_options_t* options, struct
 				fprintf(stderr, "Failed to obtain current date/time: %s\n", strerror(errno));
 				return 1;
 			}
-			ztm = gmtime(&lt);
-			if (ztm == NULL) {
+#ifdef HAVE_GMTIME_R
+			tm_ptr = gmtime_r(&lt, &ztm);
+			if (!tm_ptr) {
 				fprintf(stderr, "Failed to convert current date/time to UTC\n");
 				return 1;
 			}
-			ret = strftime(iso8601_now, sizeof(iso8601_now), "%Y%m%d%H%M%SZ", ztm);
+#else
+			tm_ptr = gmtime(&lt);
+			if (!tm_ptr) {
+				fprintf(stderr, "Failed to convert current date/time to UTC\n");
+				return 1;
+			}
+			ztm = *tm_ptr;
+#endif
+			ret = strftime(iso8601_now, sizeof(iso8601_now), "%Y%m%d%H%M%SZ", &ztm);
 			if (!ret) {
 				fprintf(stderr, "Failed to convert current date/time to ISO 8601\n");
 				return 1;
@@ -1377,7 +1406,8 @@ static int populate_opt_blocks(const struct tr31_tool_options_t* options, struct
 
 		if (strcmp(options->export_opt_block_TS_str, "now") == 0) {
 			time_t lt; // Calendar/Unix/POSIX time in local time
-			struct tm* ztm; // Time structure in UTC
+			struct tm ztm; // Time structure in UTC
+			struct tm* tm_ptr; // Result of gmtime functions
 			size_t ret;
 
 			lt = time(NULL);
@@ -1385,12 +1415,21 @@ static int populate_opt_blocks(const struct tr31_tool_options_t* options, struct
 				fprintf(stderr, "Failed to obtain current date/time: %s\n", strerror(errno));
 				return 1;
 			}
-			ztm = gmtime(&lt);
-			if (ztm == NULL) {
+#ifdef HAVE_GMTIME_R
+			tm_ptr = gmtime_r(&lt, &ztm);
+			if (!tm_ptr) {
 				fprintf(stderr, "Failed to convert current date/time to UTC\n");
 				return 1;
 			}
-			ret = strftime(iso8601_now, sizeof(iso8601_now), "%Y%m%d%H%M%SZ", ztm);
+#else
+			tm_ptr = gmtime(&lt);
+			if (!tm_ptr) {
+				fprintf(stderr, "Failed to convert current date/time to UTC\n");
+				return 1;
+			}
+			ztm = *tm_ptr;
+#endif
+			ret = strftime(iso8601_now, sizeof(iso8601_now), "%Y%m%d%H%M%SZ", &ztm);
 			if (!ret) {
 				fprintf(stderr, "Failed to convert current date/time to ISO 8601\n");
 				return 1;
@@ -1471,6 +1510,10 @@ static int do_tr31_export(const struct tr31_tool_options_t* options)
 	// export key block
 	key_block_len = 16384;
 	key_block = malloc(key_block_len);
+	if (!key_block) {
+		fprintf(stderr, "Memory allocation failed\n");
+		return 1;
+	}
 	r = tr31_export(&tr31_ctx, &kbpk, options->export_flags, key_block, key_block_len);
 	if (r) {
 		fprintf(stderr, "TR-31 export error %d: %s\n", r, tr31_get_error_string(r));
@@ -1539,6 +1582,9 @@ exit:
 		free(options.export_opt_block_CT);
 		options.export_opt_block_CT = NULL;
 		options.export_opt_block_CT_count = 0;
+	}
+	if (options.kbpk) {
+		crypto_cleanse(options.kbpk_buf, sizeof(options.kbpk_buf));
 	}
 
 	return r;
