@@ -15,8 +15,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { name: "Fedora 41", fedora_version: 41 }
           - { name: "Fedora 42", fedora_version: 42 }
+          - { name: "Fedora 43", fedora_version: 43 }
 
     name: ${{ matrix.name }} build (static/debug)
     runs-on: ubuntu-latest
@@ -54,8 +54,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { name: "Fedora 41", fedora_version: 41 }
           - { name: "Fedora 42", fedora_version: 42 }
+          - { name: "Fedora 43", fedora_version: 43 }
 
     name: ${{ matrix.name }} release
     runs-on: ubuntu-latest
