@@ -1,3 +1,6 @@
+* Fri Oct 31 2025 Leon Lynch <lynch.leon@gmail.com> - 0.6.5-1
+- Update to tr31-0.6.5
+
 * Tue Jul 15 2025 Leon Lynch <lynch.leon@gmail.com> - 0.6.4-1
 - Update to tr31-0.6.4
 
