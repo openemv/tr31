@@ -15,10 +15,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { name: "MacOS 13", os: macos-13, osx_arch: "x86_64;arm64", build_type: "Debug", fetch_deps: YES }
-          - { name: "MacOS 13", os: macos-13, osx_arch: "x86_64", build_type: "Release", fetch_deps: NO }
-          - { name: "MacOS 14", os: macos-14, osx_arch: "arm64", build_type: "Debug", fetch_deps: NO }
-          - { name: "MacOS 14", os: macos-14, osx_arch: "x86_64;arm64", build_type: "Release", fetch_deps: YES }
+          - { name: "MacOS 15 Intel", os: macos-15-intel, osx_arch: "x86_64;arm64", build_type: "Debug", fetch_deps: YES }
+          - { name: "MacOS 15 Intel", os: macos-15-intel, osx_arch: "x86_64", build_type: "Release", fetch_deps: NO }
+          - { name: "MacOS 15", os: macos-15, osx_arch: "arm64", build_type: "Debug", fetch_deps: NO }
+          - { name: "MacOS 26", os: macos-26, osx_arch: "x86_64;arm64", build_type: "Release", fetch_deps: YES }
 
     name: ${{ matrix.name }} build (static/${{ matrix.build_type }})
     runs-on: ${{ matrix.os }}
