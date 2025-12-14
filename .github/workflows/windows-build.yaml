@@ -52,7 +52,6 @@ jobs:
       if: ${{ matrix.fetch_deps == 'NO' }}
       run: |
         pacman --noconfirm -S --needed mingw-w64-${{matrix.env}}-mbedtls
-        echo "CMAKE_REQUIRE_FIND_PACKAGE_MbedTLS=YES" >> $GITHUB_ENV
 
     # MSYS2 Git assumes CRLF by default
     - name: Configure Git
@@ -61,7 +60,12 @@ jobs:
         git describe --always --dirty
 
     - name: Configure CMake
-      run: cmake -G Ninja -B build -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DBUILD_SHARED_LIBS=${{ matrix.shared_libs }} -DFETCH_MBEDTLS=${{ matrix.fetch_deps }} -DCMAKE_REQUIRE_FIND_PACKAGE_MbedTLS=${{ env.CMAKE_REQUIRE_FIND_PACKAGE_MbedTLS }} -DFETCH_ARGP=YES
+      run: |
+        cmake -G Ninja -B build \
+          -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" \
+          -DBUILD_SHARED_LIBS=${{ matrix.shared_libs }} \
+          ${{ matrix.fetch_deps == 'NO' && '-DCMAKE_REQUIRE_FIND_PACKAGE_MbedTLS=YES' || '-DFETCH_MBEDTLS=YES' }} \
+          -DFETCH_ARGP=YES
 
     - name: Build
       run: cmake --build build -j 4

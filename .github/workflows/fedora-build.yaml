@@ -84,7 +84,13 @@ jobs:
       run: echo "GIT_DESCRIBE=$(git describe --always --dirty)" >> $GITHUB_ENV
 
     - name: Configure CMake
-      run: cmake -B build -DCMAKE_BUILD_TYPE="RelWithDebInfo" -DCMAKE_INSTALL_PREFIX=/usr -DBUILD_SHARED_LIBS=YES -DBUILD_DOCS=YES -DCPACK_COMPONENTS_GROUPING=ALL_COMPONENTS_IN_ONE
+      run: |
+        cmake -B build \
+          -DCMAKE_BUILD_TYPE="RelWithDebInfo"\
+          -DCMAKE_INSTALL_PREFIX=/usr \
+          -DBUILD_SHARED_LIBS=YES \
+          -DBUILD_DOCS=YES \
+          -DCPACK_COMPONENTS_GROUPING=ALL_COMPONENTS_IN_ONE
 
     - name: Build
       run: cmake --build build -j 4

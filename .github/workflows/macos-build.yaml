@@ -28,9 +28,9 @@ jobs:
       # Homebrew doesn't support universal binaries so only install dependencies for arch-specific builds
       if: ${{ matrix.fetch_deps == 'NO' }}
       run: |
-        brew install mbedtls
+        brew install mbedtls@3
         brew install argp-standalone
-        echo "CMAKE_REQUIRE_FIND_PACKAGE_MbedTLS=YES" >> $GITHUB_ENV
+        echo "MbedTLS_DIR=$(brew --prefix mbedtls@3)/lib/cmake/MbedTLS" >> $GITHUB_ENV
 
     - name: Checkout
       uses: actions/checkout@v4
@@ -39,7 +39,12 @@ jobs:
     - run: git describe --always --dirty
 
     - name: Configure CMake
-      run: cmake -B build -DCMAKE_OSX_ARCHITECTURES="${{ matrix.osx_arch }}" -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DFETCH_MBEDTLS=${{ matrix.fetch_deps }} -DCMAKE_REQUIRE_FIND_PACKAGE_MbedTLS=${{ env.CMAKE_REQUIRE_FIND_PACKAGE_MbedTLS }} -DFETCH_ARGP=${{ matrix.fetch_deps }}
+      run: |
+        cmake -B build \
+          -DCMAKE_OSX_ARCHITECTURES="${{ matrix.osx_arch }}" \
+          -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" \
+          ${{ matrix.fetch_deps == 'NO' && '-DCMAKE_REQUIRE_FIND_PACKAGE_MbedTLS=YES' || '-DFETCH_MBEDTLS=YES' }} \
+          -DFETCH_ARGP=${{ matrix.fetch_deps }}
 
     - name: Build
       run: cmake --build build -j 4
