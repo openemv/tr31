@@ -62,7 +62,7 @@ jobs:
       run: |
         cmake -B build \
           -DCMAKE_BUILD_TYPE="Debug" \
-          -DTR31_USE_SSCANF_DATETIME=ON
+          -DTR31_USE_SSCANF_DATETIME=YES
 
     - name: Build
       run: cmake --build build -j 4
@@ -97,7 +97,7 @@ jobs:
       run: |
         cmake -B build \
           -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" \
-          -DTR31_ENABLE_SANITIZERS=ON
+          -DTR31_ENABLE_SANITIZERS=YES
 
     - name: Build
       run: cmake --build build -j 4
@@ -126,7 +126,7 @@ jobs:
         cmake -B build \
           -DCMAKE_BUILD_TYPE="RelWithDebInfo" \
           -DBUILD_SHARED_LIBS=YES \
-          -DTR31_ENABLE_HARDENING=ON
+          -DTR31_ENABLE_HARDENING=YES
 
     - name: Build
       run: cmake --build build -j 4
