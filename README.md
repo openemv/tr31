@@ -31,8 +31,8 @@ available as a library as well as a command line tool.
 Installation
 ------------
 
-* For Ubuntu 20.04 LTS (Focal), 22.04 LTS (Jammy), or 24.04 LTS (Noble) install
-  the appropriate [release package](https://github.com/openemv/tr31/releases)
+* For Ubuntu 22.04 LTS (Jammy) or 24.04 LTS (Noble), install the appropriate
+  Ubuntu [release package](https://github.com/openemv/tr31/releases)
 * For Fedora 42 or Fedora 43, install the appropriate
   [release package](https://github.com/openemv/tr31/releases)
 * For Gentoo, use the
@@ -215,7 +215,7 @@ Roadmap
 License
 -------
 
-Copyright 2020-2025 [Leon Lynch](https://github.com/leonlynch).
+Copyright 2020-2026 [Leon Lynch](https://github.com/leonlynch).
 
 This project is licensed under the terms of the LGPL v2.1 license with the
 exception of `tr31-tool` which is licensed under the terms of the GPL v3
