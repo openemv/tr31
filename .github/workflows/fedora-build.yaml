@@ -1,5 +1,5 @@
 ##############################################################################
-# Copyright 2022-2025 Leon Lynch
+# Copyright 2022-2026 Leon Lynch
 #
 # This file is licensed under the terms of the LGPL v2.1 license.
 # See LICENSE file.
@@ -28,7 +28,7 @@ jobs:
         sudo dnf -y install git cmake gcc mbedtls-devel
 
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         submodules: recursive
 
@@ -67,7 +67,7 @@ jobs:
         sudo dnf -y install git cmake gcc mbedtls-devel bash-completion-devel doxygen rpm-build
 
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         fetch-depth: 0
         submodules: recursive
@@ -102,7 +102,7 @@ jobs:
       run: cmake --build build --target package
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: tr31-${{ env.GIT_DESCRIBE }}-fedora${{ matrix.fedora_version }}
         path: build/tr31-*.rpm
