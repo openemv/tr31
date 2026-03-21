@@ -1,11 +1,11 @@
 ##############################################################################
-# Copyright 2020-2023, 2025 Leon Lynch
+# Copyright 2020-2023, 2025-2026 Leon Lynch
 #
 # This file is licensed under the terms of the LGPL v2.1 license.
 # See LICENSE file.
 ##############################################################################
 
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.22)
 
 # assume that only GCC supports __attribute__((nonstring))
 if(CMAKE_C_COMPILER_ID STREQUAL "GNU")

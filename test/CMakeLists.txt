@@ -1,11 +1,11 @@
 ##############################################################################
-# Copyright 2020-2022 Leon Lynch
+# Copyright 2020-2022, 2026 Leon Lynch
 #
 # This file is licensed under the terms of the LGPL v2.1 license.
 # See LICENSE file.
 ##############################################################################
 
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.22)
 
 if(BUILD_TESTING)
 	add_executable(tr31_decode_test tr31_decode_test.c)

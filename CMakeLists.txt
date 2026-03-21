@@ -1,11 +1,11 @@
 ##############################################################################
-# Copyright 2020-2025 Leon Lynch
+# Copyright 2020-2026 Leon Lynch
 #
 # This file is licensed under the terms of the LGPL v2.1 license.
 # See LICENSE file.
 ##############################################################################
 
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.22)
 
 project(tr31
 	VERSION 0.6.5
@@ -15,15 +15,7 @@ project(tr31
 )
 
 # Determine whether this project is the top-level project
-if(${CMAKE_VERSION} VERSION_LESS "3.21")
-	get_directory_property(TR31_HAS_PARENT PARENT_DIRECTORY)
-	if(NOT TR31_HAS_PARENT)
-		set(TR31_IS_TOP_LEVEL True)
-	endif()
-else()
-	# CMake >=3.21 provides <PROJECT-NAME>_IS_TOP_LEVEL
-	set(TR31_IS_TOP_LEVEL ${tr31_IS_TOP_LEVEL})
-endif()
+set(TR31_IS_TOP_LEVEL ${tr31_IS_TOP_LEVEL})
 
 # Configure compiler
 set(CMAKE_C_STANDARD 11)
