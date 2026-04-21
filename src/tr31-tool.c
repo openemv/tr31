@@ -1,7 +1,7 @@
 /**
  * @file tr31-tool.c
  *
- * Copyright 2020-2025 Leon Lynch
+ * Copyright 2020-2026 Leon Lynch
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -209,12 +209,14 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 				if (strcmp(arg, "-") == 0) {
 					if (options->found_stdin_arg) {
 						argp_error(state, "Only one option may be read from stdin");
+						return EINVAL;
 					}
 					options->found_stdin_arg = true;
 
 					buf = read_file(stdin, &buf_len);
 					if (!buf) {
 						argp_error(state, "Failed to read data from stdin");
+						return EINVAL;
 					}
 
 				} else {
@@ -223,6 +225,7 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 					buf = malloc(buf_len);
 					if (!buf) {
 						argp_error(state, "Memory allocation failed");
+						return ENOMEM;
 					}
 					memcpy(buf, arg, buf_len);
 				}
@@ -245,12 +248,14 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 				if (strcmp(arg, "-") == 0) {
 					if (options->found_stdin_arg) {
 						argp_error(state, "Only one option may be read from stdin");
+						return EINVAL;
 					}
 					options->found_stdin_arg = true;
 
 					buf = read_file(stdin, &buf_len);
 					if (!buf) {
 						argp_error(state, "Failed to read data from stdin");
+						return EINVAL;
 					}
 
 				} else {
@@ -258,16 +263,20 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 					size_t arg_len = strlen(arg);
 					if (arg_len % 2 != 0) {
 						argp_error(state, "KEY string must have even number of digits");
+						return EINVAL;
 					}
 					buf_len = arg_len / 2;
 					buf = malloc(buf_len);
 					if (!buf) {
 						argp_error(state, "Memory allocation failed");
+						return ENOMEM;
 					}
 
 					r = parse_hex(arg, buf, buf_len);
 					if (r) {
 						argp_error(state, "KEY string must consist of hex digits");
+						free(buf);
+						return EINVAL;
 					}
 				}
 
@@ -300,6 +309,7 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 		case TR31_TOOL_OPTION_EXPORT_FORMAT_VERSION:
 			if (strlen(arg) != 1) {
 				argp_error(state, "Export format version must be a single digit");
+				return EINVAL;
 			}
 			options->export_format_version = *arg;
 			return 0;
@@ -311,10 +321,12 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 		case TR31_TOOL_OPTION_EXPORT_HEADER:
 			if (strlen(arg) < 16) {
 				argp_error(state, "Export header must be at least 16 characters/bytes");
+				return EINVAL;
 			}
 			for (size_t i = 0; i < strlen(arg); ++i) {
 				if (!isprint(arg[i])) {
 					argp_error(state, "Export header must consist of printable characters (invalid character '%c' is not allowed)", arg[i]);
+					return EINVAL;
 				}
 			}
 			options->export_header = arg;
@@ -332,6 +344,7 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			fake_header = malloc(fake_header_len);
 			if (!fake_header) {
 				argp_error(state, "Memory allocation failed");
+				return ENOMEM;
 			}
 			memcpy(fake_header, "D0000D0TB00N0100", 16);
 			memcpy(fake_header + 16, arg, arg_len);
@@ -344,6 +357,7 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			free(fake_header);
 			if (r) {
 				argp_error(state, "Error while parsing verbatim optional block (%s): %s", arg, tr31_get_error_string(r));
+				return EINVAL;
 			}
 
 			// add verbatim optional block to list and cleanup temporary key block context object
@@ -361,6 +375,7 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 					r,
 					tr31_get_error_string(r)
 				);
+				return EINVAL;
 			}
 			return 0;
 		}
@@ -374,6 +389,7 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 				options->export_opt_block_AL_akl = TR31_OPT_BLOCK_AL_AKL_STATIC;
 			} else {
 				argp_error(state, "Export optional block AL must be either \"Ephemeral\" or \"Static\"");
+				return EINVAL;
 			}
 			return 0;
 
@@ -381,17 +397,20 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			size_t arg_len = strlen(arg);
 			if (arg_len % 2 != 0) {
 				argp_error(state, "Export optional block BI must have even number of digits");
+				return EINVAL;
 			}
 			if ((arg_len != 10 && arg_len != 8) ||
 				arg_len / 2 > sizeof(options->export_opt_block_BI_buf)
 			) {
 				argp_error(state, "Export optional block BI must be either 10 digits (thus 5 bytes) for Key set ID (KSI) or 8 digits (thus 4 bytes) for Base Derivation Key ID (BDK ID)");
+				return EINVAL;
 			}
 			options->export_opt_block_BI_buf_len = arg_len / 2;
 
 			r = parse_hex(arg, options->export_opt_block_BI_buf, options->export_opt_block_BI_buf_len);
 			if (r) {
 				argp_error(state, "Export optional block BI must consist of hex digits");
+				return EINVAL;
 			}
 			return 0;
 		}
@@ -400,10 +419,12 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			size_t arg_len = strlen(arg);
 			if (arg_len % 4 != 0) {
 				argp_error(state, "Export optional block CT base64 string must be a multiple of 4 bytes");
+				return EINVAL;
 			}
 			for (size_t i = 0; i < strlen(arg); ++i) {
 				if (!isalnum(arg[i]) && arg[i] != '+' && arg[i] != '/' && arg[i] != '=') {
 					argp_error(state, "Export optional block CT base64 string contains invalid character '%c')", arg[i]);
+					return EINVAL;
 				}
 			}
 			struct tr31_opt_block_CT ct = {
@@ -425,10 +446,12 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			size_t arg_len = strlen(arg);
 			if (arg_len % 4 != 0) {
 				argp_error(state, "Export optional block CT base64 string must be a multiple of 4 bytes");
+				return EINVAL;
 			}
 			for (size_t i = 0; i < strlen(arg); ++i) {
 				if (!isalnum(arg[i]) && arg[i] != '+' && arg[i] != '/' && arg[i] != '=') {
 					argp_error(state, "Export optional block CT base64 string contains invalid character '%c')", arg[i]);
+					return EINVAL;
 				}
 			}
 			struct tr31_opt_block_CT ct = {
@@ -450,10 +473,12 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			size_t arg_len = strlen(arg);
 			if (arg_len % 5 != 0) {
 				argp_error(state, "Export optional block DA must be a multiple of 5 bytes");
+				return EINVAL;
 			}
 			for (size_t i = 0; i < strlen(arg); ++i) {
 				if (!isalnum(arg[i])) {
 					argp_error(state, "Export optional block DA must consist of alphanumeric characters (invalid character '%c' is not allowed)", arg[i]);
+					return EINVAL;
 				}
 			}
 			options->export_opt_block_DA = arg;
@@ -463,11 +488,13 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 		case TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_HM: {
 			if (strlen(arg) != 2) {
 				argp_error(state, "Export optional block HM must be 2 digits (thus 1 byte)");
+				return EINVAL;
 			}
 
 			r = parse_hex(arg, &options->export_opt_block_HM, sizeof(options->export_opt_block_HM));
 			if (r) {
 				argp_error(state, "Export optional block HM must consist of hex digits");
+				return EINVAL;
 			}
 			return 0;
 		}
@@ -476,17 +503,20 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			size_t arg_len = strlen(arg);
 			if (arg_len % 2 != 0) {
 				argp_error(state, "Export optional block IK must have even number of digits");
+				return EINVAL;
 			}
 			if (arg_len != 16 ||
 				arg_len / 2 > sizeof(options->export_opt_block_IK_buf)
 			) {
 				argp_error(state, "Export optional block IK must be 16 digits (thus 8 bytes)");
+				return EINVAL;
 			}
 			options->export_opt_block_IK_buf_len = arg_len / 2;
 
 			r = parse_hex(arg, options->export_opt_block_IK_buf, options->export_opt_block_IK_buf_len);
 			if (r) {
 				argp_error(state, "Export optional block IK must consist of hex digits");
+				return EINVAL;
 			}
 			return 0;
 		}
@@ -503,17 +533,20 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			size_t arg_len = strlen(arg);
 			if (arg_len % 2 != 0) {
 				argp_error(state, "Export optional block KS must have even number of digits");
+				return EINVAL;
 			}
 			if ((arg_len != 20 && arg_len != 16) ||
 				arg_len / 2 > sizeof(options->export_opt_block_KS_buf)
 			) {
 				argp_error(state, "Export optional block KS must be either 20 digits (thus 10 bytes, according to ANSI X9.143) or 16 digits (thus 8 bytes, for legacy implementations)");
+				return EINVAL;
 			}
 			options->export_opt_block_KS_buf_len = arg_len / 2;
 
 			r = parse_hex(arg, options->export_opt_block_KS_buf, options->export_opt_block_KS_buf_len);
 			if (r) {
 				argp_error(state, "Export optional block KS must consist of hex digits");
+				return EINVAL;
 			}
 			return 0;
 		}
@@ -526,17 +559,20 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			size_t arg_len = strlen(arg);
 			if (arg_len % 2 != 0) {
 				argp_error(state, "Export optional block PK must have even number of digits");
+				return EINVAL;
 			}
 			if ((arg_len != 4 && arg_len != 6 && arg_len != 10) ||
 				arg_len / 2 > sizeof(options->export_opt_block_PK_buf)
 			) {
 				argp_error(state, "Export optional block PK must be 4 or 6 digits (thus 2 or 3 bytes) for TDES legacy KCV or 10 digits (thus 5 bytes) for AES CMAC KCV");
+				return EINVAL;
 			}
 			options->export_opt_block_PK_buf_len = arg_len / 2;
 
 			r = parse_hex(arg, options->export_opt_block_PK_buf, options->export_opt_block_PK_buf_len);
 			if (r) {
 				argp_error(state, "Export optional block PK must consist of hex digits");
+				return EINVAL;
 			}
 			return 0;
 		}
@@ -552,9 +588,11 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 		case TR31_TOOL_OPTION_EXPORT_OPT_BLOCK_WP:
 			if (strlen(arg) != 1) {
 				argp_error(state, "Export optional block WP must be a single digit");
+				return EINVAL;
 			}
 			if (arg[0] < 0x30 || arg[0] > 0x33) {
 				argp_error(state, "Export optional block WP must be a value from 0 to 3");
+				return EINVAL;
 			}
 			options->export_opt_block_WP = true;
 			options->export_opt_block_WP_value = arg[0] - 0x30; // convert ASCII number to integer
@@ -574,6 +612,8 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 					sizeof(options->kbpk_buf) * 2,
 					sizeof(options->kbpk_buf)
 				);
+				free(buf);
+				return EINVAL;
 			}
 			memcpy(options->kbpk_buf, buf, buf_len);
 			options->kbpk_buf_len = buf_len;
@@ -601,22 +641,26 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			// check for required options
 			if (!options->import && !options->export) {
 				argp_error(state, "Either --import option or --export option is required");
+				return EINVAL;
 			}
 
 			// check for conflicting options
 			if (options->import && options->export) {
 				argp_error(state, "The --import option and --export option cannot be specified simultaneously");
+				return EINVAL;
 			}
 
 			// check for required --export options
 			if (options->export && !options->kbpk) {
 				argp_error(state, "The --export option requires --kbpk");
+				return EINVAL;
 			}
 			if (options->export &&
 				(!options->export_key_algorithm || !options->export_format_version || !options->export_template) &&
 				!options->export_header
 			) {
 				argp_error(state, "The --export option requires either --export-key-algorithm, --export-format-version and --export-template, or only --export-header");
+				return EINVAL;
 			}
 			if (options->export &&
 				options->export_template &&
@@ -625,11 +669,13 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 				!options->export_opt_block_KS_buf_len
 			) {
 				argp_error(state, "The --export-template option for Initial key (\"IK\") requires either --export-opt-block-IK or --export-opt-block-KS");
+				return EINVAL;
 			}
 
 			// check for conflicting --export options
 			if (options->export && options->export_template && options->export_header) {
 				argp_error(state, "The --export-template option and --export-header option cannot be specified simultaneously");
+				return EINVAL;
 			}
 
 			return 0;
