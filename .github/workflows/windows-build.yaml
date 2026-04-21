@@ -17,8 +17,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { sys: mingw64, env: x86_64, build_type: "Debug", lib_type: "static", shared_libs: "NO", fetch_deps: YES }
-          - { sys: mingw64, env: x86_64, build_type: "Release", lib_type: "dll", shared_libs: "YES", fetch_deps: NO }
           - { sys: ucrt64, env: ucrt-x86_64, build_type: "Debug", lib_type: "static", shared_libs: "NO", fetch_deps: YES }
           - { sys: ucrt64, env: ucrt-x86_64, build_type: "Release", lib_type: "dll", shared_libs: "YES", fetch_deps: NO }
           - { sys: clang64, env: clang-x86_64, build_type: "Debug", lib_type: "dll", shared_libs: "YES", fetch_deps: NO }
